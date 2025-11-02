@@ -12,7 +12,7 @@ import Testimonial from './components/Home/Testimonial'
 import AstrologerSection from './components/Home/AstrologerSection'
 import LandingLoader from './components/Loading'
 import Link from "next/link";
-import useRouter from "next/navigation"
+import { useRouter } from "next/navigation";
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const navigate = useRouter()
@@ -21,7 +21,7 @@ const Navbar = () => {
     setIsMobileMenuOpen(!isMobileMenuOpen);
   };
   
-s
+
   
   return (
     <nav className="w-full flex justify-center">
@@ -35,14 +35,39 @@ s
         
         {/* Desktop Menu */}
         <ul className="hidden lg:flex space-x-6 xl:space-x-10 text-[16px] lg:text-[18px] lg:mr-[50px] font-normal" style={{fontFamily: "Noto Sans"}}>
-          {["Home", "Products", "Services", "Best Astrologer", "Who are we"].map((item, index) => (
+          
             <li
-              key={index}
+              
               className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
             >
-              {item}
+             <Link href = "/">Home</Link>
             </li>
-          ))}
+            <li
+              
+              className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
+            >
+             <Link href = "/Product">Products</Link>
+            </li>
+            <li
+              
+              className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
+            >
+             <Link href = "/">Services</Link>
+            </li>
+            <li
+              
+              className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
+            >
+             <Link href = "/">Best Astrologer</Link>
+            </li>
+            <li
+              
+              className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
+            >
+             <Link href = "/">Who are we</Link>
+            </li>
+            
+          
         </ul>
 
         {/* Mobile Menu Button */}
@@ -59,10 +84,14 @@ s
         
         <div className="flex items-center space-x-4 lg:space-x-6">
           <FaShoppingCart className="text-lg lg:text-xl cursor-pointer text-[#F6F3E4]" />
+          <Link href = "/Login">
           <button className="px-3 py-1.5 lg:px-5 lg:py-2 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow-md hover:bg-[#E8E3CF] transition-all duration-300 flex items-center space-x-2 text-sm lg:text-base">
+           
             <FaUser className="text-sm lg:text-base" /> 
             <span className="hidden sm:inline">Login</span>
+
           </button>
+          </Link>
         </div>
 
         {/* Mobile Sidebar Menu */}
@@ -114,13 +143,13 @@ s
                   ))}
                 </ul>
                 
-                <div className="absolute bottom-4 left-4 right-4">
-                  <Link href="/Login"> 
-                  <button className="w-full px-4 py-3 bg-[#7E5833] text-white rounded-lg shadow-md hover:bg-[#5A3E25] transition-all duration-300 text-base flex items-center justify-center space-x-2"onClick={() =>{navigate("/Login")}}>
+                <div className="absolute bottom-4 left-4 right-4" >
+                  
+                  <button className="w-full px-4 py-3 bg-[#7E5833] text-white rounded-lg shadow-md hover:bg-[#5A3E25] transition-all duration-300 text-base flex items-center justify-center space-x-2" onClick={() =>{console.log("hello")}}>
                     <FaUser className="text-base" /> 
                     <span>Login/Sign Up</span>
                   </button>
-                  </Link>
+              
                 </div>
               </motion.div>
             </>
