@@ -1,11 +1,12 @@
 "use client";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Image from "next/image";
 import { Mail, Key, User, Phone } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
 import { authAPI } from "../lib/auth";
 import { useRouter } from "next/navigation";
+import { ButtonLoader, CardLoader, SignupLoader } from "../components/Loading";
 
 // --- Sacred Earth Theme Colors ---
 const theme = {
@@ -26,9 +27,21 @@ const Signup = () => {
     name: "",
     phone: "",
   });
-  const [countryCode, setCountryCode] = useState("+91");
 
+  const [countryCode, setCountryCode] = useState("+91");
+  const [loading, setLoading] = useState(false)
+  const [loading1, setLoading1] = useState(false);
+  
   // ✅ Handle Input Changes
+  useEffect(() =>{
+    setLoading(true);
+    setTimeout(() =>{
+      setLoading(false)
+
+    },2000)
+
+  },[])
+if (loading) return <SignupLoader/> 
   const handleChange = (e) => {
     setFormData({
       ...formData,
@@ -54,26 +67,32 @@ const Signup = () => {
       toast.error("Please enter a valid 10-digit phone number!");
       return;
     }
-
+    setLoading1(true)
     const fullPhone = `${countryCode}${formData.phone}`;
 
     try {
+     
       const result = await authAPI.resigter({
         ...formData,
         phone: fullPhone,
       });
       if (result) {
+
         toast.success(result.message);
+        setLoading1(false)
         setTimeout(() => {
           router.push("/Login");
         }, 2000);
       }
     } catch (err) {
       toast.error(err.message);
+       setLoading1(false)
     }
   };
 
   return (
+    <> 
+   
     <div
       className={`min-h-screen flex items-center justify-center bg-[#e5dece] font-[Lora]`}
     >
@@ -183,7 +202,7 @@ const Signup = () => {
                         : "bg-[#7e5833] text-white"
                     }`}
                   >
-                    SIGNUP
+                  {loading1?<ButtonLoader text="creating account..."/>:'SIGNUP'}
                   </button>
                 </div>
               </div>
@@ -204,6 +223,7 @@ const Signup = () => {
         </div>
       </div>
     </div>
+    </>
   );
 };
 

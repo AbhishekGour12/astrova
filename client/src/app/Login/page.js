@@ -4,7 +4,7 @@ import Image from "next/image";
 import { Phone } from "lucide-react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { auth } from "../firebase/firebase";
+
 import {authAPI} from '../lib/auth';
 
 
@@ -129,22 +129,32 @@ const Login = () => {
       return;
     }
   
-      
+      try{
     const enteredOtp = otp.join("");
     if (enteredOtp.length !== 6) {
       toast.error("Please enter a valid 6-digit OTP!");
       return;
     }
+    console.log(enteredOtp)
     const userData = {
       phone: formData.phone,
       otp: enteredOtp
     }
     const respone = await authAPI.login(userData);
-    if(respone.success){
+    console.log(respone)
+    if(respone){
       toast.success(respone.message);
       localStorage.setItem("token", respone.token)
 
     }
+  }catch(err){
+    if(err.message === "Authentication service configuration error. Please inform support."){
+      toast.err("otp verification failed resend the otp!");
+      return
+    }
+    toast.error(err.message);
+    
+  }
 
     // Simulate successful login
     

@@ -1,7 +1,7 @@
 import User  from "../models/User.js";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
-import sendOTP from "../middleware/sendOTP.js";
+
 import twilio  from 'twilio'
 
 
@@ -31,47 +31,85 @@ const isE164 = (number) => /^\+[1-9]\d{10,14}$/.test(number);
     }
 }
 
-const Login = async (req, res) =>{
+// Assuming required imports (twilio, jwt, isE164) are present at the top of the file
+
+// Assuming required imports (twilio, jwt, isE164) are present at the top of the file
+
+const Login = async (req, res) => {
     const { phone, otp } = req.body;
-     const formattedPhone = formData.phone.startsWith("+") ? formData.phone : `+91${formData.phone}`;
-    try {
-        
-        if (!phone || !otp || !isE164(formattedPhone)) {
+    
+    // 1. Input Validation and Formatting
+    const formattedPhone = phone.startsWith("+") ? phone : `+91${phone}`;
+
+    if (!phone || !otp || !isE164(formattedPhone)) {
         return res.status(400).json({ success: false, message: 'Missing phone number or code, or invalid phone format.' });
     }
     
-    const client = twilio( process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
+    // 2. Twilio Configuration Check (CRITICAL)
     const VERIFY_SERVICE_ID = process.env.TWILIO_VERIFY_SERVICE_SID;
-   
+    if (!VERIFY_SERVICE_ID || VERIFY_SERVICE_ID.length < 30 || !VERIFY_SERVICE_ID.startsWith('VA')) {
+        console.error("TWILIO CONFIG ERROR: Service SID is invalid or missing.");
+        // DO NOT expose config error to user, but log it clearly.
+        return res.status(500).json({ success: false, message: "Server configuration error. Please contact support." });
+    }
 
-    const verificationCheck = await client.verify.v2.services(VERIFY_SERVICE_ID)
-            .verificationChecks
-            .create({ to: formattedPhone, code: otp }); 
+    try {
+        // Initialize Twilio client
+        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        
+        // Find User Record (Essential for JWT payload and database lookup)
+        // NOTE: You must include logic here to find the user by phone number
+        const user = await User.findOne({ phone: phone }); 
+        if (!user) {
+            return res.status(404).json({ success: false, message: "User not found." });
+        }
 
-     if (verificationCheck.status === 'approved') {
-            // SUCCESS! User is verified.
-             const token = jwt.sign({ id: user._id}, process.env.JWT_SECRET, { expiresIn: '1h' });
-             res.status(200).json({ message: "Login successful", token });
+        let verificationCheck;
+        
+        // 3. Perform Verification Check - Isolated Try/Catch Block for Twilio API call
+        try {
+             verificationCheck = await client.verify.v2.services(VERIFY_SERVICE_ID)
+                .verificationChecks
+                .create({ to: formattedPhone, code: otp });
+            
+            console.log("Twilio Verification Check Attempted. Status:", verificationCheck.status);
+
+        } catch (twilioError) {
+            // This captures the 404 error if Twilio fails the API call itself.
+            console.error("Twilio API Call Error:", twilioError.message);
+            
+            if (twilioError.code === 20404) {
+                // Configuration error: Service SID is wrong. Requires developer fix.
+                return res.status(500).json({ success: false, message: "Authentication service configuration error. Please inform support." });
+            }
+            // Handle other common Twilio errors (e.g., bad code, rate limits)
+            return res.status(400).json({ success: false, message: "Verification failed due to external error. Check code or try again." });
+        }
+
+
+        // 4. Handle Verification Result
+        if (verificationCheck.status === 'approved') {
+            console.log(verificationCheck)
+            // SUCCESS: Generate JWT and return response
+            // Assuming 'User' model is imported and used for authentication
+            const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            console.log(token)
+            // You should return the user role here for frontend routing
+            res.status(200).json({ message: "Login successful", token, role: user.role }); 
         } else {
-            // Code is incorrect or expired (status will be 'pending' or 'failed')
+            // Failure: Code is incorrect or expired (status will be 'pending' or 'failed')
             return res.status(401).json({ 
                 success: false, 
-                message: 'Invalid or expired OTP code.',
-                status: verificationCheck.status 
+                message: 'Invalid or expired OTP code. Please try again.',
             });
         }
-        /**  
-        if(user.otp === Number(otp)){
-      
-        }else{
-            res.status(400).json({message: "Invalid OTP"});
-        }
-            */
     } catch (error) {
-        console.error("Error logging in user:", error);
+        // 5. Handle Final Internal Errors (DB access, JWT failure, etc.)
+        console.error("Final Error logging in user:", error.message);
         res.status(500).json({ message: "Internal server error" });
     }
-}
+};
+
 
 const userProfile = async (req, res) =>{
     try {
