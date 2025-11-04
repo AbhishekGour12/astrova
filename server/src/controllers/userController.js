@@ -1,9 +1,7 @@
 import User  from "../models/User.js";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
-
-import twilio  from 'twilio'
-
+import axios from 'axios'
 
 
 
@@ -11,6 +9,7 @@ import twilio  from 'twilio'
 
 // Input Validation Helper
 const isE164 = (number) => /^\+[1-9]\d{10,14}$/.test(number);
+const otpStore = new Map();
 
     const Signup = async (req, res) =>{
     const { name, phone } = req.body;
@@ -46,16 +45,29 @@ const Login = async (req, res) => {
     }
     
     // 2. Twilio Configuration Check (CRITICAL)
-    const VERIFY_SERVICE_ID = process.env.TWILIO_VERIFY_SERVICE_SID;
-    if (!VERIFY_SERVICE_ID || VERIFY_SERVICE_ID.length < 30 || !VERIFY_SERVICE_ID.startsWith('VA')) {
-        console.error("TWILIO CONFIG ERROR: Service SID is invalid or missing.");
-        // DO NOT expose config error to user, but log it clearly.
-        return res.status(500).json({ success: false, message: "Server configuration error. Please contact support." });
-    }
+   
 
     try {
+        const record = otpStore.get(formattedPhone);
+
+  if (!record) {
+    return res.status(400).json({ success: false, message: "OTP expired or not found" });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(formattedPhone);
+    return res.status(400).json({ success: false, message: "OTP expired" });
+  }
+
+  if (record.otp.toString() !== otp.toString()) {
+    return res.status(400).json({ success: false, message: "Invalid OTP" });
+  }
+
+     otpStore.delete(mobile);
+ 
+
         // Initialize Twilio client
-        const client = twilio(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN);
+        
         
         // Find User Record (Essential for JWT payload and database lookup)
         // NOTE: You must include logic here to find the user by phone number
@@ -64,45 +76,21 @@ const Login = async (req, res) => {
             return res.status(404).json({ success: false, message: "User not found." });
         }
 
-        let verificationCheck;
-        
+      
         // 3. Perform Verification Check - Isolated Try/Catch Block for Twilio API call
-        try {
-             verificationCheck = await client.verify.v2.services(VERIFY_SERVICE_ID)
-                .verificationChecks
-                .create({ to: formattedPhone, code: otp });
-            
-            console.log("Twilio Verification Check Attempted. Status:", verificationCheck.status);
-
-        } catch (twilioError) {
+        
             // This captures the 404 error if Twilio fails the API call itself.
-            console.error("Twilio API Call Error:", twilioError.message);
-            
-            if (twilioError.code === 20404) {
-                // Configuration error: Service SID is wrong. Requires developer fix.
-                return res.status(500).json({ success: false, message: "Authentication service configuration error. Please inform support." });
-            }
-            // Handle other common Twilio errors (e.g., bad code, rate limits)
-            return res.status(400).json({ success: false, message: "Verification failed due to external error. Check code or try again." });
-        }
-
+           
 
         // 4. Handle Verification Result
-        if (verificationCheck.status === 'approved') {
-            console.log(verificationCheck)
+      
             // SUCCESS: Generate JWT and return response
             // Assuming 'User' model is imported and used for authentication
             const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
             console.log(token)
             // You should return the user role here for frontend routing
             res.status(200).json({ message: "Login successful", token, role: user.role }); 
-        } else {
-            // Failure: Code is incorrect or expired (status will be 'pending' or 'failed')
-            return res.status(401).json({ 
-                success: false, 
-                message: 'Invalid or expired OTP code. Please try again.',
-            });
-        }
+        
     } catch (error) {
         // 5. Handle Final Internal Errors (DB access, JWT failure, etc.)
         console.error("Final Error logging in user:", error.message);
@@ -192,30 +180,43 @@ const user  = async(req, res) =>{
 const requestotp = async( req, res) =>{
     const phone = req.params;
      const formattedPhone = phone.phone.startsWith("+") ? phone.phone : `+91${phone.phone}`;
-   
-    const client = twilio( process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-   console.log(process.env.TWILIO_ACCOUNT_SID, process.env.TWILIO_AUTH_TOKEN)
-   const VERIFY_SERVICE_ID = process.env.TWILIO_VERIFY_SERVICE_SID;
+   console.log(process.env.CPAAS_API_KEY)
+  
    
     try{
         
     if (!phone.phone || !isE164(formattedPhone)) {
         return res.status(400).json({ success: false, message: 'Invalid phone number format. Must be E.164 (+CCNNNNNNNNN).' });
     }
+    const otp = Math.floor(100000 + Math.random() * 900000);
 
-       const verification = await client.verify.v2
-      .services(VERIFY_SERVICE_ID)
-      .verifications.create({
-        to: formattedPhone,
-        channel: "sms",
-      });
+    // 2️⃣ Store OTP temporarily (5 mins expiry)
+    otpStore.set(formattedPhone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    console.log(otpStore)
+
+    // 3️⃣ Send SMS via CPaaS API
+    const response = await axios.get(
+      "https://cpaas.socialteaser.com/restapi/request.php",
+      {
+        params: {
+          authkey: process.env.CPAAS_API_KEY,
+          mobile: formattedPhone,
+          country_code: "91",
+          sid: "1001", // your SMS template ID
+          name:  "User",
+          otp,
+        },
+      }
+    );
+   console.log(response.data)
+     
    
        // const result = await User.findOneAndUpdate({phone: phone.email}, {otp: otp});
        // console.log(result)
        return res.status(200).json({ 
             success: true, 
             message: 'Verification request sent.',
-            status: verification.status,
+           
             // WARNING: Do NOT send the Verification SID back to the client. The Twilio Verify API handles the binding automatically.
         });
     }catch(err){

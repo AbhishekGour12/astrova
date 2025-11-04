@@ -6,9 +6,6 @@ import {
   getAllAstrologers,
   approveAstrologer,
   deleteAstrologer,
-  addProduct,
-  updateProduct,
-  deleteProduct,
   getAllOrders,
   updateOrderStatus,
   getAllPayments,
@@ -18,7 +15,17 @@ import {
   addSubAdmin,
   deleteSubAdmin,
 } from "../controllers/adminController.js";
+import {
 
+  getProducts,
+ 
+  getProductTypes,
+  addProductType,
+  addBulkProductsWithImages,
+  uploadBulkProductsWithImages,
+} from "../controllers/productController.js";
+import multer from "multer";
+import upload from "../utils/multer.js";
 const router = express.Router();
 
 // Dashboard
@@ -33,10 +40,37 @@ router.get("/astrologers", getAllAstrologers);
 router.patch("/astrologers/approve/:id", approveAstrologer);
 router.delete("/astrologers/:id", deleteAstrologer);
 
-// Products
-router.post("/products", addProduct);
-router.put("/products/:id", updateProduct);
-router.delete("/products/:id", deleteProduct);
+
+
+
+
+
+//Product
+
+router.post(
+  "/",
+  upload.array("images", 50), // allow up to 50 product images
+  addBulkProductsWithImages
+);
+
+// ✅ Excel upload (single file)
+router.post(
+  "/bulk-upload", 
+  upload.fields([
+    { name: "excelFile", maxCount: 1 },
+    { name: "productImages", maxCount: 50 }
+  ]), 
+  uploadBulkProductsWithImages // This will handle both Excel data and images
+);
+
+// ✅ Product types management
+router.get("/types", getProductTypes);
+router.post("/types", addProductType);
+
+// ✅ Get all products
+router.get("/", getProducts);
+
+
 
 // Orders
 router.get("/orders", getAllOrders);

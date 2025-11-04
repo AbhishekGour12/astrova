@@ -119,27 +119,11 @@ export const deleteAstrologer = async (req, res) => {
  * @desc Add new product
  * @route POST /api/admin/products
  */
-export const addProduct = async (req, res) => {
-  try {
-    const product = await Product.create(req.body);
-    res.json({ message: "Product added successfully", product });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
 /**
  * @desc Update product
  * @route PUT /api/admin/products/:id
  */
-export const updateProduct = async (req, res) => {
-  try {
-    const updated = await Product.findByIdAndUpdate(req.params.id, req.body, { new: true });
-    res.json({ message: "Product updated", updated });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
 /**
  * @desc Delete product

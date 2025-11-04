@@ -1,7 +1,7 @@
 "use client";
 import Image from "next/image";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaShoppingCart, FaUser, FaTimes } from "react-icons/fa";
+import { FaShoppingCart, FaUser, FaTimes, FaBars } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import About from './components/Home/About'
 import Product from './components/Home/Product'

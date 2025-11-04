@@ -4,8 +4,9 @@ const paymentSchema = new mongoose.Schema(
   {
     orderId: { type: mongoose.Schema.Types.ObjectId, ref: "Order" },
     paymentId: String,
+    razorpayOrderId: String,
     amount: Number,
-    method: String, // Razorpay, Stripe, UPI
+    method: { type: String, enum: ["Razorpay", "Stripe", "UPI"], default: "Razorpay" },
     status: { type: String, default: "initiated" },
   },
   { timestamps: true }
