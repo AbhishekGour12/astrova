@@ -1,60 +1,42 @@
 import Razorpay from "razorpay";
-import Payment from "../models/Payment.js";
-import Order from "../models/Order.js";
+import crypto from "crypto";
+console.log(process.env.RAZORPAY_KEY)
 
-export const initiatePayment = async (req, res) => {
-  const { amount } = req.body;
-  const instance = new Razorpay({
-    key_id: process.env.RAZORPAY_KEY,
-    key_secret: process.env.RAZORPAY_SECRET,
-  });
+const razorpay = new Razorpay({
+  key_id: process.env.RAZORPAY_KEY || "rzp_test_pEZdDpwnJejkWR",
+  key_secret: process.env.RAZORPAY_SECRET ||"YVC6HQFJ8OJGeFq6MNzCzjEN",
+});
 
+export const createOrder = async (req, res) => {
   try {
-    const order = await instance.orders.create({
-      amount: amount * 100, // convert to paisa
+    const { amount } = req.body;
+
+    const order = await razorpay.orders.create({
+      amount: amount * 100,
       currency: "INR",
-      receipt: "order_" + new Date().getTime(),
+      receipt: "receipt_order_" + Date.now(),
     });
 
     res.json(order);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// ✅ Verify payment & create order entry
 export const verifyPayment = async (req, res) => {
   try {
-    const { paymentId, razorpayOrderId, amount, userId, products, shippingAddress, shippingCharge } = req.body;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
-    // Calculate GST
-    const gstAmount = (amount * 18) / 100;
-    const totalAmount = amount + gstAmount + shippingCharge;
+    const sign = crypto
+      .createHmac("sha256", process.env.RZP_KEY_SECRET)
+      .update(razorpay_order_id + "|" + razorpay_payment_id)
+      .digest("hex");
 
-    // Save order
-    const order = await Order.create({
-      userId,
-      products,
-      gstAmount,
-      shippingCharge,
-      subtotal: amount,
-      totalAmount,
-      shippingAddress,
-      paymentStatus: "Paid",
-    });
+    if (sign !== razorpay_signature)
+      return res.status(400).json({ message: "Invalid payment signature" });
 
-    // Save payment
-    await Payment.create({
-      orderId: order._id,
-      paymentId,
-      razorpayOrderId,
-      amount: totalAmount,
-      method: "Razorpay",
-      status: "Paid",
-    });
-
-    res.json({ success: true, message: "Payment verified and order created", orderId: order._id });
+    res.json({ success: true });
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };

@@ -7,7 +7,7 @@ export default function Testimonial() {
   return (
     <div className="relative overflow-visible">
       {/* ===================== TOP TESTIMONIAL SECTION ===================== */}
-      <section className="relative bg-white py-16 sm:py-20 md:py-28 lg:py-32 overflow-visible">
+      <section className="relative bg-white py-16  sm:py-20 md:py-28 lg:py-32 overflow-visible ">
         {/* Background decorations */}
         <div className="absolute left-[-50px] bottom-[-80px] w-[250px] sm:w-[300px] md:w-[400px] opacity-60 z-0">
           <Image

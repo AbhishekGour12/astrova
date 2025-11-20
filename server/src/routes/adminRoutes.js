@@ -23,9 +23,11 @@ import {
   addProductType,
   addBulkProductsWithImages,
   uploadBulkProductsWithImages,
+  deleteProduct,
+  updateProduct,
 } from "../controllers/productController.js";
 import multer from "multer";
-import upload from "../utils/multer.js";
+import  { uploadExcelAndImages, uploadImages } from "../utils/multer.js";
 const router = express.Router();
 
 // Dashboard
@@ -48,19 +50,19 @@ router.delete("/astrologers/:id", deleteAstrologer);
 //Product
 
 router.post(
-  "/",
-  upload.array("images", 50), // allow up to 50 product images
+  "/product",
+  uploadImages.array("images", 50), // allow up to 50 product images
   addBulkProductsWithImages
 );
 
 // ✅ Excel upload (single file)
 router.post(
-  "/bulk-upload", 
-  upload.fields([
+  "/bulk-upload",
+  uploadExcelAndImages.fields([
     { name: "excelFile", maxCount: 1 },
-    { name: "productImages", maxCount: 50 }
-  ]), 
-  uploadBulkProductsWithImages // This will handle both Excel data and images
+    { name: "productImages", maxCount: 50 },
+  ]),
+  uploadBulkProductsWithImages
 );
 
 // ✅ Product types management
@@ -68,7 +70,9 @@ router.get("/types", getProductTypes);
 router.post("/types", addProductType);
 
 // ✅ Get all products
-router.get("/", getProducts);
+router.get("/product", getProducts);
+router.put("/:id", uploadImages.array("images", 50), updateProduct)
+router.delete("/:id", deleteProduct)
 
 
 

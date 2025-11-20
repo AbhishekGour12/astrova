@@ -13,152 +13,13 @@ import AstrologerSection from './components/Home/AstrologerSection'
 import LandingLoader from './components/Loading'
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-const Navbar = () => {
-  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
-  const navigate = useRouter()
- 
-  const toggleMobileMenu = () => {
-    setIsMobileMenuOpen(!isMobileMenuOpen);
-  };
-  
+import Navbar from './components/Navbar'
+import { adminAPI } from "./lib/admin";
+import { useDispatch, useSelector } from "react-redux";
+import { productType } from "./store/features/productTypeSlice";
 
-  
-  return (
-    <nav className="w-full flex justify-center">
-      <div className="flex max-w-7xl m-auto justify-between items-center px-4 sm:px-6 lg:px-12 py-4 lg:py-6 absolute w-full z-50 text-[#725E43] font-semibold bg-transparent">
-        <div className="text-[18px] sm:text-[20px] lg:text-[22px] font-bold flex items-center space-x-2" style={{fontFamily: "IBM Plex Serif"}}>
-          <span className="w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 rounded-full">
-            <Image src="/logo.png" width={100} height={100} className="w-full h-full" alt="Astrova Logo"/>
-          </span>
-          <span>ASTROVA</span>
-        </div>
-        
-        {/* Desktop Menu */}
-        <ul className="hidden lg:flex space-x-6 xl:space-x-10 text-[16px] lg:text-[18px] lg:mr-[50px] font-normal" style={{fontFamily: "Noto Sans"}}>
-          
-            <li
-              
-              className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
-            >
-             <Link href = "/">Home</Link>
-            </li>
-            <li
-              
-              className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
-            >
-             <Link href = "/Product">Products</Link>
-            </li>
-            <li
-              
-              className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
-            >
-             <Link href = "/">Services</Link>
-            </li>
-            <li
-              
-              className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
-            >
-             <Link href = "/">Best Astrologer</Link>
-            </li>
-            <li
-              
-              className="cursor-pointer hover:text-[#B49A77] transition-all duration-300"
-            >
-             <Link href = "/">Who are we</Link>
-            </li>
-            
-          
-        </ul>
 
-        {/* Mobile Menu Button */}
-        <div className="lg:hidden">
-          <button 
-            className="text-[#725E43]"
-            onClick={toggleMobileMenu}
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
-            </svg>
-          </button>
-        </div>
-        
-        <div className="flex items-center space-x-4 lg:space-x-6">
-          <FaShoppingCart className="text-lg lg:text-xl cursor-pointer text-[#F6F3E4]" />
-          <Link href = "/Login">
-          <button className="px-3 py-1.5 lg:px-5 lg:py-2 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow-md hover:bg-[#E8E3CF] transition-all duration-300 flex items-center space-x-2 text-sm lg:text-base">
-           
-            <FaUser className="text-sm lg:text-base" /> 
-            <span className="hidden sm:inline">Login</span>
-
-          </button>
-          </Link>
-        </div>
-
-        {/* Mobile Sidebar Menu */}
-        <AnimatePresence>
-          {isMobileMenuOpen && (
-            <>
-              {/* Backdrop */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0  bg-opacity-100 z-10 lg:hidden"
-                onClick={toggleMobileMenu}
-                style={{backgroundColor: "gray", opacity: "1"}}
-              />
-              
-              {/* Sidebar */}
-              <motion.div
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                transition={{ type: "tween", duration: 0.3 }}
-                className="fixed top-0 right-0 h-full w-64 bg-white shadow-2xl z-50 lg:hidden"
-              >
-                <div className="flex justify-between items-center p-4 border-b border-gray-200">
-                  <div className="text-[18px] font-bold flex items-center space-x-2" style={{fontFamily: "IBM Plex Serif"}}>
-                    <span className="w-7 h-7 rounded-full">
-                      <Image src="/logo.png" width={100} height={100} className="w-full h-full" alt="Astrova Logo"/>
-                    </span>
-                    <span>ASTROVA</span>
-                  </div>
-                  <button 
-                    onClick={toggleMobileMenu}
-                    className="text-[#725E43] p-2"
-                  >
-                    <FaTimes className="w-5 h-5" />
-                  </button>
-                </div>
-                
-                <ul className="py-4 px-4 space-y-4" style={{fontFamily: "Noto Sans"}}>
-                  {["Home", "Products", "Services", "Best Astrologer", "Who are we"].map((item, index) => (
-                    <li
-                      key={index}
-                      className="cursor-pointer hover:text-[#B49A77] transition-all duration-300 text-[16px] py-2 border-b border-gray-100"
-                      onClick={toggleMobileMenu}
-                    >
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-                
-                <div className="absolute bottom-4 left-4 right-4" >
-                  
-                  <button className="w-full px-4 py-3 bg-[#7E5833] text-white rounded-lg shadow-md hover:bg-[#5A3E25] transition-all duration-300 text-base flex items-center justify-center space-x-2" onClick={() =>{console.log("hello")}}>
-                    <FaUser className="text-base" /> 
-                    <span>Login/Sign Up</span>
-                  </button>
-              
-                </div>
-              </motion.div>
-            </>
-          )}
-        </AnimatePresence>
-      </div>
-    </nav>
-  );
-};
+<Navbar/>
 
 const HeroSection = () => {
   const serviceCards = [
@@ -182,7 +43,7 @@ const HeroSection = () => {
 
   return (
     
-    <section className="relative min-h-screen lg:h-screen overflow-hidden flex items-center justify-between font-poppins">
+    <section className="relative min-h-screen lg:h-screen overflow-hidden flex   items-center justify-between font-poppins ">
       {/* Background split */}
       <div className="absolute inset-0 flex flex-col lg:flex-row">
         {/* Left Side - White background with Zodiac circle aligned bottom-left */}
@@ -193,7 +54,7 @@ const HeroSection = () => {
         </div>
 
         {/* Right Side - Brown background with Zodiac circle aligned bottom-right */}
-        <div className="w-full lg:w-1/3 bg-[#B49A77] relative overflow-hidden rounded-bl-[0px] lg:rounded-bl-[50px] rounded-br-[0px] lg:rounded-br-[50px] min-h-[50vh] sm:min-h-[45vh] lg:min-h-0">
+        <div className="w-full lg:w-1/3 bg-[#B49A77] relative overflow-hidden rounded-bl-[0px] lg:rounded-bl-[50px] rounded-br-[0px] lg:rounded-br-[50px] min-h-[50vh] sm:min-h-[45vh] lg:min-h-0 max-md:bg-white">
           <div className="absolute right-[-25px] sm:right-[-35px] lg:right-[-50px] bottom-[-30px] sm:bottom-[-40px] lg:bottom-[-60px] w-[150px] h-[150px] sm:w-[200px] sm:h-[200px] lg:w-[250px] lg:h-[250px] opacity-20">
             <Image src="/bgSymbol.png" alt="Zodiac Right" fill className="object-contain object-right-bottom" />
           </div>
@@ -328,14 +189,17 @@ const HeroSection = () => {
 };
 
 export default function AstroHeroPage() {
+const productType = useSelector((state) => state.productType.value);
+console.log(productType)
+
    
   return (
     <div className="relative min-h-screen overflow-hidden">
       <Navbar />
       <HeroSection />
       <About/>
-      <Product/>
-      <BestProducts/>
+      <Product />
+      <BestProducts categories={productType}/>
       <BookConsultant/>
       <AstrologerSection/>
       <PremiumProductSection/>

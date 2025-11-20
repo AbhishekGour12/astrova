@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import Link from "next/link";
 
 const products = [
   {
@@ -64,37 +65,48 @@ export default function ProductSection() {
         </div>
 
         {/* Product Cards */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-3 xs:gap-4 sm:gap-5 md:gap-6 lg:gap-7 xl:gap-8">
-          {products.map((product, index) => (
-            <motion.div
-              key={index}
-              whileHover={{ scale: 1.05 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="bg-white text-[#725E43] rounded-lg xs:rounded-xl sm:rounded-2xl shadow-lg overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300"
-            >
-              <div className="h-[120px] xs:h-[130px] sm:h-[150px] md:h-[170px] lg:h-[190px] xl:h-[200px] relative">
-                <Image
-                  src={product.img}
-                  alt={product.title}
-                  fill
-                  unoptimized
-                  className="object-cover"
-                />
-              </div>
-              <div className="p-3 xs:p-4 sm:p-5 md:p-6 flex flex-col justify-between flex-1">
-                <div className="mb-2 xs:mb-3 sm:mb-4">
-                  <h3 className="text-sm xs:text-base sm:text-lg font-semibold mb-1 xs:mb-2 line-clamp-2 leading-tight">
-                    {product.title}
-                  </h3>
-                  <p className="text-xs xs:text-sm opacity-80">{product.desc}</p>
-                </div>
-                <button className="w-fit px-2 py-1 xs:px-3 xs:py-1.5 sm:px-4 sm:py-2 bg-[#E5DECED6] text-[#725E43] rounded-full text-xs xs:text-sm shadow hover:bg-[#E8E3CF] transition-all duration-300">
-                  View Products ➜
-                </button>
-              </div>
-            </motion.div>
-          ))}
+     
+
+<div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 xs:gap-5 sm:gap-6 md:gap-6 lg:gap-7 xl:gap-8 ">
+  {products.map((product, index) => (
+    <Link href="/ProductsPage" key={index}>
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        transition={{ type: "spring", stiffness: 200 }}
+        className="bg-white text-[#725E43] rounded-lg xs:rounded-xl sm:rounded-2xl shadow-lg overflow-hidden flex flex-col hover:shadow-xl transition-all duration-300 h-full "
+      >
+        {/* Improved Image Container with Better Proportions */}
+        <div className="h-[200px] xs:h-[180px] sm:h-[200px] md:h-[240px] lg:h-[220px] xl:h-[240px] 2xl:h-[260px] relative border border-gray-200 overflow-hidden">
+          <Image
+            src={product.img}
+            alt={product.title}
+            fill
+            unoptimized
+            className="object-cover hover:scale-105 transition-transform duration-300"
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, (max-width: 1024px) 25vw, 25vw"
+          />
         </div>
+        
+        {/* Content Area */}
+        <div className="p-4 xs:p-4 sm:p-5 md:p-6 flex flex-col justify-between flex-1 gap-3 xs:gap-3 sm:gap-4">
+          <div className="space-y-2 xs:space-y-2 sm:space-y-3">
+            <h3 className="text-sm xs:text-base sm:text-lg md:text-xl font-semibold line-clamp-2 leading-tight min-h-[2.5em]">
+              {product.title}
+            </h3>
+            <p className="text-xs xs:text-sm sm:text-base text-gray-600 line-clamp-2 leading-relaxed">
+              {product.desc}
+            </p>
+          </div>
+          
+          <button className="w-fit px-3 py-2 xs:px-4 xs:py-2 sm:px-5 sm:py-2.5 bg-[#E5DECED6] text-[#725E43] rounded-full text-xs xs:text-sm sm:text-base font-medium shadow hover:bg-[#E8E3CF] hover:shadow-md transition-all duration-300 mt-2">
+            View Products ➜
+          </button>
+        </div>
+      </motion.div>
+    </Link>
+  ))}
+</div>
+
       </div>
     </section>
   );

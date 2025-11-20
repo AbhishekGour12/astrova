@@ -17,7 +17,8 @@ import {
   FaImage
 } from 'react-icons/fa';
 import * as XLSX from 'xlsx';
-
+import {adminAPI} from '../../lib/admin'
+import { productAPI } from '../../lib/product';
 const API_BASE_URL = 'http://localhost:5000/api';
 
 const ProductsTab = ({ products: initialProducts, searchTerm }) => {
@@ -25,14 +26,23 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
   const [showBulkUploadModal, setShowBulkUploadModal] = useState(false);
   const [showTypesModal, setShowTypesModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [productTypes, setProductTypes] = useState([]);
+  const [productTypes, setProductTypes] = useState(["Bracelet", "Rudraksha", "Yantra", "Chain", "Gemstone", "Pendant", "Stones"]);
   const [newType, setNewType] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedFiles, setSelectedFiles] = useState([]);
   const [dragActive, setDragActive] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
-  const [activeTab, setActiveTab] = useState('manual'); // 'manual' or 'excel'
-
+  const [activeTab, setActiveTab] = useState('manual');
+  const [filters, setFilters] = useState({page: 1,
+  limit: 10,
+  search: '',
+  type: '',
+  minPrice: '',
+  maxPrice: '',
+  isFeatured: '',
+  sortBy: "price",
+  order: "asc"}) // 'manual' or 'excel'
+const category = ["Gift", "Love", "Money", "Evil Eye", "Health", "Gifting", "Career"];
   // Bulk products state - array of product forms
   const [bulkProducts, setBulkProducts] = useState([createEmptyProduct()]);
 
@@ -45,9 +55,12 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
     productType: '',
     weight: '',
     gstPercent: 18,
-    courierCharge: '',
+    rating: 0,
+  
     isFeatured: false,
-    imageUrls: []
+    imageUrls: [],
+    category: '',
+    
   });
 
   function createEmptyProduct() {
@@ -58,12 +71,14 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
       stock: '',
       productType: '',
       weight: '',
-      courierCharge: '',
+      rating: 0,
+      
       isFeatured: false,
-      imageFiles: [] // For new image uploads
+      imageFiles: [],
+      category: '' // For new image uploads
     };
   }
-
+  
   // Fetch product types on component mount
   useEffect(() => {
     fetchProductTypes();
@@ -72,21 +87,23 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
 
   const fetchProductTypes = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/types`);
-      if (!response.ok) throw new Error('Failed to fetch types');
-      const types = await response.json();
-      setProductTypes(types);
+      const response = await adminAPI.getProductTypes();
+      setProductTypes(response);
+      console.log(response)
+      if(response.length < 1){
+        setProductTypes(["Bracelet", "Rudraksha", "Yantra", "Chain", "Gemstone", "Pendant", "Stones"]);
+      }
     } catch (error) {
+
       console.error('Error fetching product types:', error);
     }
   };
 
   const fetchProducts = async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/admin`);
-      if (!response.ok) throw new Error('Failed to fetch products');
-      const productsData = await response.json();
-      setProducts(productsData);
+     
+      const {products, totalPages} = await adminAPI.getProducts(filters);
+      setProducts(products);
     } catch (error) {
       console.error('Error fetching products:', error);
     }
@@ -96,19 +113,15 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
     if (!newType.trim()) return;
 
     try {
-      const response = await fetch(`${API_BASE_URL}/admin/types`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ newType: newType.trim() }),
-      });
+      const response = await adminAPI.addProductType(newType.trim());
+      
 
-      if (response.ok) {
+      if (response) {
         await fetchProductTypes();
         setNewType('');
         alert('Product type added successfully!');
       } else {
+        
         const error = await response.json();
         throw new Error(error.error || 'Failed to add product type');
       }
@@ -171,10 +184,13 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
   price: Number(product.price),
   stock: Number(product.stock),
   weight: Number(product.weight),
-  courierCharge: Number(product.courierCharge || 0),
+  rating: Number(product.rating)||0,
+  
   productType: product.productType,
   isFeatured: Boolean(product.isFeatured),
-  imageFilesCount: product.imageFiles.length, // ✅ Add this line
+  imageFilesCount: product.imageFiles.length,
+  category: product.category || '', // ✅ Add this line
+
 }));
 
 
@@ -191,15 +207,12 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
     });
 
     // ✅ Send with correct headers
-    const response = await axios.post(
-      "http://localhost:5000/api/admin",
-      formData,
-      {
-        headers: { "Content-Type": "multipart/form-data" },
-      }
-    );
+    const response = await adminAPI.createProduct(formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+    
 
-    console.log("Response:", response.data);
+    console.log("Response:", response);
     alert("✅ Products uploaded successfully");
     setLoading(false);
   } catch (error) {
@@ -217,17 +230,19 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
   const openEditModal = (product) => {
     setEditingProduct(product);
     setEditForm({
-      name: product.name,
-      description: product.description || '',
-      price: product.price,
-      stock: product.stock,
-      productType: product.productType,
-      weight: product.weight,
-      gstPercent: product.gstPercent || 18,
-      courierCharge: product.courierCharge || 0,
-      isFeatured: product.isFeatured || false,
-      imageUrls: product.imageUrls || []
-    });
+  name: product.name,
+  description: product.description || '',
+  price: product.price,
+  stock: product.stock,
+  productType: product.productType,
+  weight: product.weight,
+  gstPercent: product.gstPercent || 18,
+  rating: product.rating || 0, // ⭐ Added
+  isFeatured: product.isFeatured || false,
+  imageUrls: product.imageUrls || [],
+  category: product.category || '',
+});
+
     setShowEditModal(true);
   };
 
@@ -256,12 +271,9 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
 
     try {
       // Note: You need to add this route in your backend
-      const response = await fetch(`${API_BASE_URL}/admin/products/${editingProduct._id}`, {
-        method: 'PUT',
-        body: formData,
-      });
+      const response = await adminAPI.updateProduct(editingProduct._id, formData);
 
-      if (response.ok) {
+      if (response) {
         await fetchProducts();
         setShowEditModal(false);
         setEditingProduct(null);
@@ -284,11 +296,9 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
 
     try {
       // Note: You need to add this route in your backend
-      const response = await fetch(`${API_BASE_URL}/admin/products/${productId}`, {
-        method: 'DELETE',
-      });
+      const response = await adminAPI.deleteProduct(productId);
 
-      if (response.ok) {
+      if (response) {
         await fetchProducts();
         alert('Product deleted successfully!');
       } else {
@@ -309,59 +319,49 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
   // Enhanced Excel upload with images
 const uploadExcelProducts = async (e) => {
   e.preventDefault();
-  if (!selectedFiles.find(f => f.name.endsWith('.xlsx') || f.name.endsWith('.xls'))) {
-    alert('Please select an Excel file');
-    return;
-  }
-
   setLoading(true);
 
-  const formData = new FormData();
-  
-  // Add Excel file
-  const excelFile = selectedFiles.find(f => f.name.endsWith('.xlsx') || f.name.endsWith('.xls'));
-  formData.append('excelFile', excelFile);
-
-  // Add image files
-  const imageFiles = selectedFiles.filter(f => 
-    f.type.startsWith('image/') && 
-    !f.name.endsWith('.xlsx') && 
-    !f.name.endsWith('.xls')
-  );
-  
-  imageFiles.forEach(file => {
-    formData.append('productImages', file);
-  });
-
   try {
-    const response = await fetch(`${API_BASE_URL}/admin/bulk-upload`, {
-      method: 'POST',
+    const formData = new FormData();
+
+    // ✅ Excel file
+    const excelFile = selectedFiles.find(f =>
+      f.name.endsWith(".xlsx") || f.name.endsWith(".xls") || f.name.endsWith(".csv")
+    );
+    if (!excelFile) {
+      alert("Please select a valid Excel file");
+      return;
+    }
+    formData.append("excelFile", excelFile);
+
+    // ✅ Image files
+    selectedFiles
+      .filter(f => f.type.startsWith("image/"))
+      .forEach(file => formData.append("productImages", file));
+
+    const response = await fetch("http://localhost:5000/api/admin/bulk-upload", {
+      method: "POST",
       body: formData,
     });
 
     const result = await response.json();
 
     if (response.ok || response.status === 207) {
+      alert(`✅ Uploaded ${result.products?.length || 0} products successfully`);
       await fetchProducts();
       setShowBulkUploadModal(false);
       setSelectedFiles([]);
-      
-      if (response.status === 207) {
-        alert(`Processed with ${result.errors.length} errors. Created: ${result.created} products. Check console for details.`);
-        console.log('Upload errors:', result.errors);
-      } else {
-        alert(`Successfully uploaded ${result.products.length} products from Excel!`);
-      }
     } else {
-      throw new Error(result.error || 'Failed to upload Excel file');
+      alert(`❌ Upload failed: ${result.error || "Unknown error"}`);
     }
   } catch (error) {
-    console.error('Error uploading Excel:', error);
-    alert(`Error uploading Excel: ${error.message}`);
+    console.error("Upload Excel error:", error);
+    alert(`Upload failed: ${error.message}`);
   } finally {
     setLoading(false);
   }
 };
+
 
 // Enhanced drag and drop for multiple file types
 const handleDrop = (e) => {
@@ -389,19 +389,21 @@ const removeFile = (index) => {
 // Enhanced Excel template download
 const downloadExcelTemplate = () => {
   const templateData = [
-    {
-      'name': 'Sample Product',
-      'description': 'Product description',
-      'price': 99.99,
-      'stock': 10,
-      'productType': 'Bracelet',
-      'weight': 0.5,
-      'gstPercent': 18,
-      'courierCharge': 50,
-      'images': 'product1.jpg,product2.jpg', // Comma-separated image filenames
-      'isFeatured': 'TRUE'
-    }
-  ];
+  {
+    'name': 'Sample Product',
+    'description': 'Product description',
+    'price': 99.99,
+    'stock': 10,
+    'productType': 'Bracelet',
+    'weight': 0.5,
+    'gstPercent': 18,
+    'rating': 4.5, // ⭐ Added
+    'images': 'product1.jpg,product2.jpg',
+    'category': 'Gift',
+    'isFeatured': 'TRUE'
+  }
+];
+
 
   const worksheet = XLSX.utils.json_to_sheet(templateData);
   const workbook = XLSX.utils.book_new();
@@ -418,7 +420,8 @@ const downloadExcelTemplate = () => {
     ['5. Upload both Excel file and images together'],
     ['6. Image filenames in Excel must match uploaded image files exactly'],
     ['7. Keep all files in the same folder before uploading'],
-    [''],
+     ['8. Add rating between 0 and 5 in the "rating" column'],
+
     ['EXAMPLE:'],
     ['images column: "product1.jpg,product2.jpg"'],
     ['Then upload product1.jpg and product2.jpg along with Excel file']
@@ -477,105 +480,150 @@ const downloadExcelTemplate = () => {
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gradient-to-r from-[#ECE5D3] to-[#F7F3E9]">
-              <tr>
-                <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Product</th>
-                <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Type</th>
-                <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Price</th>
-                <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Stock</th>
-                <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Weight</th>
-                <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Total Price</th>
-                <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Status</th>
-                <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#B2C5B2]">
-              {filteredProducts.map((product) => (
-                <motion.tr
-                  key={product._id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="hover:bg-[#F7F3E9] transition-colors"
-                >
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-12 h-12 bg-gradient-to-br from-[#C06014] to-[#D47C3A] rounded-2xl flex items-center justify-center text-white font-semibold overflow-hidden">
-                        {product.imageUrls?.[0] ? (
-                          <img 
-                            src={`http://localhost:5000${product.imageUrls[0]}`} 
-                            alt={product.name}
-                            className="w-12 h-12 object-cover"
-                          />
-                        ) : (
-                          <FaImage className="text-white" />
-                        )}
-                      </div>
-                      <div>
-                        <p className="font-semibold text-[#003D33]">{product.name}</p>
-                        <p className="text-sm text-[#00695C] line-clamp-1">
-                          {product.description}
-                        </p>
-                        {product.isFeatured && (
-                          <span className="text-amber-500 text-xs">★ Featured</span>
-                        )}
-                      </div>
-                    </div>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[#00695C] bg-[#ECE5D3] px-2 py-1 rounded-full text-sm">
-                      {product.productType}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[#003D33] font-semibold">₹{product.price}</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      product.stock > 10 ? 'bg-green-100 text-green-600' : 
-                      product.stock > 0 ? 'bg-amber-100 text-amber-600' : 
-                      'bg-red-100 text-red-600'
-                    }`}>
-                      {product.stock} in stock
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[#00695C]">{product.weight} kg</span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className="text-[#C06014] font-bold">₹{product.totalPrice}</span>
-                    <p className="text-xs text-[#00695C]">incl. GST & shipping</p>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${
-                      product.stock > 0 ? 'bg-green-100 text-green-600' : 'bg-red-100 text-red-600'
-                    }`}>
-                      {product.stock > 0 ? 'Available' : 'Out of Stock'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-2">
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => openEditModal(product)}
-                        className="p-2 text-amber-500 hover:bg-amber-50 rounded-2xl transition-colors"
-                        title="Edit Product"
-                      >
-                        <FaEdit />
-                      </motion.button>
-                      <motion.button
-                        whileHover={{ scale: 1.1 }}
-                        whileTap={{ scale: 0.9 }}
-                        onClick={() => deleteProduct(product._id)}
-                        className="p-2 text-red-500 hover:bg-red-50 rounded-2xl transition-colors"
-                        title="Delete Product"
-                      >
-                        <FaTrash />
-                      </motion.button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
+  <tr>
+    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Product</th>
+    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Type</th>
+    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Price</th>
+    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Rating</th> {/* ⭐ NEW */}
+    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Stock</th>
+    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Weight</th>
+    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Total Price</th>
+    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Status</th>
+    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Actions</th>
+  </tr>
+</thead>
+
+<tbody className="divide-y divide-[#B2C5B2]">
+  {filteredProducts.map((product) => (
+    <motion.tr
+      key={product._id}
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="hover:bg-[#F7F3E9] transition-colors"
+    >
+      {/* 🧿 Product Info */}
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 bg-gradient-to-br from-[#C06014] to-[#D47C3A] rounded-2xl flex items-center justify-center text-white font-semibold overflow-hidden">
+            {product.imageUrls?.[0] ? (
+              <img
+                src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
+                alt={product.name}
+                className="w-12 h-12 object-cover"
+              />
+            ) : (
+              <FaImage className="text-white" />
+            )}
+          </div>
+          <div>
+            <p className="font-semibold text-[#003D33]">{product.name}</p>
+            <p className="text-sm text-[#00695C] line-clamp-1">
+              {product.description}
+            </p>
+            {product.isFeatured && (
+              <span className="text-amber-500 text-xs">★ Featured</span>
+            )}
+          </div>
+        </div>
+      </td>
+
+      {/* 🧿 Type */}
+      <td className="px-6 py-4">
+        <span className="text-[#00695C] bg-[#ECE5D3] px-2 py-1 rounded-full text-sm">
+          {product.productType}
+        </span>
+      </td>
+
+      {/* 💰 Price */}
+      <td className="px-6 py-4">
+        <span className="text-[#003D33] font-semibold">₹{product.price}</span>
+      </td>
+
+      {/* ⭐ Rating */}
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-1">
+          {[...Array(5)].map((_, i) => (
+            <FaStar
+              key={i}
+              className={`${
+                i < Math.round(product.rating || 0)
+                  ? "text-yellow-400"
+                  : "text-gray-300"
+              }`}
+            />
+          ))}
+          <span className="text-sm text-[#003D33] font-medium ml-1">
+            {product.rating?.toFixed(1) || "0.0"}
+          </span>
+        </div>
+      </td>
+
+      {/* 📦 Stock */}
+      <td className="px-6 py-4">
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+            product.stock > 10
+              ? "bg-green-100 text-green-600"
+              : product.stock > 0
+              ? "bg-amber-100 text-amber-600"
+              : "bg-red-100 text-red-600"
+          }`}
+        >
+          {product.stock} in stock
+        </span>
+      </td>
+
+      {/* ⚖️ Weight */}
+      <td className="px-6 py-4">
+        <span className="text-[#00695C]">{product.weight} kg</span>
+      </td>
+
+      {/* 💵 Total Price */}
+      <td className="px-6 py-4">
+        <span className="text-[#C06014] font-bold">₹{product.totalPrice}</span>
+        <p className="text-xs text-[#00695C]">incl. GST</p>
+      </td>
+
+      {/* 🟢 Status */}
+      <td className="px-6 py-4">
+        <span
+          className={`px-2 py-1 rounded-full text-xs font-semibold ${
+            product.stock > 0
+              ? "bg-green-100 text-green-600"
+              : "bg-red-100 text-red-600"
+          }`}
+        >
+          {product.stock > 0 ? "Available" : "Out of Stock"}
+        </span>
+      </td>
+
+      {/* ⚙️ Actions */}
+      <td className="px-6 py-4">
+        <div className="flex items-center gap-2">
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => openEditModal(product)}
+            className="p-2 text-amber-500 hover:bg-amber-50 rounded-2xl transition-colors"
+            title="Edit Product"
+          >
+            <FaEdit />
+          </motion.button>
+          <motion.button
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
+            onClick={() => deleteProduct(product._id)}
+            className="p-2 text-red-500 hover:bg-red-50 rounded-2xl transition-colors"
+            title="Delete Product"
+          >
+            <FaTrash />
+          </motion.button>
+        </div>
+      </td>
+    </motion.tr>
+  ))}
+</tbody>
+
           </table>
         </div>
       </div>
@@ -680,7 +728,7 @@ const downloadExcelTemplate = () => {
                               ))}
                             </select>
                           </div>
-
+       
                           <div>
                             <label className="block text-[#003D33] font-semibold mb-2 text-sm">
                               Price (₹) *
@@ -724,20 +772,23 @@ const downloadExcelTemplate = () => {
                               placeholder="0.5"
                             />
                           </div>
-
-                          <div>
+                             <div>
                             <label className="block text-[#003D33] font-semibold mb-2 text-sm">
-                              Courier Charge (₹)
+                              Product Category *
                             </label>
-                            <input
-                              type="number"
-                              step="0.01"
-                              value={product.courierCharge}
-                              onChange={(e) => updateBulkProduct(index, 'courierCharge', e.target.value)}
+                            <select
+                              required
+                              value={product.category}
+                              onChange={(e) => updateBulkProduct(index, 'category', e.target.value)}
                               className="w-full px-3 py-2 bg-white border border-[#B2C5B2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33] text-sm"
-                              placeholder="0.00"
-                            />
+                            >
+                              <option value="">Select Type</option>
+                              {category.map((type, typeIndex) => (
+                                <option key={typeIndex} value={type}>{type}</option>
+                              ))}
+                            </select>
                           </div>
+                          
                         </div>
 
                         <div className="mb-4">
@@ -788,6 +839,21 @@ const downloadExcelTemplate = () => {
                             )}
                           </div>
                         </div>
+                        <div>
+  <label className="block text-[#003D33] font-semibold mb-2 text-sm">
+    Rating (1–5)
+  </label>
+  <input
+    type="number"
+    min="0"
+    max="5"
+    step="0.1"
+    value={product.rating}
+    onChange={(e) => updateBulkProduct(index, 'rating', e.target.value)}
+    className="w-full px-3 py-2 bg-white border border-[#B2C5B2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33] text-sm"
+    placeholder="e.g. 4.5"
+  />
+</div>
 
                         <div className="flex items-center gap-3">
                           <input
@@ -1008,7 +1074,7 @@ const downloadExcelTemplate = () => {
                     className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
                   />
                 </div>
-
+               
                 <div>
                   <label className="block text-[#003D33] font-semibold mb-2">Weight (kg) *</label>
                   <input
@@ -1020,17 +1086,23 @@ const downloadExcelTemplate = () => {
                     className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
                   />
                 </div>
-
-                <div>
-                  <label className="block text-[#003D33] font-semibold mb-2">Courier Charge (₹)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={editForm.courierCharge}
-                    onChange={(e) => setEditForm({...editForm, courierCharge: e.target.value})}
-                    className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
-                  />
-                </div>
+                   <div>
+                            <label className="block text-[#003D33] font-semibold mb-2 text-sm">
+                              Product Category *
+                            </label>
+                            <select
+                              required
+                              value={editForm.category}
+                              onChange={(e) => updateBulkProduct(index, 'category', e.target.value)}
+                              className="w-full px-3 py-2 bg-white border border-[#B2C5B2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33] text-sm"
+                            >
+                              <option value="">Select Type</option>
+                              {category.map((type, typeIndex) => (
+                                <option key={typeIndex} value={type}>{type}</option>
+                              ))}
+                            </select>
+                          </div>
+            
               </div>
 
               <div>
@@ -1092,6 +1164,18 @@ const downloadExcelTemplate = () => {
                   )}
                 </div>
               </div>
+                <div>
+  <label className="block text-[#003D33] font-semibold mb-2">Rating (1–5)</label>
+  <input
+    type="number"
+    min="0"
+    max="5"
+    step="0.1"
+    value={editForm.rating}
+    onChange={(e) => setEditForm({ ...editForm, rating: e.target.value })}
+    className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+  />
+</div>
 
               <div className="flex items-center gap-3">
                 <input

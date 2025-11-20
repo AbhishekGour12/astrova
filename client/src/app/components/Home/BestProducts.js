@@ -1,70 +1,81 @@
 "use client";
 import Image from "next/image";
 import { motion } from "framer-motion";
+import { useEffect, useState } from "react";
+import {productAPI} from "../../lib/product"
+import { useRouter } from "next/navigation";
+import { adminAPI } from "../../lib/admin";
 
-const categories = [
-  "All",
-  "Pendants",
-  "Bracelets",
-  "Anklet",
-  "Rudraksha",
-  "Pyrite",
-  "Combos",
-  "Gemstones",
-];
+import { Swiper, SwiperSlide } from "swiper/react";
+import "swiper/css";
+import { Autoplay, Pagination } from "swiper/modules";
+import "swiper/css/pagination";
 
-const products = [
-  {
-    name: "Raw Pyrite Drop Pendant",
-    price: "₹799/-",
-    oldPrice: "₹999/-",
-    img: "/p4.png",
-  },
-  {
-    name: "Love Attraction Pencil Pendant",
-    price: "₹699/-",
-    oldPrice: "₹999/-",
-    img: "/p5.png",
-  },
-  {
-    name: "Love Attraction - Heart Pendant",
-    price: "₹899/-",
-    oldPrice: "₹999/-",
-    img: "/p6.png",
-  },
-  {
-    name: "Evil Eye Butterfly Pendant",
-    price: "₹794/-",
-    oldPrice: "₹999/-",
-    img: "/p7.png",
-  },
-  {
-    name: "Ultimate Love Pendant",
-    price: "₹499/-",
-    oldPrice: "₹699/-",
-    img: "/p8.png",
-  },
-  {
-    name: "Yellow Agate Heart Pendant",
-    price: "₹699/-",
-    oldPrice: "₹899/-",
-    img: "/p9.png",
-  },
-  {
-    name: "Gold Plated Om Pendant",
-    price: "₹1099/-",
-    oldPrice: "₹1499/-",
-    img: "/p10.png",
-  },
-  {
-    name: "Green Jade Pendant",
-    price: "₹689/-",
-    oldPrice: "₹999/-",
-    img: "/p11.png",
-  },
-];
+export default function BestProducts({categories}) {
+  
+  const router = useRouter()
+  
+  const [products, setProducts] = useState();
+  const [productType, setProductType] = useState()
+ 
+  const [filters, setFilters] = useState({
+  page: 1,
+  limit: 10,
+  search: '',
+  type: '',
+  minPrice: '',
+  maxPrice: '',
+  isFeatured: '',
+  sortBy: "price",
+  order: "asc",
+});
+  
+useEffect(() =>{
+  const fetchProducts = async () =>{
+    try{
+      const {products, totalPages} = await productAPI.getProducts(filters);
+      setProducts(products);
+    }catch(err){
+      console.log(err.message);
+    }
+  }
+  fetchProducts();
 
-export default function BestProducts() {
+},[categories]);
+const handleCategoryClick = (cat) => {
+  setProductType(cat);
+  console.log(cat)
+  setFilters((prev) => ({
+    ...prev,
+    page: 1,        // Reset to first page
+    limit: 10,      // Ensure 10 products per page
+    type: cat === prev.type ? "" : cat, // Toggle off if clicked again
+  }));
+  
+};
+const fetchProducts = async () =>{
+  try{
+    const {products, totalPages} = await productAPI.getProducts({
+  page: 1,
+  limit: 10,
+  search: '',
+  type: '',
+  minPrice: '',
+  maxPrice: '',
+  isFeatured: '',
+  sortBy: "price",
+  order: "asc",
+});
+console.log(products)
+    setProducts(products);
+  }catch(err){
+    console.log(err.message);
+  }
+}
+
+
+
+
   return (
     <section className="relative py-12 sm:py-16 lg:py-20 xl:py-24 overflow-hidden">
       {/* Chakra background on top-right - Responsive sizing */}
@@ -91,60 +102,137 @@ export default function BestProducts() {
 
         {/* Category Filter Bar - Improved responsiveness */}
         <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 mb-8 sm:mb-10 lg:mb-12 px-2">
-          {categories.map((cat, index) => (
-            <button
+         <button
+          
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 text-xs sm:text-sm rounded-full border border-[#B49A77] text-[#7E5833] hover:bg-[#B49A77] hover:text-[#F6F3E4] transition-all duration-300 whitespace-nowrap ${
+                
+                   "bg-[#7E5833] text-[#F6F3E4]"
+                  
+              }`}
+              onClick={fetchProducts}
+            >
+              All
+            </button>
+          {categories?categories.map((cat, index) => (
+          
+          <button
               key={index}
               className={`px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 text-xs sm:text-sm rounded-full border border-[#B49A77] text-[#7E5833] hover:bg-[#B49A77] hover:text-[#F6F3E4] transition-all duration-300 whitespace-nowrap ${
                 cat === "Pendants"
                   ? "bg-[#7E5833] text-[#F6F3E4]"
                   : "bg-transparent"
               }`}
+              onClick={() => handleCategoryClick(cat)}
             >
               {cat}
             </button>
-          ))}
+          )):''}
         </div>
 
-        {/* Product Cards - Improved grid for all devices */}
-        <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 md:gap-8 lg:gap-10 px-2 sm:px-0">
-          {products.map((product, index) => (
-            <motion.div
-              key={index}
-              whileHover={{ y: -8 }}
-              transition={{ type: "spring", stiffness: 200 }}
-              className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg overflow-hidden flex flex-col p-1.5 sm:p-2"
-            >
-              {/* Image - Responsive height */}
-              <div className="h-[140px] xs:h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px] relative">
-                <Image
-                  src={product.img}
-                  alt={product.name}
-                  fill
-                  unoptimized
-                  className="object-cover rounded-lg sm:rounded-xl"
-                />
+      {/* ===== MOBILE + TABLET SWIPER (hidden on lg+) ===== */}
+      <div className="block lg:hidden px-2 sm:px-0">
+        <Swiper
+        modules={[Autoplay, Pagination]}
+         pagination={{ clickable: true }}
+          autoplay={{ delay: 4000, disableOnInteraction: false }}
+          
+          spaceBetween={15}
+          loop={true}
+          breakpoints={{
+            0: { slidesPerView: 1.2 },   // Mobile
+            480: { slidesPerView: 1.4 },
+            640: { slidesPerView: 2 },    // sm
+            768: { slidesPerView: 2.5 },  // md
+            900: { slidesPerView: 3 },    // big tablets
+          }}
+         
+        >
+          {products?.map((product, index) => (
+            <SwiperSlide key={index}>
+              <motion.div
+                whileHover={{ y: -5 }}
+                transition={{ type: "spring", stiffness: 200 }}
+                className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col p-2 hover:cursor-pointer pb-3"
+                onClick={() => router.push(`/Product/${product._id}`)}
+              >
+                {/* Image height optimized for mobile */}
+                 
+            <div className="h-[200px] xs:h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px] relative">
+              <img
+                src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
+                alt={product.name}
+                className="object-cover rounded-lg sm:rounded-xl w-full h-full"
+              />
+            </div>
+
+            <div className="p-3 sm:p-4 md:p-5 lg:p-6 flex flex-col flex-grow justify-between">
+              <div>
+                <h3 className="text-xs sm:text-sm md:text-[15px] font-semibold text-[#4A3A28] mb-2 text-center">
+                  {product.name}
+                </h3>
+
+                <p className="text-[#7E5833] font-semibold text-xs sm:text-sm md:text-[15px] text-center">
+                  {product.price}
+                  <span className="line-through text-gray-400 text-[10px] sm:text-xs md:text-[13px] ml-2">
+                    {product.oldPrice}
+                  </span>
+                </p>
               </div>
 
-              {/* Info - Responsive padding and text */}
-              <div className="p-3 sm:p-4 md:p-5 lg:p-6 flex flex-col flex-grow justify-between">
-                <div>
-                  <h3 className="text-xs sm:text-sm md:text-[15px] font-semibold text-[#4A3A28] mb-1.5 sm:mb-2 text-center leading-tight sm:leading-normal">
-                    {product.name}
-                  </h3>
-                  <p className="text-[#7E5833] font-semibold text-xs sm:text-sm md:text-[15px] text-center">
-                    {product.price}{" "}
-                    <span className="line-through text-gray-400 font-normal text-[10px] sm:text-xs md:text-[13px] ml-1 sm:ml-2 text-center">
-                      {product.oldPrice}
-                    </span>
-                  </p>
-                </div>
-                <button className="mt-3 sm:mt-4 md:mt-5 w-full py-1.5 sm:py-2 text-xs sm:text-sm bg-[#7E5833] text-[#F6F3E4] rounded-full hover:bg-[#5A3E25] transition-all duration-300">
-                  Add to Cart
-                </button>
-              </div>
-            </motion.div>
+              <button className="mt-3 sm:mt-4 md:mt-5 w-full py-1.5 sm:py-2 text-xs sm:text-sm bg-[#7E5833] 
+                text-[#F6F3E4] rounded-full hover:bg-[#5A3E25] transition-all duration-300">
+                Add to Cart
+              </button>
+            </div>
+              </motion.div>
+            </SwiperSlide>
           ))}
-        </div>
+        </Swiper>
+      </div>
+
+      {/* ===== DESKTOP GRID VIEW (same as your original) ===== */}
+      <div className="hidden lg:grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 
+        gap-4 sm:gap-6 md:gap-8 lg:gap-10 px-2 sm:px-0">
+        
+        {products?.map((product, index) => (
+          <motion.div
+            key={index}
+            whileHover={{ y: -8 }}
+            transition={{ type: "spring", stiffness: 200 }}
+            className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg overflow-hidden flex flex-col p-1.5 sm:p-2 hover:cursor-pointer"
+            onClick={() => router.push(`/Product/${product._id}`)}
+          >
+            {/* Image */}
+            <div className="h-[200px] xs:h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px] relative">
+              <img
+                src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
+                alt={product.name}
+                className="object-cover rounded-lg sm:rounded-xl w-full h-full"
+              />
+            </div>
+
+            <div className="p-3 sm:p-4 md:p-5 lg:p-6 flex flex-col flex-grow justify-between">
+              <div>
+                <h3 className="text-xs sm:text-sm md:text-[15px] font-semibold text-[#4A3A28] mb-2 text-center">
+                  {product.name}
+                </h3>
+
+                <p className="text-[#7E5833] font-semibold text-xs sm:text-sm md:text-[15px] text-center">
+                  {product.price}
+                  <span className="line-through text-gray-400 text-[10px] sm:text-xs md:text-[13px] ml-2">
+                    {product.oldPrice}
+                  </span>
+                </p>
+              </div>
+
+              <button className="mt-3 sm:mt-4 md:mt-5 w-full py-1.5 sm:py-2 text-xs sm:text-sm bg-[#7E5833] 
+                text-[#F6F3E4] rounded-full hover:bg-[#5A3E25] transition-all duration-300">
+                Add to Cart
+              </button>
+            </div>
+          </motion.div>
+        ))}
+      </div>
       </div>
     </section>
   );

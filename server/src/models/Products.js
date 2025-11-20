@@ -9,14 +9,15 @@ const ProductSchema = new mongoose.Schema(
     productType: { type: String, required: true }, // 🟢 dynamic editable type
     availableTypes: {
       type: [String],
-      default: ["Bracelet", "Rudraksha", "Yantra", "Chain", "Gemstone", "Pendant"],
-    }, // admin-editable list of product types
+      default: ["Bracelet", "Rudraksha", "Yantra", "Chain", "Gemstone", "Pendant", "Stones", "Pyramids", "Tortoise"],
+    },
+    category: { type: String, required: true, default: ["Gift", "Love", "Money", "Evil Eye", "Health", "Gifting", "Career"]}, // admin-editable list of product types
     weight: { type: Number, required: true }, // For shipping (in kg)
     imageUrls: { type: [String], default: [] },
     gstPercent: { type: Number, default: 18 },
-    courierCharge: { type: Number, default: 0 },
     totalPrice: { type: Number },
     isFeatured: { type: Boolean, default: false },
+    rating: { type: Number, default: 0, min: 0, max: 5 }
   },
   { timestamps: true }
 );

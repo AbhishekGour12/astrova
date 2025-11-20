@@ -8,12 +8,12 @@ import axios from 'axios'
 
 
 // Input Validation Helper
-const isE164 = (number) => /^\+[1-9]\d{10,14}$/.test(number);
+
 const otpStore = new Map();
 
     const Signup = async (req, res) =>{
     const { name, phone } = req.body;
-    console.log(req.body)
+    console.log(phone)
 
     try {
         const existingUser = await User.findOne( { phone: phone});
@@ -38,9 +38,9 @@ const Login = async (req, res) => {
     const { phone, otp } = req.body;
     
     // 1. Input Validation and Formatting
-    const formattedPhone = phone.startsWith("+") ? phone : `+91${phone}`;
+   
 
-    if (!phone || !otp || !isE164(formattedPhone)) {
+    if (!phone || !otp ) {
         return res.status(400).json({ success: false, message: 'Missing phone number or code, or invalid phone format.' });
     }
     
@@ -48,7 +48,7 @@ const Login = async (req, res) => {
    
 
     try {
-        const record = otpStore.get(formattedPhone);
+        const record = otpStore.get(phone);
 
   if (!record) {
     return res.status(400).json({ success: false, message: "OTP expired or not found" });
@@ -63,7 +63,7 @@ const Login = async (req, res) => {
     return res.status(400).json({ success: false, message: "Invalid OTP" });
   }
 
-     otpStore.delete(mobile);
+     otpStore.delete(phone);
  
 
         // Initialize Twilio client
@@ -86,10 +86,10 @@ const Login = async (req, res) => {
       
             // SUCCESS: Generate JWT and return response
             // Assuming 'User' model is imported and used for authentication
-            const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+            const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '6h' });
             console.log(token)
             // You should return the user role here for frontend routing
-            res.status(200).json({ message: "Login successful", token, role: user.role }); 
+            res.status(200).json({ message: "Login successful", token, data: user }); 
         
     } catch (error) {
         // 5. Handle Final Internal Errors (DB access, JWT failure, etc.)
@@ -101,12 +101,15 @@ const Login = async (req, res) => {
 
 const userProfile = async (req, res) =>{
     try {
-        const userId = req.user.id;
-        const user = await User.findById(userId);
-        if (!user) {
+        const token = req.params.token;
+        let user = jwt.decode(token);
+       
+        const result = await User.findById(user.id);
+        console.log(result)
+        if (!result) {
             return res.status(404).json({ message: "User not found" });
         }
-        res.status(200).json({ message: "User profile retrieved successfully", user });
+        res.status(200).json({ message: "User profile retrieved successfully", data: result});
     } catch (error) {
         console.error("Error retrieving user profile:", error);
         res.status(500).json({ message: "Internal server error" });
@@ -157,11 +160,14 @@ const deleteUser = async(req, res) =>{
 };
 
 const user  = async(req, res) =>{
-    const phone = req.params;
+    const phone = req.params.phone;
+    console.log(phone)
    
+   const formattedPhone = phone.startsWith("+") ? phone : `+91${phone}`;
+   console.log(formattedPhone)
    
     try{
-        const existingUser = await User.findOne({phone: phone.phone});
+        const existingUser = await User.findOne({phone: formattedPhone});
         
         if(!existingUser){
             return res.status(200).json({success: false, message: "User not found with this contact"});
@@ -178,38 +184,30 @@ const user  = async(req, res) =>{
 
 }
 const requestotp = async( req, res) =>{
-    const phone = req.params;
-     const formattedPhone = phone.phone.startsWith("+") ? phone.phone : `+91${phone.phone}`;
+    const phone = req.params.phone;
+    console.log(phone)
+   
    console.log(process.env.CPAAS_API_KEY)
   
    
     try{
         
-    if (!phone.phone || !isE164(formattedPhone)) {
+    if (!phone) {
         return res.status(400).json({ success: false, message: 'Invalid phone number format. Must be E.164 (+CCNNNNNNNNN).' });
     }
     const otp = Math.floor(100000 + Math.random() * 900000);
 
     // 2️⃣ Store OTP temporarily (5 mins expiry)
-    otpStore.set(formattedPhone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    otpStore.set(phone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
     console.log(otpStore)
+     // Country code (91)
+const countryCode = phone.substring(1, 3);
 
+// Mobile number
+const mobile = phone.substring(3);
     // 3️⃣ Send SMS via CPaaS API
-    const response = await axios.get(
-      "https://cpaas.socialteaser.com/restapi/request.php",
-      {
-        params: {
-          authkey: process.env.CPAAS_API_KEY,
-          mobile: formattedPhone,
-          country_code: "91",
-          sid: "1001", // your SMS template ID
-          name:  "User",
-          otp,
-        },
-      }
-    );
-   console.log(response.data)
-     
+    const response = await axios.get (`https://cpaas.socialteaser.com/restapi/request.php?authkey=6aa45940ce7d45f2&mobile=${mobile}&country_code=${countryCode}&sid=29289&name=Twinkle&otp=${otp}` );
+       console.log(response.data)
    
        // const result = await User.findOneAndUpdate({phone: phone.email}, {otp: otp});
        // console.log(result)
@@ -219,6 +217,7 @@ const requestotp = async( req, res) =>{
            
             // WARNING: Do NOT send the Verification SID back to the client. The Twilio Verify API handles the binding automatically.
         });
+        
     }catch(err){
         console.log(err.message)
         //console.error("E

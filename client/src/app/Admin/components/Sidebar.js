@@ -8,7 +8,8 @@ import {
   FaDollarSign, 
   FaComments,
   FaCog,
-  FaSignOutAlt
+  FaSignOutAlt,
+  FaGift
 } from 'react-icons/fa';
 
 const menuItems = [
@@ -20,6 +21,7 @@ const menuItems = [
   { id: 'payments', label: 'Payments', icon: FaDollarSign, color: 'from-teal-500 to-green-500' },
   { id: 'chats', label: 'Chats', icon: FaComments, color: 'from-red-500 to-pink-500' },
   { id: 'settings', label: 'Settings', icon: FaCog, color: 'from-gray-500 to-gray-700' },
+  {id: 'coupon', label: 'Coupon', icon: FaGift, color: 'from-gray-500 to-gray-700' }
 ];
 
 const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {

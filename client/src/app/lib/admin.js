@@ -1,3 +1,4 @@
+import api from "./api";
 export const adminAPI = {
     // --- 1. Dashboard & Reports ---
     getDashboardStats: async () => {
@@ -58,35 +59,55 @@ export const adminAPI = {
             throw new Error(errorMessage);
         }
     },
+ createProduct: async (data) => {
+    try {
+      const res = await api.post("/admin/product", data);
+      return res.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Failed to create product.");
+    }
+  },
 
+  getProducts: async (filters = {}) => {
+    try {
+      
+     
+    const params = new URLSearchParams(filters).toString();
+    const res = await api.get(`/admin/product?${params}`);
+    return res.data;
+
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Failed to load products.");
+    }
+  },
     // --- 4. Product Management ---
-    addProduct: async (productData) => {
-        try {
-            const response = await api.post('/admin/products', productData);
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to add product.';
-            throw new Error(errorMessage);
-        }
-    },
-    updateProduct: async (id, productData) => {
-        try {
-            const response = await api.put(`/admin/products/${id}`, productData);
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to update product.';
-            throw new Error(errorMessage);
-        }
-    },
-    deleteProduct: async (id) => {
-        try {
-            const response = await api.delete(`/admin/products/${id}`);
-            return response.data;
-        } catch (error) {
-            const errorMessage = error.response?.data?.message || 'Failed to delete product.';
-            throw new Error(errorMessage);
-        }
-    },
+   
+     updateProduct: async (id, data) => {
+    try {
+      const res = await api.put(`admin/product/${id}`, data);
+      return res.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Failed to update product.");
+    }
+  },
+
+  getProductTypes: async () =>{
+    try{
+    const res = await api.get('/admin/types');
+    return res.data;
+    }catch(error){
+      throw new Error(error.response?.data?.message || "Failed to load product types.");
+    }
+  },
+
+  deleteProduct: async (id) => {
+    try {
+      const res = await api.delete(`/product/${id}`);
+      return res.data;
+    } catch (error) {
+      throw new Error(error.response?.data?.message || "Failed to delete product.");
+    }
+  },
 
     // --- 5. Order Management ---
     getAllOrders: async () => {

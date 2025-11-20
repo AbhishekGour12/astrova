@@ -1,24 +1,37 @@
 import mongoose from "mongoose";
 
-const OrderSchema = new mongoose.Schema(
-  {
-    userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
-    products: [
-      {
-        product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-        quantity: { type: Number, required: true },
-        priceAtPurchase: Number, // store actual price at time of order
-      },
-    ],
-    gstAmount: { type: Number, required: true },
-    shippingCharge: { type: Number, required: true },
-    subtotal: { type: Number, required: true },
-    totalAmount: { type: Number, required: true }, // subtotal + GST + shipping
-    shippingAddress: { type: Object, required: true },
-    paymentStatus: { type: String, enum: ["Pending", "Paid", "Failed"], default: "Pending" },
-    deliveryStatus: { type: String, enum: ["Processing", "Shipped", "Delivered", "Cancelled"], default: "Processing" },
-  },
-  { timestamps: true }
-);
+const orderSchema = new mongoose.Schema({
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
 
-export default mongoose.model("Order", OrderSchema);
+  items: [
+    {
+      product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      quantity: Number,
+      price: Number,
+    }
+  ],
+
+  shippingAddress: Object,
+  subtotal: Number,
+  gstAmount: Number,
+  shippingCharge: Number,
+  discount: Number,
+  totalAmount: Number,
+
+  // Payment
+  paymentMethod: { type: String, enum: ["cod", "razorpay"], default: "cod" },
+  paymentStatus: { type: String, enum: ["Pending", "Paid", "Failed"], default: "Pending" },
+  paymentDetails: Object,
+
+  // SHIPROCKET ORDER DATA
+  shiprocketOrderId: String,
+  shipmentId: String,
+  awbCode: String,
+
+  // 👇 Ye status automatically Shiprocket se update hoga  
+  shiprocketStatus: { type: String, default: "Pending" }, 
+  shiprocketStatusDate: Date,
+
+}, { timestamps: true });
+
+export default mongoose.model("Order", orderSchema);

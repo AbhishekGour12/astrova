@@ -11,18 +11,41 @@ const storage = multer.diskStorage({
   },
   filename: (req, file, cb) => {
     const ext = path.extname(file.originalname);
-    const uniqueName = Date.now() + "-" + Math.round(Math.random() * 1e9) + ext;
+  console.log(file.originalname)
+    const uniqueName = `${Date.now()}-${Math.round(Math.random() * 1e9)}${ext}`;
+   
     cb(null, uniqueName);
   },
 });
 
-const upload = multer({
+// ✅ Image-only filter
+const imageFileFilter = (req, file, cb) => {
+  const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Invalid image file type"), false);
+};
+
+// ✅ Excel + images filter
+const excelAndImageFileFilter = (req, file, cb) => {
+  const allowed = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/jpg",
+    "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "application/vnd.ms-excel",
+    "text/csv",
+  ];
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error("Invalid file type. Only images and Excel files are allowed."), false);
+};
+console.log(excelAndImageFileFilter)
+export const uploadImages = multer({
   storage,
-  fileFilter: (req, file, cb) => {
-    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
-    if (allowedTypes.includes(file.mimetype)) cb(null, true);
-    else cb(new Error("Invalid file type"), false);
-  },
+  fileFilter: imageFileFilter,
 });
 
-export default upload;
+export const uploadExcelAndImages = multer({
+  storage,
+  fileFilter: excelAndImageFileFilter,
+});

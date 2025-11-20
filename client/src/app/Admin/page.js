@@ -13,6 +13,7 @@ import ChatsTab from './components/ChatsTab';
 import SettingsTab from './components/SettingsTab';
 import { PageLoader } from './components/Loading';
 import { FaBars, FaTimes } from 'react-icons/fa';
+import CouponsTab from './components/CouponsTab';
 
 // Dummy data (move to separate file if needed)
 export const dummyData = {
@@ -76,6 +77,7 @@ const AdminDashboard = () => {
   const [data, setData] = useState(dummyData);
 
   useEffect(() => {
+    document.getElementById("navbar").style.display = "none"
     const timer = setTimeout(() => {
       setLoading(false);
     }, 2000);
@@ -171,6 +173,7 @@ const AdminDashboard = () => {
       searchTerm={searchTerm} 
       onDeleteChat={deleteChat}
     />,
+    coupon: <CouponsTab/>,
     settings: <SettingsTab />
   };
 

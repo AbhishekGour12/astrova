@@ -73,7 +73,7 @@ if (loading) return <SignupLoader/>
     try {
      
       const result = await authAPI.resigter({
-        ...formData,
+        name: formData.name,
         phone: fullPhone,
       });
       if (result) {

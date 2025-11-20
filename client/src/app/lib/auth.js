@@ -25,9 +25,9 @@ export const authAPI ={
 
     },
 
-    getProfile: async () =>{
+    getProfile: async (token) =>{
         try{
-        const response = await api.get('/auth/profile');
+        const response = await api.get(`/auth/profile/${token}`);
         return response.data
         }catch (error){
             const errorMessage = error.response?.data?.message || 'Failed to fetch profile. please try again.';
