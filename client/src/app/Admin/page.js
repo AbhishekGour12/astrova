@@ -16,7 +16,7 @@ import { FaBars, FaTimes } from 'react-icons/fa';
 import CouponsTab from './components/CouponsTab';
 
 // Dummy data (move to separate file if needed)
-export const dummyData = {
+const dummyData = {
   stats: {
     usersCount: 1247,
     astrologersCount: 48,
