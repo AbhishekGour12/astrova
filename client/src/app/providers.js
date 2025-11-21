@@ -10,10 +10,10 @@ import { authAPI } from './lib/auth';
 import { loginSuccess } from './store/features/authSlice';
 
 
-
 // ✅ Safe and silent user auth initialization
  function Product(){
   const dispatch = useDispatch()
+  
 
   useEffect(() =>{
     const fetchProductType = async () =>{
@@ -21,8 +21,9 @@ import { loginSuccess } from './store/features/authSlice';
         const response = await adminAPI.getProductTypes();
          dispatch(productsType(response))
         console.log(response)
-        const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token');
     if (!token) return;
+   
 
     const fetchUser = async () => {
       try {
@@ -57,7 +58,7 @@ import { loginSuccess } from './store/features/authSlice';
 
        fetchUser()
        
-        
+   
       }catch(err){
         console.log(err.message)
       }
@@ -65,15 +66,18 @@ import { loginSuccess } from './store/features/authSlice';
    fetchProductType()
     
   },[dispatch])
+ 
   return null
 
 }
 
 export function Providers({ children }) {
+  
   return (
     <Provider store={store}>
     
       <Product/>
+      
       
       {children}
       <Toaster position="top-right" />

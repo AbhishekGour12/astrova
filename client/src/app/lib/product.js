@@ -109,21 +109,22 @@ checkUserInterest: async (productId) => {
 },
 
 // Rating methods
-submitRating: async(productId, rating, review = '') => {
-  const response = await api.post(`/ratings/product/${productId}`, {
+submitRating: async(data) => {
+  
+  const response = await api.post(`/ratings/product/${data.productId}`, data, {
     
     headers: {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${localStorage.getItem('token')}`
     },
-    body: JSON.stringify({ rating, review })
+   
   });
-  return response.json();
+  return response.data;
 },
 
  getProductRatings: async (productId) => {
   const response = await api.get(`/ratings/product/${productId}`);
-  return response.json();
+  return response.data.reviews;
 },
 
 

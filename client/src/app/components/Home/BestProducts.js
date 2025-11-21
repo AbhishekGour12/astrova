@@ -41,7 +41,7 @@ useEffect(() =>{
   }
   fetchProducts();
 
-},[categories]);
+},[productType]);
 const handleCategoryClick = (cat) => {
   setProductType(cat);
   console.log(cat)

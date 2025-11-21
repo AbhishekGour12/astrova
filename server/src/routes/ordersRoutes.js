@@ -2,8 +2,7 @@ import express from 'express';
 import { 
   createOrder, 
   getOrders, 
-  getOrderById, 
-  updateOrderStatus 
+  getOrderById
 } from '../controllers/orderController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
@@ -17,6 +16,5 @@ router.route('/')
 
 router.route('/:id')
   .get(getOrderById)
-  .put(updateOrderStatus);
-
+  
 export default router;

@@ -17,7 +17,12 @@ const ProductSchema = new mongoose.Schema(
     gstPercent: { type: Number, default: 18 },
     totalPrice: { type: Number },
     isFeatured: { type: Boolean, default: false },
-    rating: { type: Number, default: 0, min: 0, max: 5 }
+    rating: { type: Number, default: 0, min: 0, max: 5 },
+    weight: { type: Number, default: 0.2 },   // KG
+    length: { type: Number, default: 10 },   // CM
+    breadth: { type: Number, default: 10 },  // CM
+    height: { type: Number, default: 10 },   // CM
+
   },
   { timestamps: true }
 );

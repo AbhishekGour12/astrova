@@ -84,7 +84,7 @@ export const adminAPI = {
    
      updateProduct: async (id, data) => {
     try {
-      const res = await api.put(`admin/product/${id}`, data);
+      const res = await api.put(`admin/${id}`, data);
       return res.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || "Failed to update product.");
@@ -102,7 +102,7 @@ export const adminAPI = {
 
   deleteProduct: async (id) => {
     try {
-      const res = await api.delete(`/product/${id}`);
+      const res = await api.delete(`admin/${id}`);
       return res.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || "Failed to delete product.");

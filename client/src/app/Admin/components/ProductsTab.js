@@ -83,7 +83,7 @@ const category = ["Gift", "Love", "Money", "Evil Eye", "Health", "Gifting", "Car
   useEffect(() => {
     fetchProductTypes();
     fetchProducts();
-  }, []);
+  }, [filters]);
 
   const fetchProductTypes = async () => {
     try {
@@ -476,157 +476,146 @@ const downloadExcelTemplate = () => {
       </div>
 
       {/* Products Table */}
-      <div className="bg-white rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead className="bg-gradient-to-r from-[#ECE5D3] to-[#F7F3E9]">
-  <tr>
-    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Product</th>
-    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Type</th>
-    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Price</th>
-    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Rating</th> {/* ⭐ NEW */}
-    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Stock</th>
-    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Weight</th>
-    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Total Price</th>
-    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Status</th>
-    <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Actions</th>
-  </tr>
-</thead>
+      {/* Products Table with Pagination + Smooth Scroll */}
+<div className="bg-white rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg">
 
-<tbody className="divide-y divide-[#B2C5B2]">
-  {filteredProducts.map((product) => (
-    <motion.tr
-      key={product._id}
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="hover:bg-[#F7F3E9] transition-colors"
+  {/* Scroll Wrapper */}
+  <div className="h-[calc(100vh-250px)] overflow-y-auto custom-scroll px-1">
+
+    <table className="w-full">
+      <thead className="bg-gradient-to-r from-[#ECE5D3] to-[#F7F3E9] sticky top-0 z-10">
+        <tr>
+          <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Product</th>
+          <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Type</th>
+          <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Price</th>
+          <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Rating</th>
+          <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Stock</th>
+          <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Weight</th>
+          <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Total</th>
+          <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Status</th>
+          <th className="px-6 py-4 text-left text-[#003D33] font-semibold">Actions</th>
+        </tr>
+      </thead>
+
+      <tbody className="divide-y divide-[#B2C5B2]">
+        {filteredProducts.map((product) => (
+          <motion.tr
+            key={product._id}
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="hover:bg-[#F7F3E9] transition-colors"
+          >
+            <td className="px-6 py-4">
+              <div className="flex items-center gap-3">
+                <img
+                  src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls?.[0]}`}
+                  className="w-12 h-12 rounded-xl object-cover"
+                />
+                <div>
+                  <p className="font-semibold text-[#003D33]">{product.name}</p>
+                  <p className="text-sm text-[#00695C] line-clamp-1">
+                    {product.description}
+                  </p>
+                </div>
+              </div>
+            </td>
+
+            <td className="px-6 py-4">{product.productType}</td>
+
+            <td className="px-6 py-4 font-semibold">₹{product.price}</td>
+
+            <td className="px-6 py-4">
+              <div className="flex items-center gap-1">
+                {[...Array(5)].map((_, i) => (
+                  <FaStar
+                    key={i}
+                    className={
+                      i < Math.round(product.rating || 0)
+                        ? "text-yellow-400"
+                        : "text-gray-300"
+                    }
+                  />
+                ))}
+              </div>
+            </td>
+
+            <td className="px-6 py-4">{product.stock}</td>
+
+            <td className="px-6 py-4">{product.weight} kg</td>
+
+            <td className="px-6 py-4 font-semibold text-[#C06014]">
+              ₹{product.totalPrice}
+            </td>
+
+            <td className="px-6 py-4">
+              <span className={`px-2 py-1 text-xs rounded-full font-semibold ${
+                product.stock > 0
+                  ? "bg-green-100 text-green-600"
+                  : "bg-red-100 text-red-600"
+              }`}>
+                {product.stock > 0 ? "Available" : "Out of Stock"}
+              </span>
+            </td>
+
+            <td className="px-6 py-4">
+              <div className="flex gap-2">
+                <button
+                  onClick={() => openEditModal(product)}
+                  className="p-2 text-[#C06014] hover:bg-orange-50 rounded-xl"
+                >
+                  <FaEdit />
+                </button>
+                <button
+                  onClick={() => deleteProduct(product._id)}
+                  className="p-2 text-red-500 hover:bg-red-50 rounded-xl"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            </td>
+          </motion.tr>
+        ))}
+      </tbody>
+    </table>
+
+  </div>
+
+  {/* Pagination */}
+  <div className="flex justify-center items-center gap-3 py-4 bg-[#F7F3E9] border-t border-[#B2C5B2]">
+
+    <button
+      disabled={filters.page === 1}
+      onClick={() => setFilters((prev) => ({ ...prev, page: prev.page - 1 }))}
+      className="px-4 py-2 rounded-xl bg-[#003D33] text-white disabled:opacity-40"
     >
-      {/* 🧿 Product Info */}
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 bg-gradient-to-br from-[#C06014] to-[#D47C3A] rounded-2xl flex items-center justify-center text-white font-semibold overflow-hidden">
-            {product.imageUrls?.[0] ? (
-              <img
-                src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
-                alt={product.name}
-                className="w-12 h-12 object-cover"
-              />
-            ) : (
-              <FaImage className="text-white" />
-            )}
-          </div>
-          <div>
-            <p className="font-semibold text-[#003D33]">{product.name}</p>
-            <p className="text-sm text-[#00695C] line-clamp-1">
-              {product.description}
-            </p>
-            {product.isFeatured && (
-              <span className="text-amber-500 text-xs">★ Featured</span>
-            )}
-          </div>
-        </div>
-      </td>
+      Prev
+    </button>
 
-      {/* 🧿 Type */}
-      <td className="px-6 py-4">
-        <span className="text-[#00695C] bg-[#ECE5D3] px-2 py-1 rounded-full text-sm">
-          {product.productType}
-        </span>
-      </td>
+    {[...Array(10)].map((_, i) => (
+      <button
+        key={i}
+        onClick={() => setFilters((prev) => ({ ...prev, page: i + 1 }))}
+        className={`px-3 py-1 rounded-lg border ${
+          filters.page === i + 1
+            ? "bg-[#C06014] text-white"
+            : "text-[#003D33] border-[#003D33]"
+        }`}
+      >
+        {i + 1}
+      </button>
+    ))}
 
-      {/* 💰 Price */}
-      <td className="px-6 py-4">
-        <span className="text-[#003D33] font-semibold">₹{product.price}</span>
-      </td>
+    <button
+      onClick={() => setFilters((prev) => ({ ...prev, page: prev.page + 1 }))}
+      className="px-4 py-2 rounded-xl bg-[#003D33] text-white"
+    >
+      Next
+    </button>
 
-      {/* ⭐ Rating */}
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-1">
-          {[...Array(5)].map((_, i) => (
-            <FaStar
-              key={i}
-              className={`${
-                i < Math.round(product.rating || 0)
-                  ? "text-yellow-400"
-                  : "text-gray-300"
-              }`}
-            />
-          ))}
-          <span className="text-sm text-[#003D33] font-medium ml-1">
-            {product.rating?.toFixed(1) || "0.0"}
-          </span>
-        </div>
-      </td>
+  </div>
 
-      {/* 📦 Stock */}
-      <td className="px-6 py-4">
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-semibold ${
-            product.stock > 10
-              ? "bg-green-100 text-green-600"
-              : product.stock > 0
-              ? "bg-amber-100 text-amber-600"
-              : "bg-red-100 text-red-600"
-          }`}
-        >
-          {product.stock} in stock
-        </span>
-      </td>
+</div>
 
-      {/* ⚖️ Weight */}
-      <td className="px-6 py-4">
-        <span className="text-[#00695C]">{product.weight} kg</span>
-      </td>
-
-      {/* 💵 Total Price */}
-      <td className="px-6 py-4">
-        <span className="text-[#C06014] font-bold">₹{product.totalPrice}</span>
-        <p className="text-xs text-[#00695C]">incl. GST</p>
-      </td>
-
-      {/* 🟢 Status */}
-      <td className="px-6 py-4">
-        <span
-          className={`px-2 py-1 rounded-full text-xs font-semibold ${
-            product.stock > 0
-              ? "bg-green-100 text-green-600"
-              : "bg-red-100 text-red-600"
-          }`}
-        >
-          {product.stock > 0 ? "Available" : "Out of Stock"}
-        </span>
-      </td>
-
-      {/* ⚙️ Actions */}
-      <td className="px-6 py-4">
-        <div className="flex items-center gap-2">
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => openEditModal(product)}
-            className="p-2 text-amber-500 hover:bg-amber-50 rounded-2xl transition-colors"
-            title="Edit Product"
-          >
-            <FaEdit />
-          </motion.button>
-          <motion.button
-            whileHover={{ scale: 1.1 }}
-            whileTap={{ scale: 0.9 }}
-            onClick={() => deleteProduct(product._id)}
-            className="p-2 text-red-500 hover:bg-red-50 rounded-2xl transition-colors"
-            title="Delete Product"
-          >
-            <FaTrash />
-          </motion.button>
-        </div>
-      </td>
-    </motion.tr>
-  ))}
-</tbody>
-
-          </table>
-        </div>
-      </div>
 
       {/* Bulk Upload Modal */}
       {showBulkUploadModal && (

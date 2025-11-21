@@ -31,6 +31,7 @@ const orderSchema = new mongoose.Schema({
   // 👇 Ye status automatically Shiprocket se update hoga  
   shiprocketStatus: { type: String, default: "Pending" }, 
   shiprocketStatusDate: Date,
+  
 
 }, { timestamps: true });
 

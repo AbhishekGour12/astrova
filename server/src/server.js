@@ -12,10 +12,12 @@ import chatsRoutes from "./routes/chatsRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import userInterestRoutes from "./routes/userIntrested.js";
 import ratingRoutes from "./routes/ratingRoutes.js";
-import orderRoutes from "./routes/ratingRoutes.js"
+import orderRoutes from "./routes/ordersRoutes.js"
 import couponRoutes from "./routes/couponRoutes.js";
 import shippingRoutes from "./routes/shippingRoutes.js";
-import paymentRoutes from "./routes/paymentRoutes.js"
+import paymentRoutes from "./routes/paymentRoutes.js";
+import { shiprocketCron } from "./cron/shiprocketCron.js";
+
 // =======================
 // ✅ INITIAL SETUP
 // =======================
@@ -42,7 +44,7 @@ app.use(
   "/uploads/products",
   express.static(path.join(process.cwd(), "uploads", "products"))
 );
-
+shiprocketCron()
 // =======================
 // ✅ ROUTES
 // =======================

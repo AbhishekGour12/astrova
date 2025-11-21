@@ -10,7 +10,7 @@ export const getProducts = async (req, res) => {
     // 🧾 Query parameters from frontend
     const {
       page = 1,
-      limit = 10,
+      limit,
       search = "",
       type = "",
       minPrice,

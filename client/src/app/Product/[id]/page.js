@@ -30,7 +30,7 @@ const ProductShowcasePage = ({params}) => {
 
   const user = useSelector((state) => state.auth.user);
   const productId = React.use(params).id;
-  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedProduct, setselectedProduct] = useState(null);
   const [selectedImageIndex, setSelectedImageIndex] = useState(0);
   const [quantity, setQuantity] = useState(1);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,10 +42,16 @@ const ProductShowcasePage = ({params}) => {
   const [review, setReview] = useState('');
   const  checkLogin = useCheckLogin()
   const router = useRouter();
+  const [reviews, setReviews] = useState([]);
+const [ratingSummary, setRatingSummary] = useState({
+  avg: 0,
+  count: 0,
+  breakdown: { 5:0, 4:0, 3:0, 2:0, 1:0 }
+});
 
-  useEffect(() => {
-    const fetchProduct = async () => {
+const fetchProduct = async () => {
   setIsLoading(true);
+
   const product = await productAPI.getProductById(productId);
   const similarProduct = await productAPI.getProducts({
     type: product.productType,
@@ -53,16 +59,33 @@ const ProductShowcasePage = ({params}) => {
     featured: true
   });
 
+  const reviewsData = await productAPI.getProductRatings(productId);
+
+  // rating summary breakdown
+  const breakdown = { 5:0, 4:0, 3:0, 2:0, 1:0 };
+  reviewsData.forEach(r => breakdown[r.rating]++);
+
+  setRatingSummary({
+    avg: product.rating,
+    count: reviewsData.length,
+    breakdown
+  });
+
+  setReviews(reviewsData);
+  setselectedProduct(product);
+  
+  setSimilarProducts(similarProduct.products);
+  
   if (user) {
     const interest = await productAPI.checkUserInterest(productId);
-    
     setIsLiked(interest?.isLiked || false);
   }
 
-  setSelectedProduct(product);
-  setSimilarProducts(similarProduct.products);
   setIsLoading(false);
 };
+
+  useEffect(() => {
+    
 
     fetchProduct();
     
@@ -110,7 +133,13 @@ const ProductShowcasePage = ({params}) => {
   if (!checkLogin()) return;
 
   try {
-    await productAPI.submitRating(selectedProduct._id, rating, review);
+    let data =  {
+      productId,
+      rating: Number(rating),
+      review
+      
+    }
+    await productAPI.submitRating(data);
     toast.success("Review submitted!");
 
     setShowRatingForm(false);
@@ -118,9 +147,11 @@ const ProductShowcasePage = ({params}) => {
     setReview("");
 
     const updated = await productAPI.getProductById(productId);
-    setSelectedProduct(updated);
+    console.log(updated)
+    setselectedProduct(updated);
+    
   } catch (error) {
-    toast.error("Failed to submit review");
+    toast.error(error.error);
   }
 };
 
@@ -213,9 +244,9 @@ const ProductShowcasePage = ({params}) => {
             <span>/</span>
             <span>Shop</span>
             <span>/</span>
-            <span>{selectedProduct.category}</span>
+            <span>{selectedProduct?.category}</span>
             <span>/</span>
-            <span className="text-[#003D33] font-semibold">{selectedProduct.name}</span>
+            <span className="text-[#003D33] font-semibold">{selectedProduct?.name}</span>
           </motion.div>
 
           {/* Main Product Section */}
@@ -233,15 +264,15 @@ const ProductShowcasePage = ({params}) => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
-                  src={`${process.env.NEXT_PUBLIC_API}${selectedProduct.imageUrls[selectedImageIndex]}`}
-                  alt={selectedProduct.name}
+                  src={`${process.env.NEXT_PUBLIC_API}${selectedProduct?.imageUrls[selectedImageIndex]}`}
+                  alt={selectedProduct?.name}
                   className="w-full h-96 object-cover rounded-2xl cursor-zoom-in"
                 />
               </div>
 
               {/* Thumbnail Images */}
               <div className="flex gap-4 overflow-x-auto pb-4">
-                {selectedProduct.imageUrls.map((image, index) => (
+                {selectedProduct?.imageUrls.map((image, index) => (
                   <motion.div
                     key={index}
                     whileHover={{ scale: 1.05 }}
@@ -256,7 +287,7 @@ const ProductShowcasePage = ({params}) => {
                   >
                     <img
                       src={`${process.env.NEXT_PUBLIC_API}${image}`}
-                      alt={`${selectedProduct.name} view ${index + 1}`}
+                      alt={`${selectedProduct?.name} view ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
                   </motion.div>
@@ -270,54 +301,89 @@ const ProductShowcasePage = ({params}) => {
               animate={{ opacity: 1, x: 0 }}
               className="space-y-6"
             >
-              {/* Category & Rating */}
-              <div className="flex items-center justify-between">
-                <span className="px-4 py-2 bg-[#ECE5D3] text-[#00695C] rounded-full text-sm font-semibold">
-                  {selectedProduct.category}
-                </span>
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1 text-amber-400">
-                    {[...Array(5)].map((_, i) => (
-                      <FaStar
-                        key={i}
-                        className={i < Math.floor(selectedProduct.rating) ? "fill-current" : "text-gray-300"}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-[#00695C] text-sm">
-                    {selectedProduct.rating} ({selectedProduct.reviewCount} reviews)
-                  </span>
-                </div>
-              </div>
+              {/* Category, Rating & Summary */}
+<div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-6">
+
+  {/* LEFT → Category + Stars */}
+  <div className="flex items-center justify-between lg:justify-start gap-4 flex-1">
+    <span className="px-4 py-2 bg-[#ECE5D3] text-[#00695C] rounded-full text-sm font-semibold">
+      {selectedProduct?.category}
+    </span>
+
+    <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 text-amber-400">
+        {[...Array(5)].map((_, i) => (
+          <FaStar
+            key={i}
+            className={i < Math.floor(selectedProduct?.rating) ? "fill-current" : "text-gray-300"}
+          />
+        ))}
+      </div>
+
+      <span className="text-[#00695C] text-sm">
+        {selectedProduct?.rating} ({selectedProduct?.reviewCount} reviews)
+      </span>
+    </div>
+  </div>
+
+  {/* RIGHT → Rating Breakdown */}
+  <div className="bg-[#ECE5D3] p-4 rounded-2xl border border-[#C06014]/20 w-full lg:w-72">
+    <h3 className="text-md font-semibold text-[#003D33] mb-3">Rating Overview</h3>
+
+    {Object.entries(ratingSummary.breakdown)
+      .sort((a, b) => b[0] - a[0])
+      .map(([star, count]) => {
+        const percent = ratingSummary.count
+          ? Math.round((count / ratingSummary.count) * 100)
+          : 0;
+
+        return (
+          <div key={star} className="flex items-center gap-2 my-1">
+            <span className="w-8 text-[#003D33] font-semibold">{star}★</span>
+
+            <div className="flex-1 h-2 bg-white rounded-full overflow-hidden">
+              <div
+                style={{ width: `${percent}%` }}
+                className="h-full bg-[#C06014] rounded-full transition-all duration-300"
+              ></div>
+            </div>
+
+            <span className="w-10 text-[#00695C] text-sm">{percent}%</span>
+          </div>
+        );
+      })}
+  </div>
+</div>
+
 
               {/* Product Name */}
               <h1 className="text-4xl font-bold text-[#003D33] leading-tight">
-                {selectedProduct.name}
+                {selectedProduct?.name}
               </h1>
 
               {/* Price */}
               <div className="flex items-center gap-4">
                 <span className="text-3xl font-bold text-[#C06014]">
-                  ₹{selectedProduct.price}
+                  ₹{selectedProduct?.price}
                 </span>
-                {selectedProduct.stock < 10 && (
+                {selectedProduct?.stock < 10 && (
                   <span className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-sm font-semibold">
-                    Only {selectedProduct.stock} left!
+                    Only {selectedProduct?.stock} left!
                   </span>
                 )}
               </div>
 
               {/* Description */}
               <p className="text-lg text-[#00695C] leading-relaxed">
-                {selectedProduct.description}
+                {selectedProduct?.description}
               </p>
 
               {/* Features */}
               <div className="space-y-3">
                 <h3 className="text-xl font-semibold text-[#003D33]">Sacred Features:</h3>
-                {selectedProduct?.features && selectedProduct.features.length > 0 ? (
+                {selectedProduct?.features && selectedProduct?.features.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2">
-                    {selectedProduct.features.map((feature, index) => (
+                    {selectedProduct?.features.map((feature, index) => (
                       <div key={index} className="flex items-center gap-3">
                         <div className="w-6 h-6 bg-[#C06014] rounded-full flex items-center justify-center">
                           <FaCheck className="text-white text-xs" />
@@ -353,14 +419,14 @@ const ProductShowcasePage = ({params}) => {
                       {quantity}
                     </span>
                     <button
-                      onClick={() => setQuantity(Math.min(selectedProduct.stock, quantity + 1))}
+                      onClick={() => setQuantity(Math.min(selectedProduct?.stock, quantity + 1))}
                       className="px-4 py-3 bg-[#ECE5D3] hover:bg-[#C06014] hover:text-white transition-colors"
                     >
                       +
                     </button>
                   </div>
                   <span className="text-[#00695C]">
-                    {selectedProduct.stock} available
+                    {selectedProduct?.stock} available
                   </span>
                 </div>
               </div>
@@ -507,7 +573,7 @@ const ProductShowcasePage = ({params}) => {
               </motion.form>
             )}
           </motion.section>
-
+          
           {/* Similar Products Section */}
           <motion.section
             initial={{ opacity: 0, y: 50 }}
@@ -577,6 +643,41 @@ const ProductShowcasePage = ({params}) => {
               ))}
             </div>
           </motion.section>
+          {/* CUSTOMER REVIEWS SECTION */}
+<motion.section
+  initial={{ opacity: 0, y: 50 }}
+  animate={{ opacity: 1, y: 0 }}
+  className="bg-white rounded-3xl border border-[#B2C5B2] p-8 mb-16"
+>
+  <h3 className="text-2xl font-bold text-[#003D33] mb-6 flex items-center gap-3">
+    <FaStar className="text-[#C06014]" /> Customer Reviews
+  </h3>
+
+  {reviews.length === 0 && (
+    <p className="text-gray-500">No reviews yet. Be the first to review!</p>
+  )}
+
+  <div className="space-y-6">
+    {reviews.map((r) => (
+      <div key={r._id} className="bg-[#F7F3E9] p-5 rounded-2xl border border-[#ECE5D3]">
+        <div className="flex items-center justify-between">
+          <p className="font-semibold text-[#003D33]">{r.userId.username}</p>
+          <div className="flex text-amber-400">
+            {[1,2,3,4,5].map(star => (
+              <FaStar key={star} className={star <= r.rating ? "text-amber-400" : "text-gray-300"} />
+            ))}
+          </div>
+        </div>
+
+        <p className="text-[#00695C] mt-2">{r.review}</p>
+
+        <p className="text-xs text-gray-500 mt-1">
+          {new Date(r.createdAt).toLocaleDateString()}
+        </p>
+      </div>
+    ))}
+  </div>
+</motion.section>
 
           {/* Product Details Tabs */}
           <motion.section

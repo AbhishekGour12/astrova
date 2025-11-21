@@ -1,16 +1,17 @@
 import axios from "axios";
-import { getValidToken } from "../utils/shipRocketToken";
+import { getValidToken } from "../utils/shipRocketToken.js";
 
 /**
  * Create Shiprocket Order
  */
-export const createShiprocketOrder = async (order) => {
+export const createShiprocketOrder = async (order, extra = {}) => {
   const token = await getValidToken();
 
   const payload = {
     order_id: order._id,
     order_date: new Date().toISOString().slice(0, 10),
-    pickup_location: "Primary",
+
+    pickup_location: "Home",
 
     billing_customer_name: order.shippingAddress.fullName,
     billing_last_name: "",
@@ -24,30 +25,49 @@ export const createShiprocketOrder = async (order) => {
 
     shipping_is_billing: true,
 
-    order_items: order.items.map((i) => ({
-      name: i.name,
-      sku: i.product.toString(),
-      units: i.quantity,
-      selling_price: i.priceAtPurchase,
+    order_items: order.items.map((item) => ({
+      name: item.name,
+      sku: item.product,
+      units: Number(item.quantity),
+      selling_price: Number(item.priceAtPurchase),
+      discount: 0,
     })),
 
     payment_method: order.paymentMethod === "cod" ? "COD" : "Prepaid",
-    sub_total: order.subtotal,
+    sub_total: Number(order.subtotal),
 
     length: 10,
     breadth: 10,
     height: 10,
-    weight: 0.5,
+    weight: Number(extra.weight || order.weight || 0.5)
   };
 
-  const res = await axios.post(
-    "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
-    payload,
-    { headers: { Authorization: `Bearer ${token}` } }
-  );
+  console.log("🚀 SHIPROCKET PAYLOAD SENT:", payload);
 
-  return res.data;
+  try {
+    const res = await axios.post(
+      "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
+      payload,
+      {
+        headers: { Authorization: `Bearer ${token}` }
+      }
+    );
+    console.log(res)
+
+    return res.data;
+
+  } catch (err) {
+    console.log("🚨 SHIPROCKET RESPONSE ERROR RAW:", err.response?.data);
+    console.log("🚨 SHIPROCKET STATUS:", err.response?.status);
+    console.log("🚨 SHIPROCKET FULL ERROR:", err);
+    throw new Error(err.response?.data?.message || "Shiprocket error");
+  }
 };
+
+
+
+
+
 
 /**
  * Assign AWB to Shipment
@@ -77,3 +97,4 @@ export const trackShipment = async (awb) => {
 
   return res.data;
 };
+

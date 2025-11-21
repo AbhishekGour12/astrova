@@ -10,7 +10,7 @@ export const orderAPI = {
     return response.data;
     },
    getUserOrders: async () => {
-    const res = await api.get("/order/my-orders");
+    const res = await api.get("/order");
     return res.data;
   },
 

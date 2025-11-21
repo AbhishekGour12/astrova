@@ -10,6 +10,7 @@ const razorpay = new Razorpay({
 export const createOrder = async (req, res) => {
   try {
     const { amount } = req.body;
+    console.log(amount)
 
     const order = await razorpay.orders.create({
       amount: amount * 100,
@@ -19,6 +20,7 @@ export const createOrder = async (req, res) => {
 
     res.json(order);
   } catch (err) {
+    console.log(err.message)
     res.status(500).json({ message: err.message });
   }
 };
@@ -28,7 +30,7 @@ export const verifyPayment = async (req, res) => {
     const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
 
     const sign = crypto
-      .createHmac("sha256", process.env.RZP_KEY_SECRET)
+      .createHmac("sha256", process.env.RZP_KEY_SECRET || "YVC6HQFJ8OJGeFq6MNzCzjEN")
       .update(razorpay_order_id + "|" + razorpay_payment_id)
       .digest("hex");
 
@@ -37,6 +39,7 @@ export const verifyPayment = async (req, res) => {
 
     res.json({ success: true });
   } catch (err) {
+    console.log(err.message)
     res.status(500).json({ message: err.message });
   }
 };
