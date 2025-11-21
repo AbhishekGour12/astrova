@@ -21,9 +21,8 @@ import { shiprocketCron } from "./cron/shiprocketCron.js";
 // =======================
 // ✅ INITIAL SETUP
 // =======================
-dotenv.config();
 const app = express();
-
+dotenv.config()
 // For ES module __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
