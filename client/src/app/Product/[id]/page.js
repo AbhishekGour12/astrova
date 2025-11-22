@@ -264,7 +264,7 @@ const fetchProduct = async () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
-                  src={`${process.env.NEXT_PUBLIC_API}${selectedProduct?.imageUrls[selectedImageIndex]}`}
+                  src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${selectedProduct?.imageUrls[selectedImageIndex]}`}
                   alt={selectedProduct?.name}
                   className="w-full h-96 object-cover rounded-2xl cursor-zoom-in"
                 />
@@ -286,7 +286,7 @@ const fetchProduct = async () => {
                     onClick={() => handleImageHover(index)}
                   >
                     <img
-                      src={`${process.env.NEXT_PUBLIC_API}${image}`}
+                      src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${image}`}
                       alt={`${selectedProduct?.name} view ${index + 1}`}
                       className="w-full h-full object-cover"
                     />
@@ -600,7 +600,7 @@ const fetchProduct = async () => {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
+                      src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
                       alt={product.name}
                       className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
                     />

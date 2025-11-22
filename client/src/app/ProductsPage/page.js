@@ -414,7 +414,7 @@ const resetFiltersAndFetch = () => {
                   >
                     <div className="relative w-full h-[200px]">
                       <img
-                        src={`${process.env.NEXT_PUBLIC_API}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
+                        src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
                         alt={p.name}
                         className="object-cover w-full h-full"
                       />
@@ -480,7 +480,7 @@ const resetFiltersAndFetch = () => {
                 className="w-60 bg-white rounded-2xl shadow-md overflow-hidden"
               >
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
+                  src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
                   alt={p.name}
                   className="object-cover h-48 w-full"
                 />

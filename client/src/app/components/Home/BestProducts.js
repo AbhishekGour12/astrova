@@ -31,10 +31,12 @@ export default function BestProducts({categories}) {
 });
   
 useEffect(() =>{
+  console.log(process.env.NEXT_PUBLIC_IMAGE_URL)
   const fetchProducts = async () =>{
     try{
       const {products, totalPages} = await productAPI.getProducts(filters);
       setProducts(products);
+      console.log(products)
     }catch(err){
       console.log(err.message);
     }
@@ -159,9 +161,9 @@ console.log(products)
                  
             <div className="h-[200px] xs:h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px] relative">
               <img
-                src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
+                src="https://astrova-1.onrender.com/products/1762756729435-542554599.png"
                 alt={product.name}
-                className="object-cover rounded-lg sm:rounded-xl w-full h-full"
+                className="object-cover rounded-lg sm:rounded-xl w-full h-full border"
               />
             </div>
 
@@ -205,7 +207,7 @@ console.log(products)
             {/* Image */}
             <div className="h-[200px] xs:h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px] relative">
               <img
-                src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
+                src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
                 alt={product.name}
                 className="object-cover rounded-lg sm:rounded-xl w-full h-full"
               />
