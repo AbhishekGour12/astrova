@@ -97,7 +97,7 @@ if (loading) return <SignupLoader/>
       className={`min-h-screen flex items-center justify-center bg-[#e5dece] font-[Lora]`}
     >
       <div
-        className={`flex flex-col md:flex-row w-[90%] max-w-[1000px] rounded-xl overflow-hidden shadow-xl ${theme.shadow}`}
+        className={`flex flex-col md:flex-row w-[90%] max-w-[1000px] rounded-xl overflow-hidden shadow-xl ${theme.shadow} max-md:w-[100%]`}
       >
         {/* Left Panel */}
         <div
@@ -125,8 +125,8 @@ if (loading) return <SignupLoader/>
         </div>
 
         {/* Right Panel */}
-        <div className="relative flex-1 flex justify-center items-center bg-[#b49a77] p-3">
-          <div className="z-10 w-[90%] h-full max-w-[650px] flex items-center">
+        <div className="relative flex-1 flex justify-center items-center  bg-[#b49a77] p-3">
+          <div className="z-10 w-[90%] h-full max-w-[650px] flex items-center max-md:w-[100%]">
             <form onSubmit={handleSubmit} className="w-full h-[90%]">
               <h1 className="text-4xl font-bold text-center mt-6 text-[#7b5430] font-[Cagliostro]">
                 Align Your
@@ -139,7 +139,7 @@ if (loading) return <SignupLoader/>
               </h5>
 
               <div className="space-y-6 pt-[10%] w-full flex justify-center">
-                <div className="w-[90%]">
+                <div className="w-[90%] max-md:w-[100%]">
                   {/* Name Input */}
                   <div className="relative">
                     <input
@@ -158,12 +158,12 @@ if (loading) return <SignupLoader/>
 
                   {/* Phone Input with Country Code */}
                 <div className="mt-6 flex w-full items-center justify-center">
-  <div className="flex w-full max-w-md overflow-hidden rounded-3xl border border-[#bba989] bg-[#f4f1e2]">
+  <div className="flex w-full  max-w-md overflow-hidden rounded-3xl border border-[#bba989] bg-[#f4f1e2]">
     {/* Country Code Select */}
     <select
       value={countryCode}
       onChange={(e) => setCountryCode(e.target.value)}
-      className="px-4 py-3 bg-[#f4f1e2] text-[#7b5430] font-semibold focus:outline-none border-r border-[#bba989]"
+      className="px-4 max-md:w-[25%]  max-md:px-3 max-md:py-2 max-md:text-sm py-3 bg-[#f4f1e2] text-[#7b5430] font-semibold focus:outline-none border-r border-[#bba989]"
     >
       <option value="+91">🇮🇳 +91</option>
       <option value="+1">🇺🇸 +1</option>
