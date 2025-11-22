@@ -258,7 +258,7 @@ const fetchProduct = async () => {
               className="space-y-4"
             >
               {/* Main Image */}
-              <div className=" rounded-3xl border  shadow-lg overflow-hidden">
+              <div className=" rounded-3xl  shadow-lg overflow-hidden">
                 <motion.img
                   key={selectedImageIndex}
                   initial={{ opacity: 0 }}
