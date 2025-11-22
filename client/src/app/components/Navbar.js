@@ -170,8 +170,8 @@ const Navbar = () => {
                 <ul className="py-6 px-6 space-y-4 text-[16px] font-medium">
                   <li className="border-b pb-3"><Link href="/">Home</Link></li>
                   <li className="border-b pb-3"><Link href="/ProductsPage">Products</Link></li>
-                  <li className="border-b pb-3"><Link href="/">Services</Link></li>
-                  <li className="border-b pb-3"><Link href="/">Best Astrologer</Link></li>
+                  <li className="border-b pb-3"><Link href="/Chats">Chats</Link></li>
+                  <li className="border-b pb-3"><Link href="/Admin">Admin</Link></li>
                   <li className="border-b pb-3"><Link href="/">Who are we</Link></li>
                 </ul>
 
