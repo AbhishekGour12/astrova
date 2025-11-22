@@ -258,7 +258,7 @@ const fetchProduct = async () => {
               className="space-y-4"
             >
               {/* Main Image */}
-              <div className="bg-white rounded-3xl p-8 border border-[#B2C5B2] shadow-lg overflow-hidden">
+              <div className=" rounded-3xl border  shadow-lg overflow-hidden">
                 <motion.img
                   key={selectedImageIndex}
                   initial={{ opacity: 0 }}
@@ -271,28 +271,56 @@ const fetchProduct = async () => {
               </div>
 
               {/* Thumbnail Images */}
-              <div className="flex gap-4 overflow-x-auto pb-4">
-                {selectedProduct?.imageUrls.map((image, index) => (
-                  <motion.div
-                    key={index}
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                    className={`flex-shrink-0 w-20 h-20 bg-white rounded-2xl border-2 cursor-pointer overflow-hidden ${
-                      selectedImageIndex === index 
-                        ? 'border-[#C06014] shadow-md' 
-                        : 'border-[#B2C5B2] hover:border-[#C06014]'
-                    }`}
-                    onMouseEnter={() => handleImageHover(index)}
-                    onClick={() => handleImageHover(index)}
-                  >
-                    <img
-                      src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${image}`}
-                      alt={`${selectedProduct?.name} view ${index + 1}`}
-                      className="w-full h-full object-cover"
-                    />
-                  </motion.div>
-                ))}
-              </div>
+             
+<div className={`grid grid-cols-4 sm:grid-cols-4 md:grid-cols-4 gap-3  overflow-x p-6 overflow-hidden`}>
+  {selectedProduct?.imageUrls.map((image, index) => (
+    <motion.div
+      key={index}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.95 }}
+      className={`aspect-square border bg-white rounded-xl border-2 cursor-pointer overflow-hidden ${
+        selectedImageIndex === index
+          ? "border-[#C06014] shadow-md"
+          : "border-[#B2C5B2] hover:border-[#C06014]"
+      }`}
+      onMouseOver={() => handleImageHover(index)}
+    >
+      <img
+        src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${image}`}
+        alt={`thumb-${index}`}
+        className="w-full h-full object-cover"
+      />
+    </motion.div>
+  ))}
+</div>
+
+              {/* RIGHT → Rating Breakdown */}
+  <div className="bg-[#ECE5D3] p-4 rounded-2xl border border-[#C06014]/20 w-full lg:w-72">
+    <h3 className="text-md font-semibold text-[#003D33] mb-3">Rating Overview</h3>
+
+    {Object.entries(ratingSummary.breakdown)
+      .sort((a, b) => b[0] - a[0])
+      .map(([star, count]) => {
+        const percent = ratingSummary.count
+          ? Math.round((count / ratingSummary.count) * 100)
+          : 0;
+
+        return (
+          <div key={star} className="flex items-center gap-2 my-1">
+            <span className="w-8 text-[#003D33] font-semibold">{star}★</span>
+
+            <div className="flex-1 h-2 bg-white rounded-full overflow-hidden">
+              <div
+                style={{ width: `${percent}%` }}
+                className="h-full bg-[#C06014] rounded-full transition-all duration-300"
+              ></div>
+            </div>
+
+            <span className="w-10 text-[#00695C] text-sm">{percent}%</span>
+          </div>
+        );
+      })}
+  </div>
             </motion.div>
 
             {/* Product Details */}
@@ -326,33 +354,7 @@ const fetchProduct = async () => {
     </div>
   </div>
 
-  {/* RIGHT → Rating Breakdown */}
-  <div className="bg-[#ECE5D3] p-4 rounded-2xl border border-[#C06014]/20 w-full lg:w-72">
-    <h3 className="text-md font-semibold text-[#003D33] mb-3">Rating Overview</h3>
-
-    {Object.entries(ratingSummary.breakdown)
-      .sort((a, b) => b[0] - a[0])
-      .map(([star, count]) => {
-        const percent = ratingSummary.count
-          ? Math.round((count / ratingSummary.count) * 100)
-          : 0;
-
-        return (
-          <div key={star} className="flex items-center gap-2 my-1">
-            <span className="w-8 text-[#003D33] font-semibold">{star}★</span>
-
-            <div className="flex-1 h-2 bg-white rounded-full overflow-hidden">
-              <div
-                style={{ width: `${percent}%` }}
-                className="h-full bg-[#C06014] rounded-full transition-all duration-300"
-              ></div>
-            </div>
-
-            <span className="w-10 text-[#00695C] text-sm">{percent}%</span>
-          </div>
-        );
-      })}
-  </div>
+  
 </div>
 
 

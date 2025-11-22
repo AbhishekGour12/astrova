@@ -97,6 +97,7 @@ export default function ProductsPage() {
     setLoading(true);
     try {
       const { products: data, totalPages } = await productAPI.getProducts(filters);
+      console.log(data)
       setProducts((prev) =>
         filters.page === 1 ? data : [...prev, ...data]
       );
@@ -128,13 +129,14 @@ export default function ProductsPage() {
   console.log(types)
 
   useEffect(() => {
-    console.log(filters.category)
+   
     fetchProducts();
   }, [filters.page]);
 
   const handleCategoryClick = (category) => {
     setProducts([]);
     setFilters({ ...filters, category, page: 1 });
+    
   };
 
   const handleShowMore = () => {
@@ -142,6 +144,7 @@ export default function ProductsPage() {
       setFilters((prev) => ({ ...prev, page: prev.page + 1 }));
     }
   };
+
 
   
 
@@ -196,6 +199,11 @@ const resetFiltersAndFetch = () => {
     fetchProducts();
   }, 0);
 };
+
+useEffect(() =>{
+  fetchProducts()
+
+},[filters])
 
 
 

@@ -508,7 +508,7 @@ const downloadExcelTemplate = () => {
             <td className="px-6 py-4">
               <div className="flex items-center gap-3">
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls?.[0]}`}
+                  src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls?.[0]}`}
                   className="w-12 h-12 rounded-xl object-cover"
                 />
                 <div>

@@ -5,9 +5,9 @@ import { motion } from "framer-motion";
 
 const AboutSection = () => {
   return (
-    <section className="relative flex flex-col lg:flex-row items-center justify-between px-4 sm:px-6 md:px-8 lg:px-20 py-16 sm:py-20 md:py-24 lg:py-32 overflow-hidden bg-white">
+    <section className="relative flex flex-col lg:flex-row items-center justify-between px-4 sm:px-6 md:px-8 lg:px-20 py-9 sm:py-9 md:py-24 lg:py-32 overflow-hidden bg-white">
       {/* Left Side Text */}
-      <div className="w-full lg:w-1/2 lg:pr-12 mb-12 lg:mb-0">
+      <div className="w-full lg:w-1/2 lg:pr-12 mb-6 lg:mb-0">
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
@@ -31,13 +31,14 @@ const AboutSection = () => {
       </div>
 
       {/* Right Side Chakra Image */}
-      <div className="relative w-full lg:w-1/2 flex justify-end items-center  ">
+      <div className="relative w-full lg:w-1/2 flex justify-center lg:justify-end items-center">
+
         {/* Background circular design */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 0.3, scale: 1 }}
           transition={{ duration: 1.5 }}
-          className="absolute lg:right-[10%] w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] md:w-[500px] md:h-[500px] lg:w-[600px] lg:h-[600px]"
+          className="absolute lg:right-[10%] w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] md:w-[500px] md:h-[500px] lg:w-[600px] lg:h-[600px]  "
         >
           <Image
             src="/aboutBg.png"

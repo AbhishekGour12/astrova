@@ -88,19 +88,20 @@ export default function ProductSection() {
         </div>
         
         {/* Content Area */}
-        <div className="p-4 xs:p-4 sm:p-5 md:p-6 flex flex-col justify-between flex-1 gap-3 xs:gap-3 sm:gap-4">
-          <div className="space-y-2 xs:space-y-2 sm:space-y-3">
+        <div className="p-4 xs:p-4 sm:p-5 md:p-6 flex flex-col justify-between flex-1 gap-3 xs:gap-3 sm:gap-4 ">
+          <div className="space-y-2 xs:space-y-2 sm:space-y-3 max-md:text-center">
             <h3 className="text-sm xs:text-base sm:text-lg md:text-xl font-semibold line-clamp-2 leading-tight min-h-[2.5em]">
               {product.title}
             </h3>
             <p className="text-xs xs:text-sm sm:text-base text-gray-600 line-clamp-2 leading-relaxed">
               {product.desc}
             </p>
-          </div>
-          
-          <button className="w-fit px-3 py-2 xs:px-4 xs:py-2 sm:px-5 sm:py-2.5 bg-[#E5DECED6] text-[#725E43] rounded-full text-xs xs:text-sm sm:text-base font-medium shadow hover:bg-[#E8E3CF] hover:shadow-md transition-all duration-300 mt-2">
+             <button className="w-fit px-3 py-2 xs:px-4 xs:py-2 sm:px-5 sm:py-2.5 bg-[#E5DECED6] text-[#725E43] rounded-full text-xs xs:text-sm sm:text-base font-medium shadow hover:bg-[#E8E3CF] hover:shadow-md transition-all duration-300 mt-2 max-md:text-center">
             View Products ➜
           </button>
+          </div>
+          
+         
         </div>
       </motion.div>
     </Link>

@@ -49,7 +49,7 @@ const Navbar = () => {
           <span className="w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 rounded-full">
             <Image src="/logo.png" width={100} height={100} alt="Astrova Logo" />
           </span>
-          <span>ASTROVA</span>
+          <span>MYASTROVA</span>
         </div>
 
         {/* DESKTOP MENU */}
@@ -59,8 +59,8 @@ const Navbar = () => {
         >
           <li className="hover:text-[#B49A77] transition"><Link href="/">Home</Link></li>
           <li className="hover:text-[#B49A77] transition"><Link href="/ProductsPage">Products</Link></li>
-          <li className="hover:text-[#B49A77] transition"><Link href="/">Services</Link></li>
-          <li className="hover:text-[#B49A77] transition"><Link href="/">Best Astrologer</Link></li>
+          <li className="hover:text-[#B49A77] transition"><Link href="/Chats">Chats</Link></li>
+          <li className="hover:text-[#B49A77] transition"><Link href="/Admin">Admin</Link></li>
           <li className="hover:text-[#B49A77] transition"><Link href="/">Who are we</Link></li>
         </ul>
 
@@ -93,35 +93,44 @@ const Navbar = () => {
             />
           )}
 
+
           {/* USER LOGIN/PROFILE */}
-          {user ? (
-            <div className="flex items-center space-x-3">
+{user ? (
+  <div className="flex items-center space-x-3">
 
-              {/* USERNAME */}
-              <div className="flex items-center space-x-2 bg-[#F6F3E4] px-3 py-1.5 rounded-lg shadow">
-                <FaUser className="text-sm text-[#725E43]" />
-                <span className="text-[#725E43] font-medium">
-                  {user.username}
-                </span>
-              </div>
+    {/* USER ICON + FIRST LETTER FOR SM & MD */}
+    <div className="flex items-center justify-center bg-[#F6F3E4] w-9 h-9 rounded-full shadow lg:hidden">
+      <span className="text-[#725E43] font-bold">
+        {user.username?.charAt(0).toUpperCase()}
+      </span>
+    </div>
 
-              {/* LOGOUT */}
-              <button
-                onClick={logout}
-                className="px-3 py-1.5 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition-all"
-              >
-                Logout
-              </button>
+    {/* USERNAME BADGE FOR LG + SCREENS */}
+    <div className="hidden lg:flex items-center space-x-2 bg-[#F6F3E4] px-3 py-1.5 rounded-lg shadow">
+      <FaUser className="text-sm text-[#725E43]" />
+      <span className="text-[#725E43] font-medium">
+        {user.username}
+      </span>
+    </div>
 
-            </div>
-          ) : (
-            <Link href="/Login">
-              <button className="px-3 py-1.5 lg:px-5 lg:py-2 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow hover:bg-[#E8E3CF] transition flex items-center space-x-2">
-                <FaUser />
-                <span className="hidden sm:inline">Login</span>
-              </button>
-            </Link>
-          )}
+    {/* LOGOUT BUTTON ONLY DESKTOP */}
+    <button
+      onClick={logout}
+      className="hidden lg:block px-3 py-1.5 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition-all"
+    >
+      Logout
+    </button>
+
+  </div>
+) : (
+  <Link href="/Login">
+    <button className="px-3 py-1.5 lg:px-5 lg:py-2 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow hover:bg-[#E8E3CF] transition flex items-center space-x-2">
+      <FaUser />
+      <span className="hidden sm:inline">Login</span>
+    </button>
+  </Link>
+)}
+
         </div>
 
         {/* MOBILE SIDEBAR MENU */}
@@ -147,7 +156,7 @@ const Navbar = () => {
                 <div className="flex justify-between items-center p-4 border-b">
                   <div className="text-[18px] font-bold flex items-center">
                     <Image src="/logo.png" width={30} height={30} alt="logo" />
-                    <span className="ml-2">ASTROVA</span>
+                    <span className="ml-2">MYASTROVA</span>
                   </div>
                   <button 
                     onClick={() => setIsMobileMenuOpen(false)}

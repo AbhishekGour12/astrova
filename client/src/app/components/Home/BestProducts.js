@@ -106,12 +106,19 @@ console.log(products)
         <div className="flex flex-wrap justify-center gap-2 sm:gap-3 md:gap-4 mb-8 sm:mb-10 lg:mb-12 px-2">
          <button
           
-              className={`px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 text-xs sm:text-sm rounded-full border border-[#B49A77] text-[#7E5833] hover:bg-[#B49A77] hover:text-[#F6F3E4] transition-all duration-300 whitespace-nowrap ${
-                
-                   "bg-[#7E5833] text-[#F6F3E4]"
-                  
-              }`}
-              onClick={fetchProducts}
+              className={`px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 text-xs sm:text-sm rounded-full border 
+  border-[#B49A77] transition-all duration-300 whitespace-nowrap
+  ${
+    productType === "" 
+      ? "bg-[#7E5833] text-[#F6F3E4]"
+      : "bg-transparent text-[#7E5833] hover:bg-[#B49A77] hover:text-[#F6F3E4]"
+  }
+`}
+onClick={() => {
+  setProductType("");
+  fetchProducts();
+}}
+
             >
               All
             </button>
@@ -119,11 +126,15 @@ console.log(products)
           
           <button
               key={index}
-              className={`px-3 py-1.5 sm:px-4 sm:py-2 md:px-5 text-xs sm:text-sm rounded-full border border-[#B49A77] text-[#7E5833] hover:bg-[#B49A77] hover:text-[#F6F3E4] transition-all duration-300 whitespace-nowrap ${
-                cat === "Pendants"
-                  ? "bg-[#7E5833] text-[#F6F3E4]"
-                  : "bg-transparent"
-              }`}
+             className={`px-3 py-1.5 sm:px-4 sm:py-2 md:px-5
+text-xs sm:text-sm rounded-full border border-[#B49A77]
+transition-all duration-300 whitespace-nowrap
+${
+  productType === cat
+    ? "bg-[#7E5833] text-[#F6F3E4]"
+    : "bg-transparent text-[#7E5833] hover:bg-[#B49A77] hover:text-[#F6F3E4]"
+}`}
+
               onClick={() => handleCategoryClick(cat)}
             >
               {cat}
