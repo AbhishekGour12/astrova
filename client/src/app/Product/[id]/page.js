@@ -618,7 +618,7 @@ const ProductShowcasePage = ({ params }) => {
       >
         <div className="relative overflow-hidden">
           <img
-            src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
+            src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
             alt={product.name}
             className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
           />
@@ -664,7 +664,7 @@ const ProductShowcasePage = ({ params }) => {
             className="bg-white rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg transition-all duration-300"
           >
             <img
-              src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
+              src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
               alt={product.name}
               className="w-full h-48 object-cover"
             />
