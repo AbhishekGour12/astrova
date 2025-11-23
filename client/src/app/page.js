@@ -109,7 +109,7 @@ const HeroSection = () => {
 
             {/* Button and Description */}
             <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start gap-4 sm:gap-5 md:gap-6 mb-6 sm:mb-8 md:mb-10 lg:mb-12"> 
-              <button className="w-full lg:w-auto px-6 py-3 bg-[#7E5833] text-white rounded-lg shadow-md hover:bg-[#5A3E25] transition-all duration-300 text-sm sm:text-base font-medium whitespace-nowrap">
+              <button className="w-full lg:w-auto px-6 py-3 bg-[#7E5833] text-white rounded-lg shadow-md hover:bg-[#5A3E25] transition-all duration-300 text-sm sm:text-base font-medium whitespace-nowrap" onClick={() =>{router.push("/ProductsPage")}}>
                 Shop Astrology Products
               </button>
               <p className="text-[#5C4B3A] text-sm sm:text-base md:text-lg lg:text-xl text-center lg:text-left w-full lg:max-w-md leading-relaxed sm:leading-loose">

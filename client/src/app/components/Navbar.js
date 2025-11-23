@@ -41,16 +41,28 @@ const Navbar = () => {
       <div className="flex max-w-7xl m-auto justify-between items-center px-4 sm:px-6 lg:px-12 py-4 lg:py-6 absolute w-full z-50 text-[#725E43] font-semibold bg-transparent">
         
         {/* LOGO */}
-        <div
-          className="text-[18px] sm:text-[20px] lg:text-[22px] font-bold flex items-center space-x-2 cursor-pointer"
-          onClick={() => router.push("/")}
-          style={{ fontFamily: "IBM Plex Serif" }}
-        >
-          <span className="w-7 h-7 sm:w-8 sm:h-8 lg:w-9 lg:h-9 rounded-full">
-            <Image src="/logo.png" width={100} height={100} alt="Astrova Logo" />
-          </span>
-          <span>MYASTROVA</span>
-        </div>
+      {/* LOGO FIXED RESPONSIVE */}
+<div 
+  onClick={() => router.push("/")} 
+  className="cursor-pointer flex items-center"
+>
+  <div className="relative 
+    w-19 h-19
+  
+    max-md:w-16 max-md:h-16
+    max-lg:w-[70px] max-lg:h-[70px] 
+    max-2xl:w-[90px] max-2xl:h-[90px]
+  ">
+    <Image
+      src="/logo.png"
+      alt="MyAstrova Logo"
+      fill
+      className="object-contain"
+      priority
+    />
+  </div>
+</div>
+
 
         {/* DESKTOP MENU */}
         <ul

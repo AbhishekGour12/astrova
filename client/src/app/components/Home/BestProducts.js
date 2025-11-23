@@ -161,7 +161,7 @@ ${
          
         >
           {products?.map((product, index) => (
-            <SwiperSlide key={index} className="pb-6">
+            <SwiperSlide key={index} className="pb-9">
               <motion.div
                 whileHover={{ y: -5 }}
                 transition={{ type: "spring", stiffness: 200 }}
