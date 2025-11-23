@@ -37,7 +37,7 @@ const Navbar = () => {
   };
 
   return (
-   <div className="w-full flex justify-center" id="navbar">
+   <div className="w-full flex justify-center  " id="navbar">
 
       <div className="flex max-w-7xl m-auto justify-between items-center absolute px-4 sm:px-6 lg:px-12 py-4 lg:py-6  w-full z-50 text-[#725E43] font-semibold bg-transparent">
         
@@ -53,12 +53,13 @@ const Navbar = () => {
     max-md:w-16 max-md:h-16
     max-lg:w-[70px] max-lg:h-[70px] 
     max-2xl:w-[90px] max-2xl:h-[90px]
+    
   ">
     <Image
       src="/logo.png"
       alt="MyAstrova Logo"
       fill
-      className="object-contain"
+      className="object-cover"
       priority
     />
   </div>

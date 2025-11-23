@@ -44,7 +44,7 @@ const HeroSection = () => {
   ];
 
   return (
-  <section className="relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24">
+  <section className="relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 ">
 
       {/* Background split */}
       <div className="absolute inset-0 flex flex-col lg:flex-row">
