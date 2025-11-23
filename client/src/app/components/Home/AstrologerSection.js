@@ -41,7 +41,7 @@ export default function ComingSoonSection() {
   ];
 
   return (
-    <section className="relative bg-white mt-[10%] md:py-28 overflow-hidden max-md:mt-[60%]">
+    <section className="relative bg-white mt-[10%] md:py-28 overflow-hidden max-md:mt-[60%] max-sm:mt-[100%]">
       {/* Decorative Backgrounds */}
       <div className="absolute top-30 w-[500px] opacity-5 -z-0 left-[-100px]">
         <Image src="/productstar.png" alt="Left Star" width={500} height={500} />

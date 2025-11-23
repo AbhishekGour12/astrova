@@ -602,7 +602,7 @@ const fetchProduct = async () => {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
+                      src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
                       alt={product.name}
                       className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
                     />

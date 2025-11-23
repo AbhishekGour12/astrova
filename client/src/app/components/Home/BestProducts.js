@@ -31,7 +31,7 @@ export default function BestProducts({categories}) {
 });
   
 useEffect(() =>{
-  console.log(process.env.NEXT_PUBLIC_IMAGE_URL)
+  console.log(process.env.NEXT_PUBLIC_API)
   const fetchProducts = async () =>{
     try{
       const {products, totalPages} = await productAPI.getProducts(filters);
@@ -161,11 +161,11 @@ ${
          
         >
           {products?.map((product, index) => (
-            <SwiperSlide key={index}>
+            <SwiperSlide key={index} className="pb-6">
               <motion.div
                 whileHover={{ y: -5 }}
                 transition={{ type: "spring", stiffness: 200 }}
-                className="bg-white rounded-xl shadow-md overflow-hidden flex flex-col p-2 hover:cursor-pointer pb-3"
+                className="bg-white rounded-xl shadow-md  flex flex-col p-2 hover:cursor-pointer "
                 onClick={() => router.push(`/Product/${product._id}`)}
               >
                 {/* Image height optimized for mobile */}
@@ -212,7 +212,7 @@ ${
             key={index}
             whileHover={{ y: -8 }}
             transition={{ type: "spring", stiffness: 200 }}
-            className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg overflow-hidden flex flex-col p-1.5 sm:p-2 hover:cursor-pointer"
+            className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg  flex flex-col p-1.5 sm:p-2 hover:cursor-pointer"
             onClick={() => router.push(`/Product/${product._id}`)}
           >
             {/* Image */}

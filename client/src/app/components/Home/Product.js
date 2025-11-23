@@ -2,6 +2,7 @@
 import Image from "next/image";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const products = [
   {
@@ -27,6 +28,7 @@ const products = [
 ];
 
 export default function ProductSection() {
+  const router = useRouter()
   return (
     <section className="relative bg-[#B49A77] text-white py-8 sm:py-12 md:py-16 lg:py-20 xl:py-24 overflow-hidden">
       {/* Background Chakra (center top) */}
@@ -59,7 +61,9 @@ export default function ProductSection() {
           >
             Blending ancient wisdom with <br className="hidden xs:block" /> modern convenience
           </h2>
-          <button className="px-4 py-2 xs:px-5 xs:py-2.5 sm:px-6 sm:py-3 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow-md hover:bg-[#E8E3CF] transition-all duration-300 text-xs xs:text-sm sm:text-base font-medium whitespace-nowrap self-center md:self-auto w-fit">
+          <button className="px-4 py-2 xs:px-5 xs:py-2.5 sm:px-6 sm:py-3 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow-md hover:bg-[#E8E3CF] transition-all duration-300 text-xs xs:text-sm sm:text-base font-medium whitespace-nowrap self-center md:self-auto w-fit hover:cursor-pointer" onClick={() =>{
+            router.push("/ProductsPage")
+          }}>
             View All Products
           </button>
         </div>
@@ -69,7 +73,7 @@ export default function ProductSection() {
 
 <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 xs:gap-5 sm:gap-6 md:gap-6 lg:gap-7 xl:gap-8 ">
   {products.map((product, index) => (
-    <Link href="/ProductsPage" key={index}>
+    <Link href="/ProductsPage" key={index} className = "hover:cursor-pointer">
       <motion.div
         whileHover={{ scale: 1.05 }}
         transition={{ type: "spring", stiffness: 200 }}
