@@ -9,7 +9,8 @@ import {
   FaComments,
   FaCog,
   FaSignOutAlt,
-  FaGift
+  FaGift,
+  FaRupeeSign
 } from 'react-icons/fa';
 
 const menuItems = [
@@ -18,7 +19,7 @@ const menuItems = [
   { id: 'astrologers', label: 'Astrologers', icon: FaUserAstronaut },
   { id: 'products', label: 'Products', icon: FaShoppingBag },
   { id: 'orders', label: 'Orders', icon: FaBox },
-  { id: 'payments', label: 'Payments', icon: FaDollarSign },
+  { id: 'payments', label: 'Payments', icon: FaRupeeSign },
   { id: 'chats', label: 'Chats', icon: FaComments },
   { id: 'coupon', label: 'Coupon', icon: FaGift },
   { id: 'settings', label: 'Settings', icon: FaCog },
@@ -30,13 +31,13 @@ const Sidebar = ({ activeTab, setActiveTab, sidebarOpen }) => {
       initial={{ x: -260 }}
       animate={{ x: sidebarOpen ? 0 : -260 }}
       transition={{ duration: 0.3 }}
-      className={`fixed lg:static top-0 left-0 h-100vw bg-white shadow-lg z-40
+      className={`fixed lg:static top-0 left-0 h-100vh max-lg:h-screen bg-white shadow-lg z-40
       w-64 border-r border-gray-300 
       ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       lg:translate-x-0 lg:block`}
     >
       <div className="p-6 border-b bg-[#FFF3E9]">
-        <h1 className="text-xl font-bold text-[#C06014]">Cosmic Admin</h1>
+        <h1 className="text-xl font-bold text-[#C06014]">MY ASTROVA</h1>
         <p className="text-sm text-gray-700">Divine Management</p>
       </div>
 

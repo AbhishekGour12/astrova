@@ -9,6 +9,7 @@ import {
   FaClock,
   FaDownload,
   FaPlus,
+  FaRupeeSign,
 } from "react-icons/fa";
 import { ChartLoader } from "./Loading";
 
@@ -63,7 +64,7 @@ const Dashboard = ({ stats, orders }) => {
           { icon: FaUsers, value: stats.usersCount, label: "Users", color: "from-blue-500 to-cyan-500" },
           { icon: FaUserAstronaut, value: stats.astrologersCount, label: "Astrologers", color: "from-purple-500 to-pink-500" },
           { icon: FaShoppingBag, value: stats.productsCount, label: "Products", color: "from-green-500 to-emerald-500" },
-          { icon: FaDollarSign, value: `$${stats.totalRevenue}`, label: "Revenue", color: "from-amber-500 to-orange-500" },
+          { icon: FaRupeeSign, value: `₹${stats.totalRevenue}`, label: "Revenue", color: "from-amber-500 to-orange-500" },
         ].map((stat, i) => (
           <motion.div
             key={stat.label}
@@ -145,7 +146,7 @@ const Dashboard = ({ stats, orders }) => {
 
                 <div className="text-right">
                   <p className="font-bold text-[#C06014]">
-                    ${o.totalAmount}
+                    ₹{o.totalAmount}
                   </p>
                   <span
                     className={`text-xs px-2 py-1 rounded-md ${statusColor[o.orderStatus] || "bg-gray-200"}`}
