@@ -4,9 +4,19 @@ import { motion } from "framer-motion";
 
 export default function PremiumProductSection() {
   return (
-    <div className="relative z-[5] mb-[50px] mt-[50px] overflow-visible h-fit max-sm:mb-[0px] max-sm:mt-[150px]">
-      <section className="relative bg-transparent text-white pt-28 pb-32 md:pb-44 overflow-visible z-[10] min-h-[650px] md:min-h-[750px] lg:min-h-[800px] ">
-        {/* ========== BACKGROUND ========== */}
+    <div className="relative z-[5] mb-[20px] mt-[50px] overflow-visible h-fit max-sm:mb-[0px] max-sm:mt-[150px]">
+      <section className="
+  relative 
+  bg-transparent text-white
+  pt-28 pb-32 
+  overflow-visible z-[10]
+  
+  min-h-[600px]  /* Default height thodi kam */
+  sm:min-h-[650px]
+  md:min-h-[750px]
+  lg:min-h-[800px]
+">
+
         <div className="absolute inset-0 -z-10 max-sm:h-[400px] ">
           <Image
             src="/bg1.png"
@@ -35,7 +45,7 @@ export default function PremiumProductSection() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="absolute bottom-[-50px] left-[-20px] md:left-[40px] w-[55%] sm:w-[50%] md:w-[45%] lg:w-[40%] overflow-visible z-[10] max-sm:bottom-[30%]"
+          className="absolute  h-fit bottom-[-50px] left-[-20px] md:left-[40px] w-[55%] sm:w-[50%] md:w-[45%] lg:w-[40%] overflow-visible z-[10] max-sm:bottom-[30%] "
         >
           {/* Left Combo Image */}
           <Image
@@ -57,7 +67,7 @@ export default function PremiumProductSection() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="absolute bottom-[-50px] right-[-40px] md:right-[40px] w-[55%] sm:w-[50%] md:w-[45%] lg:w-[40%] overflow-visible z-[10] max-sm:bottom-[30%]"
+          className="absolute bottom-[-50px] right-[-40px] md:right-[40px] w-[55%] sm:w-[50%] md:w-[45%]  h-fit lg:w-[40%] overflow-vissib z-[10] max-sm:bottom-[30%] border-black"
         >
           {/* Right Combo Image */}
           <Image

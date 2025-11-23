@@ -59,7 +59,7 @@ const Navbar = () => {
       src="/logo.png"
       alt="MyAstrova Logo"
       fill
-      className="object-cover"
+      className=" object-cover"
       priority
     />
   </div>

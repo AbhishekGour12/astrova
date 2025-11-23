@@ -179,17 +179,7 @@ const AdminDashboard = () => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#F7F3E9] via-[#ECE5D3] to-[#F7F3E9]">
-      {/* Mobile Sidebar Toggle */}
-      <div className="lg:hidden fixed top-4 left-4 z-50">
-        <motion.button
-          whileHover={{ scale: 1.1 }}
-          whileTap={{ scale: 0.9 }}
-          onClick={() => setSidebarOpen(!sidebarOpen)}
-          className="w-12 h-12 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-2xl flex items-center justify-center shadow-lg"
-        >
-          {sidebarOpen ? <FaTimes/> : <FaBars />}
-        </motion.button>
-      </div>
+      
 
       <div className="flex">
         <Sidebar 

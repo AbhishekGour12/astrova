@@ -1,150 +1,165 @@
-import { motion } from 'framer-motion';
-import { 
-  FaUsers, 
-  FaUserAstronaut, 
-  FaShoppingBag, 
-  FaDollarSign, 
-  FaBox, 
+import { motion } from "framer-motion";
+import {
+  FaUsers,
+  FaUserAstronaut,
+  FaShoppingBag,
+  FaDollarSign,
+  FaBox,
   FaComments,
   FaClock,
   FaDownload,
-  FaPlus
-} from 'react-icons/fa';
-import { ChartLoader } from './Loading';
+  FaPlus,
+} from "react-icons/fa";
+import { ChartLoader } from "./Loading";
 
 const Dashboard = ({ stats, orders }) => {
-  const getStatusColor = (status) => {
-    const colors = {
-      delivered: 'bg-green-100 text-green-600',
-      shipped: 'bg-indigo-100 text-indigo-600',
-      pending: 'bg-amber-100 text-amber-600',
-      confirmed: 'bg-blue-100 text-blue-600',
-      cancelled: 'bg-red-100 text-red-600'
-    };
-    return colors[status] || 'bg-gray-100 text-gray-600';
+  const statusColor = {
+    delivered: "bg-green-100 text-green-700",
+    shipped: "bg-indigo-100 text-indigo-700",
+    pending: "bg-amber-100 text-amber-700",
+    confirmed: "bg-blue-100 text-blue-700",
+    cancelled: "bg-red-100 text-red-700",
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-[#003D33]">Cosmic Dashboard</h2>
-          <p className="text-[#00695C]">Welcome to your spiritual management center</p>
+          <h2 className="text-2xl sm:text-3xl font-bold text-[#003D33]">
+            Cosmic Dashboard
+          </h2>
+          <p className="text-[#00695C] text-sm sm:text-base">
+            Welcome to your spiritual management center
+          </p>
         </div>
-        <div className="flex items-center gap-4">
+
+        <div className="flex gap-3">
           <motion.button
             whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-[#B2C5B2] rounded-2xl text-[#003D33] hover:bg-[#ECE5D3] transition-colors"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 bg-white border rounded-xl text-sm sm:text-base 
+              border-gray-300 text-[#003D33] hover:bg-[#ECE5D3]"
           >
-            <FaDownload />
+            <FaDownload className="text-sm" />
             Export
           </motion.button>
+
           <motion.button
             whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-2xl"
+            className="flex items-center gap-2 px-3 sm:px-4 py-2 
+              bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-xl 
+              text-sm sm:text-base"
           >
-            <FaPlus />
+            <FaPlus className="text-sm" />
             New Report
           </motion.button>
         </div>
       </div>
 
-      {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      {/* Top Stats Grid */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
         {[
-          { icon: FaUsers, label: 'Total Users', value: stats.usersCount, change: '+12%', color: 'from-blue-500 to-cyan-500' },
-          { icon: FaUserAstronaut, label: 'Astrologers', value: stats.astrologersCount, change: '+5%', color: 'from-purple-500 to-pink-500' },
-          { icon: FaShoppingBag, label: 'Products', value: stats.productsCount, change: '+8%', color: 'from-green-500 to-emerald-500' },
-          { icon: FaDollarSign, label: 'Revenue', value: `$${stats.totalRevenue}`, change: '+23%', color: 'from-amber-500 to-orange-500' },
-        ].map((stat, index) => (
+          { icon: FaUsers, value: stats.usersCount, label: "Users", color: "from-blue-500 to-cyan-500" },
+          { icon: FaUserAstronaut, value: stats.astrologersCount, label: "Astrologers", color: "from-purple-500 to-pink-500" },
+          { icon: FaShoppingBag, value: stats.productsCount, label: "Products", color: "from-green-500 to-emerald-500" },
+          { icon: FaDollarSign, value: `$${stats.totalRevenue}`, label: "Revenue", color: "from-amber-500 to-orange-500" },
+        ].map((stat, i) => (
           <motion.div
             key={stat.label}
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-            whileHover={{ y: -5 }}
-            className="bg-white rounded-3xl p-6 border border-[#B2C5B2] shadow-lg hover:shadow-xl transition-all duration-300"
+            transition={{ delay: i * 0.1 }}
+            whileHover={{ scale: 1.02 }}
+            className="p-5 bg-white rounded-2xl border shadow-sm hover:shadow-md transition"
           >
             <div className="flex items-center justify-between mb-4">
-              <div className={`w-12 h-12 bg-gradient-to-r ${stat.color} rounded-2xl flex items-center justify-center`}>
+              <div
+                className={`w-12 h-12 rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center`}
+              >
                 <stat.icon className="text-white text-xl" />
               </div>
-              <span className="text-sm font-semibold text-green-500 bg-green-50 px-2 py-1 rounded-full">
-                {stat.change}
-              </span>
             </div>
-            <h3 className="text-2xl font-bold text-[#003D33] mb-1">{stat.value}</h3>
-            <p className="text-[#00695C]">{stat.label}</p>
+
+            <p className="text-2xl font-bold text-[#003D33]">{stat.value}</p>
+            <p className="text-[#00695C] text-sm sm:text-base">{stat.label}</p>
           </motion.div>
         ))}
       </div>
 
       {/* Additional Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-5">
         {[
-          { icon: FaBox, label: 'Total Orders', value: stats.totalOrders, color: 'from-indigo-500 to-purple-500' },
-          { icon: FaClock, label: 'Pending Orders', value: stats.pendingOrders, color: 'from-amber-500 to-orange-500' },
-          { icon: FaComments, label: 'Active Chats', value: stats.activeChats, color: 'from-teal-500 to-green-500' },
-        ].map((stat, index) => (
-          <motion.div
-            key={stat.label}
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ delay: 0.5 + index * 0.1 }}
-            className="bg-white rounded-3xl p-6 border border-[#B2C5B2] shadow-lg"
-          >
-            <div className="flex items-center gap-4">
-              <div className={`w-16 h-16 bg-gradient-to-r ${stat.color} rounded-2xl flex items-center justify-center`}>
-                <stat.icon className="text-white text-2xl" />
-              </div>
-              <div>
-                <h3 className="text-2xl font-bold text-[#003D33]">{stat.value}</h3>
-                <p className="text-[#00695C]">{stat.label}</p>
-              </div>
+          { icon: FaBox, value: stats.totalOrders, label: "Total Orders", color: "from-indigo-500 to-purple-500" },
+          { icon: FaClock, value: stats.pendingOrders, label: "Pending Orders", color: "from-amber-500 to-orange-500" },
+          { icon: FaComments, value: stats.activeChats, label: "Active Chats", color: "from-teal-500 to-green-500" },
+        ].map((stat) => (
+          <div className="p-5 bg-white border rounded-2xl shadow-sm flex gap-3 items-center">
+            <div
+              className={`w-14 h-14 rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center`}
+            >
+              <stat.icon className="text-white text-2xl" />
             </div>
-          </motion.div>
+            <div>
+              <h3 className="text-xl font-semibold text-[#003D33]">
+                {stat.value}
+              </h3>
+              <p className="text-[#00695C] text-sm sm:text-base">{stat.label}</p>
+            </div>
+          </div>
         ))}
       </div>
 
-      {/* Charts and Recent Activity */}
+      {/* Charts + Recent Orders */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        
         {/* Revenue Chart */}
-        <motion.div
-          initial={{ opacity: 0, x: -20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-3xl p-6 border border-[#B2C5B2] shadow-lg"
-        >
-          <h3 className="text-xl font-bold text-[#003D33] mb-4">Revenue Overview</h3>
-          <div className="h-64 flex items-center justify-center bg-gradient-to-br from-[#F7F3E9] to-[#ECE5D3] rounded-2xl">
+        <div className="bg-white border rounded-2xl p-5 shadow-sm">
+          <h3 className="text-lg font-semibold text-[#003D33] mb-3">
+            Revenue Overview
+          </h3>
+          <div className="h-52 sm:h-64 rounded-xl bg-gradient-to-br 
+            from-[#F7F3E9] to-[#ECE5D3] flex items-center justify-center">
             <ChartLoader />
           </div>
-        </motion.div>
+        </div>
 
         {/* Recent Orders */}
-        <motion.div
-          initial={{ opacity: 0, x: 20 }}
-          animate={{ opacity: 1, x: 0 }}
-          className="bg-white rounded-3xl p-6 border border-[#B2C5B2] shadow-lg"
-        >
-          <h3 className="text-xl font-bold text-[#003D33] mb-4">Recent Orders</h3>
+        <div className="bg-white border rounded-2xl p-5 shadow-sm">
+          <h3 className="text-lg font-semibold text-[#003D33] mb-3">
+            Recent Orders
+          </h3>
+
           <div className="space-y-3">
-            {orders.slice(0, 5).map((order) => (
-              <div key={order._id} className="flex items-center justify-between p-3 bg-[#F7F3E9] rounded-2xl hover:bg-[#ECE5D3] transition-colors">
+            {orders.slice(0, 5).map((o) => (
+              <div
+                key={o._id}
+                className="p-3 bg-[#F7F3E9] rounded-xl flex justify-between items-center hover:bg-[#ECE5D3]"
+              >
                 <div>
-                  <p className="font-semibold text-[#003D33]">Order #{order._id}</p>
-                  <p className="text-sm text-[#00695C]">{order.user.name}</p>
+                  <p className="font-semibold text-[#003D33]">
+                    Order #{o._id}
+                  </p>
+                  <p className="text-[#00695C] text-sm">{o.user.name}</p>
                 </div>
+
                 <div className="text-right">
-                  <p className="text-[#C06014] font-bold">${order.totalAmount}</p>
-                  <span className={`text-xs px-2 py-1 rounded-full ${getStatusColor(order.orderStatus)}`}>
-                    {order.orderStatus}
+                  <p className="font-bold text-[#C06014]">
+                    ${o.totalAmount}
+                  </p>
+                  <span
+                    className={`text-xs px-2 py-1 rounded-md ${statusColor[o.orderStatus] || "bg-gray-200"}`}
+                  >
+                    {o.orderStatus}
                   </span>
                 </div>
               </div>
             ))}
           </div>
-        </motion.div>
+
+        </div>
       </div>
+
     </div>
   );
 };
