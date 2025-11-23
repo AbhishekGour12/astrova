@@ -207,13 +207,14 @@ useEffect(() =>{
 
   return (
     <>
-      <Navbar/>
+      
 
-      <div className="bg-[#f7f5ea] max-2xl:pt-16 pt-9 ">
+      <div className="bg-[#f7f5ea]  min-h-screen ">
+        <Navbar/>
 
         {/* 🌟 HERO BANNER SLIDER */}
-       
-<section className="h-[70vh] min-h-[480px] w-full overflow-hidden mt-6 max-2xl:mt-19 relative">
+       <div className=" pt-28 sm:pt-32 lg:pt-36">  
+<section className="h-[70vh] min-h-[480px] w-full overflow-hidden mt-6 relative">
   <Swiper
     modules={[Autoplay, Pagination, EffectFade]}
     effect="fade"
@@ -562,6 +563,7 @@ useEffect(() =>{
   )}
 </section>
 
+      </div>
       </div>
     </>
   );
