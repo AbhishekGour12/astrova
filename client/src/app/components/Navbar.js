@@ -91,7 +91,7 @@ const Navbar = () => {
         <div className="flex items-center space-x-4 lg:space-x-6">
 
           {/* CART BUTTON */}
-          {user ? (
+         
           <button onClick={() => setIsCartOpen(true)} className="relative p-2">
       <FaShoppingCart className="text-xl" />
       {cartCount > 0 && (
@@ -100,13 +100,7 @@ const Navbar = () => {
         </span>
       )}
     </button>
-          ) : (
-            <FaShoppingCart
-              className="text-lg lg:text-xl text-gray-400 opacity-40 cursor-not-allowed"
-              title="Please login to view your cart"
-            />
-          )}
-
+          
 
           {/* USER LOGIN/PROFILE */}
 {user ? (

@@ -94,8 +94,8 @@ const Dashboard = ({ stats, orders }) => {
           { icon: FaBox, value: stats.totalOrders, label: "Total Orders", color: "from-indigo-500 to-purple-500" },
           { icon: FaClock, value: stats.pendingOrders, label: "Pending Orders", color: "from-amber-500 to-orange-500" },
           { icon: FaComments, value: stats.activeChats, label: "Active Chats", color: "from-teal-500 to-green-500" },
-        ].map((stat) => (
-          <div className="p-5 bg-white border rounded-2xl shadow-sm flex gap-3 items-center">
+        ].map((stat, idx) => (
+          <div className="p-5 bg-white border rounded-2xl shadow-sm flex gap-3 items-center" key={idx}>
             <div
               className={`w-14 h-14 rounded-xl bg-gradient-to-r ${stat.color} flex items-center justify-center`}
             >

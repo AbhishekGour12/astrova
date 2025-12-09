@@ -6,7 +6,7 @@ const paymentSchema = new mongoose.Schema(
     paymentId: String,
     razorpayOrderId: String,
     amount: Number,
-    method: { type: String, enum: ["Razorpay", "Stripe", "UPI"], default: "Razorpay" },
+    method: { type: String, enum: ["Razorpay", "Stripe", "UPI", "Cash"], default: "Razorpay" },
     status: { type: String, default: "initiated" },
   },
   { timestamps: true }

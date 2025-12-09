@@ -56,20 +56,25 @@ const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
       <nav className="p-4 space-y-2">
         {menuItems.map((item) => (
           <button
-            key={item.id}
-            onClick={() => {
-              setActiveTab(item.id);
-              setSidebarOpen(false); // Auto close sidebar on mobile when clicking
-            }}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition
-            ${activeTab === item.id
-                ? "bg-[#C06014] text-white shadow-md"
-                : "hover:bg-gray-100 text-gray-700"
-              }`}
-          >
-            <item.icon />
-            {item.label}
-          </button>
+  key={item.id}
+  onClick={() => {
+    setActiveTab(item.id);
+
+    // Close ONLY on mobile screens (below lg)
+    if (window.innerWidth < 1024) {
+      setSidebarOpen(false);
+    }
+  }}
+  className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl transition
+    ${activeTab === item.id
+      ? "bg-[#C06014] text-white shadow-md"
+      : "hover:bg-gray-100 text-gray-700"
+    }`}
+>
+  <item.icon />
+  {item.label}
+</button>
+
         ))}
       </nav>
 

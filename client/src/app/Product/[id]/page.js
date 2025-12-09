@@ -1,6 +1,6 @@
 "use client";
-import React, { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import React, { useState, useEffect, useCallback } from "react";
+import { motion } from "framer-motion";
 import {
   FaStar,
   FaShoppingCart,
@@ -9,159 +9,38 @@ import {
   FaCheck,
   FaTruck,
   FaShieldAlt,
-  FaArrowLeft,
   FaArrowRight,
   FaGem,
   FaLeaf,
   FaMountain,
   FaSun,
 } from "react-icons/fa";
+
 import { productAPI } from "../../lib/product";
-import { useRouter } from "next/navigation";
 import Navbar from "../../components/Navbar";
 import CartSlideOut from "../../components/CartSlideOut";
 import { useSelector } from "react-redux";
 import useCheckLogin from "../../useCheckLogin";
 import toast from "react-hot-toast";
 import { useCart } from "../../context/CartContext";
+import { useRouter } from "next/navigation";
+
 import { Swiper, SwiperSlide } from "swiper/react";
-import { Autoplay, Pagination, EffectFade } from "swiper/modules";
+import { Autoplay, Pagination } from "swiper/modules";
+
 import "swiper/css";
 import "swiper/css/autoplay";
 import "swiper/css/pagination";
 
-const ProductShowcasePage = ({ params }) => {
-  const { cartItems, addToCart, updateQuantity, removeFromCart, isCartOpen, setIsCartOpen } =
-    useCart();
-
-  const user = useSelector((state) => state.auth.user);
-  const productId = React.use(params).id;
-
-  const [selectedProduct, setselectedProduct] = useState(null);
-  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
-  const [quantity, setQuantity] = useState(1);
-  const [isLoading, setIsLoading] = useState(true);
-  const [similarProducts, setSimilarProducts] = useState([]);
-
-  const [isLiked, setIsLiked] = useState(false);
-  const [showRatingForm, setShowRatingForm] = useState(false);
-  const [rating, setRating] = useState(0);
-  const [review, setReview] = useState("");
-  const checkLogin = useCheckLogin();
-  const router = useRouter();
-  const [reviews, setReviews] = useState([]);
-  const [ratingSummary, setRatingSummary] = useState({
-    avg: 0,
-    count: 0,
-    breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
-  });
-
-  const fetchProduct = async () => {
-    setIsLoading(true);
-
-    try {
-      const product = await productAPI.getProductById(productId);
-      const similarProduct = await productAPI.getProducts({
-        type: product.productType,
-        limit: 4,
-        featured: true,
-      });
-
-      const reviewsData = await productAPI.getProductRatings(productId);
-
-      const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
-      reviewsData.forEach((r) => breakdown[r.rating]++);
-
-      setRatingSummary({
-        avg: product.rating,
-        count: reviewsData.length,
-        breakdown,
-      });
-
-      setReviews(reviewsData);
-      setselectedProduct(product);
-      setSimilarProducts(similarProduct.products || []);
-
-      if (user) {
-        const interest = await productAPI.checkUserInterest(productId);
-        setIsLiked(interest?.isLiked || false);
-      }
-    } catch (err) {
-      console.error(err);
-    }
-
-    setIsLoading(false);
-  };
-
-  useEffect(() => {
-    if (productId) {
-      fetchProduct();
-    }
-  }, [productId]);
-
-  const handleImageHover = (index) => {
-    setSelectedImageIndex(index);
-  };
-
-  const handleAddToCart = async () => {
-    await addToCart(productId, quantity);
-  };
-
-  const handleToggleLike = async () => {
-    if (!checkLogin()) return;
-
-    try {
-      if (isLiked) {
-        await productAPI.removeUserInterest(productId);
-        setIsLiked(false);
-      } else {
-        await productAPI.addUserInterest(productId);
-        setIsLiked(true);
-      }
-    } catch (error) {
-      toast.error(error.message);
-    }
-  };
-
-  const handleSubmitRating = async (e) => {
-    e.preventDefault();
-    if (!checkLogin()) return;
-
-    try {
-      const data = {
-        productId,
-        rating: Number(rating),
-        review,
-      };
-      await productAPI.submitRating(data);
-      toast.success("Review submitted!");
-
-      setShowRatingForm(false);
-      setRating(0);
-      setReview("");
-
-      const updated = await productAPI.getProductById(productId);
-      setselectedProduct(updated);
-    } catch (error) {
-      toast.error(error.error || "Something went wrong");
-    }
-  };
-
-  const showRating = () => {
-    if (!checkLogin()) return;
-    setShowRatingForm(true);
-  };
-
-  const FloatingElements = () => (
+// ------------------------ Floating Background Stars ------------------------
+const FloatingElements = () => {
+  return (
     <div className="absolute inset-0 overflow-hidden pointer-events-none">
       {[...Array(8)].map((_, i) => (
         <motion.div
           key={i}
           className="absolute text-[#C06014]/10"
-          initial={{
-            scale: 0,
-            opacity: 0,
-          }}
+          initial={{ scale: 0, opacity: 0 }}
           animate={{
             y: [0, -100, -200],
             scale: [0, 1, 0],
@@ -183,7 +62,203 @@ const ProductShowcasePage = ({ params }) => {
       ))}
     </div>
   );
+};
 
+const ProductShowcasePage = ({ params }) => {
+  // ✅ Correct way to read dynamic route param
+  const { id: productId } = React.use(params);
+
+  const { addToCart } = useCart();
+  const user = useSelector((state) => state.auth.user);
+  const checkLogin = useCheckLogin();
+  const router = useRouter();
+
+  // ---------- State ----------
+  const [selectedProduct, setSelectedProduct] = useState(null);
+  const [selectedImageIndex, setSelectedImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
+  const [similarProducts, setSimilarProducts] = useState([]);
+  const [reviews, setReviews] = useState([]);
+  const [isLiked, setIsLiked] = useState(false);
+
+  const [ratingSummary, setRatingSummary] = useState({
+    avg: 0,
+    count: 0,
+    breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+  });
+
+  const [showRatingForm, setShowRatingForm] = useState(false);
+  const [rating, setRating] = useState(0);
+  const [review, setReview] = useState("");
+  const [isLoading, setIsLoading] = useState(true);
+
+  // ------------------------------------------------------------------
+  // Fetch product + reviews (optimized, parallel)
+  // ------------------------------------------------------------------
+  const fetchProductPageData = useCallback(async () => {
+    if (!productId) return;
+    setIsLoading(true);
+
+    try {
+      // Product + Reviews in parallel
+      const [product, reviewsList] = await Promise.all([
+        productAPI.getProductById(productId),
+        productAPI.getProductRatings(productId),
+      ]);
+
+      setSelectedProduct(product);
+      setReviews(reviewsList);
+
+      // Rating summary
+      const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+      reviewsList.forEach((r) => {
+        if (breakdown[r.rating] !== undefined) breakdown[r.rating] += 1;
+      });
+
+      setRatingSummary({
+        avg: product.rating || 0,
+        count: reviewsList.length,
+        breakdown,
+      });
+
+      // Similar products
+      const similar = await productAPI.getProducts({
+        type: product.productType,
+        featured: true,
+        limit: 4,
+      });
+      setSimilarProducts(similar.products || []);
+
+      // Wishlist state (only if logged in)
+      if (user) {
+        const liked = await productAPI.checkUserInterest(productId);
+        setIsLiked(!!liked?.isLiked);
+      } else {
+        setIsLiked(false);
+      }
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to load product");
+    }
+
+    setIsLoading(false);
+  }, [productId, user]);
+
+  useEffect(() => {
+    fetchProductPageData();
+  }, [fetchProductPageData]);
+
+  // ------------------------------------------------------------------
+  // Quantity Controls
+  // ------------------------------------------------------------------
+  const incrementQty = () => {
+    if (selectedProduct && quantity < (selectedProduct.stock || 1)) {
+      setQuantity((q) => q + 1);
+    }
+  };
+
+  const decrementQty = () => {
+    setQuantity((q) => (q > 1 ? q - 1 : 1));
+  };
+
+  // ------------------------------------------------------------------
+  // Add to Cart (supports guest + logged-in via CartContext)
+  // ------------------------------------------------------------------
+  const handleAddToCart = async () => {
+    if (!selectedProduct) return;
+    await addToCart(productId, quantity); // context will handle guest/localStorage or API
+  };
+
+  // ------------------------------------------------------------------
+  // LIKE / WISHLIST
+  // ------------------------------------------------------------------
+  const handleToggleLike = async () => {
+    if (!checkLogin()) return;
+
+    try {
+      if (isLiked) {
+        await productAPI.removeUserInterest(productId);
+        setIsLiked(false);
+      } else {
+        await productAPI.addUserInterest(productId);
+        setIsLiked(true);
+      }
+    } catch (err) {
+      toast.error(err.message || "Something went wrong");
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // Rating: show form
+  // ------------------------------------------------------------------
+  const showRating = () => {
+    if (!checkLogin()) return;
+    setShowRatingForm(true);
+  };
+
+  // ------------------------------------------------------------------
+  // SUBMIT RATING
+  // ------------------------------------------------------------------
+  const handleSubmitRating = async (e) => {
+    e.preventDefault();
+    if (!checkLogin()) return;
+    if (!rating) return toast.error("Please select rating");
+
+    try {
+      await productAPI.submitRating({
+        productId,
+        rating: Number(rating),
+        review,
+      });
+
+      toast.success("Review submitted!");
+
+      // Append to existing reviews (no full refetch)
+      const newReview = {
+        _id: `local-${Date.now()}`,
+        rating,
+        review,
+        userId: { username: user?.username || "You" },
+        createdAt: new Date().toISOString(),
+      };
+
+      const updatedReviews = [...reviews, newReview];
+      setReviews(updatedReviews);
+
+      // Recalculate summary
+      const newBreakdown = { ...ratingSummary.breakdown };
+      if (newBreakdown[rating] !== undefined) {
+        newBreakdown[rating] += 1;
+      }
+
+      const newCount = ratingSummary.count + 1;
+      const newAvg =
+        (ratingSummary.avg * ratingSummary.count + rating) / newCount;
+
+      setRatingSummary({
+        avg: newAvg,
+        count: newCount,
+        breakdown: newBreakdown,
+      });
+
+      setShowRatingForm(false);
+      setRating(0);
+      setReview("");
+    } catch (err) {
+      toast.error(err.error || err.message || "Something went wrong");
+    }
+  };
+
+  // ------------------------------------------------------------------
+  // IMAGE HOVER
+  // ------------------------------------------------------------------
+  const handleImageHover = (index) => {
+    setSelectedImageIndex(index);
+  };
+
+  // ------------------------------------------------------------------
+  // LOADING STATES
+  // ------------------------------------------------------------------
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#F7F3E9] flex items-center justify-center px-4">
@@ -209,6 +284,9 @@ const ProductShowcasePage = ({ params }) => {
     );
   }
 
+  // ------------------------------------------------------------------
+  // RENDER
+  // ------------------------------------------------------------------
   return (
     <>
       <Navbar />
@@ -292,7 +370,7 @@ const ProductShowcasePage = ({ params }) => {
                 </h3>
 
                 {Object.entries(ratingSummary.breakdown)
-                  .sort((a, b) => b[0] - a[0])
+                  .sort((a, b) => Number(b[0]) - Number(a[0]))
                   .map(([star, count]) => {
                     const percent = ratingSummary.count
                       ? Math.round((count / ratingSummary.count) * 100)
@@ -414,7 +492,7 @@ const ProductShowcasePage = ({ params }) => {
                 <div className="flex items-center flex-wrap gap-3 sm:gap-4">
                   <div className="flex items-center border border-[#B2C5B2] rounded-2xl overflow-hidden">
                     <button
-                      onClick={() => setQuantity(Math.max(1, quantity - 1))}
+                      onClick={decrementQty}
                       className="px-3 sm:px-4 py-2 sm:py-3 bg-[#ECE5D3] hover:bg-[#C06014] hover:text-white transition-colors text-base"
                     >
                       -
@@ -423,9 +501,7 @@ const ProductShowcasePage = ({ params }) => {
                       {quantity}
                     </span>
                     <button
-                      onClick={() =>
-                        setQuantity(Math.min(selectedProduct?.stock || 1, quantity + 1))
-                      }
+                      onClick={incrementQty}
                       className="px-3 sm:px-4 py-2 sm:py-3 bg-[#ECE5D3] hover:bg-[#C06014] hover:text-white transition-colors text-base"
                     >
                       +
@@ -452,9 +528,7 @@ const ProductShowcasePage = ({ params }) => {
                 <motion.button
                   whileHover={{ scale: 1.02 }}
                   whileTap={{ scale: 0.98 }}
-                  onClick={() => {
-                    handleAddToCart();
-                  }}
+                  onClick={handleAddToCart}
                   className="flex-1 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white py-3 sm:py-4 rounded-2xl font-semibold text-sm sm:text-lg flex items-center justify-center gap-2 sm:gap-3 transition-all duration-300 hover:shadow-lg hover:shadow-[#C06014]/30"
                 >
                   <span>Buy Now with Blessings</span>
@@ -587,156 +661,102 @@ const ProductShowcasePage = ({ params }) => {
           </motion.section>
 
           {/* Similar Products Section */}
-          {/* Similar Products Section */}
-<motion.section
-  initial={{ opacity: 0, y: 40 }}
-  animate={{ opacity: 1, y: 0 }}
-  transition={{ delay: 0.3 }}
-  className="mb-10 sm:mb-16"
->
-  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
-    <h2 className="text-2xl sm:text-3xl font-bold text-[#003D33] flex items-center gap-2 sm:gap-3">
-      <FaGem className="text-[#C06014]" />
-      <span>Similar Cosmic Treasures</span>
-    </h2>
-
-    <button
-      className="text-sm sm:text-base text-[#C06014] font-semibold hover:text-[#D47C3A] transition-colors flex items-center gap-1 sm:gap-2"
-      onClick={() => router.push("/ProductsPage")}
-    >
-      View All <FaArrowRight />
-    </button>
-  </div>
-
-  {/* 🛑 Desktop: Grid */}
-  <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
-    {similarProducts.map((product) => (
-      <motion.div
-        key={product._id}
-        whileHover={{ y: -5 }}
-        className="bg-white rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
-      >
-        <div className="relative overflow-hidden">
-          <img
-            src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
-            alt={product.name}
-            className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
-          />
-        </div>
-        <div className="p-4 sm:p-6">
-          <h3 className="font-semibold text-[#003D33] text-sm sm:text-base line-clamp-2">
-            {product.name}
-          </h3>
-          <p className="text-[#00695C] text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">
-            {product.description}
-          </p>
-          <p className="text-lg sm:text-xl font-bold text-[#C06014]">
-            ₹{product.price}
-          </p>
-        </div>
-      </motion.div>
-    ))}
-  </div>
-
-  {/* 📱 Mobile Slider */}
-  <div className="md:hidden">
-    <Swiper
-      spaceBetween={15}
-      grabCursor={true}
-      loop={true}
-      autoplay={{
-        delay: 3000,
-        disableOnInteraction: false,
-      }}
-      pagination={{ clickable: true }}
-      modules={[Pagination, Autoplay]}
-      breakpoints={{
-        0: { slidesPerView: 1.1 },
-        400: { slidesPerView: 1.4 },
-        640: { slidesPerView: 2 },
-      }}
-      className="pb-8"
-    >
-      {similarProducts.map((product) => (
-        <SwiperSlide key={product._id}>
-          <motion.div
-            whileHover={{ scale: 1.02 }}
-            className="bg-white rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg transition-all duration-300"
-          >
-            <img
-              src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
-              alt={product.name}
-              className="w-full h-48 object-cover"
-            />
-
-            <div className="p-4">
-              <h3 className="font-semibold text-[#003D33] text-sm line-clamp-2">
-                {product.name}
-              </h3>
-              <p className="text-[#00695C] text-xs line-clamp-2">
-                {product.description}
-              </p>
-              <p className="text-lg font-bold text-[#C06014]">
-                ₹{product.price}
-              </p>
-            </div>
-          </motion.div>
-        </SwiperSlide>
-      ))}
-    </Swiper>
-  </div>
-</motion.section>
-
-
-          {/* CUSTOMER REVIEWS SECTION */}
           <motion.section
             initial={{ opacity: 0, y: 40 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.35 }}
-            className="bg-white rounded-3xl border border-[#B2C5B2] p-5 sm:p-8 mb-10 sm:mb-16"
+            transition={{ delay: 0.3 }}
+            className="mb-10 sm:mb-16"
           >
-            <h3 className="text-xl sm:text-2xl font-bold text-[#003D33] mb-4 sm:mb-6 flex items-center gap-2 sm:gap-3">
-              <FaStar className="text-[#C06014]" />
-              <span>Customer Reviews</span>
-            </h3>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4 mb-6 sm:mb-8">
+              <h2 className="text-2xl sm:text-3xl font-bold text-[#003D33] flex items-center gap-2 sm:gap-3">
+                <FaGem className="text-[#C06014]" />
+                <span>Similar Cosmic Treasures</span>
+              </h2>
 
-            {reviews.length === 0 && (
-              <p className="text-gray-500 text-sm sm:text-base">
-                No reviews yet. Be the first to review!
-              </p>
-            )}
+              <button
+                className="text-sm sm:text-base text-[#C06014] font-semibold hover:text-[#D47C3A] transition-colors flex items-center gap-1 sm:gap-2"
+                onClick={() => router.push("/ProductsPage")}
+              >
+                View All <FaArrowRight />
+              </button>
+            </div>
 
-            <div className="space-y-4 sm:space-y-6">
-              {reviews.map((r) => (
-                <div
-                  key={r._id}
-                  className="bg-[#F7F3E9] p-4 sm:p-5 rounded-2xl border border-[#ECE5D3]"
+            {/* Desktop Grid */}
+            <div className="hidden md:grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 sm:gap-6">
+              {similarProducts.map((product) => (
+                <motion.div
+                  key={product._id}
+                  whileHover={{ y: -5 }}
+                  className="bg-white rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
                 >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold text-[#003D33] text-sm sm:text-base truncate">
-                      {r.userId.username}
-                    </p>
-                    <div className="flex text-amber-400 text-xs sm:text-sm">
-                      {[1, 2, 3, 4, 5].map((star) => (
-                        <FaStar
-                          key={star}
-                          className={
-                            star <= r.rating ? "text-amber-400" : "text-gray-300"
-                          }
-                        />
-                      ))}
-                    </div>
+                  <div className="relative overflow-hidden">
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
+                      alt={product.name}
+                      className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
+                    />
                   </div>
-
-                  <p className="text-[#00695C] mt-2 text-sm sm:text-base">
-                    {r.review}
-                  </p>
-
-                  <p className="text-[10px] sm:text-xs text-gray-500 mt-1">
-                    {new Date(r.createdAt).toLocaleDateString()}
-                  </p>
-                </div>
+                  <div className="p-4 sm:p-6">
+                    <h3 className="font-semibold text-[#003D33] text-sm sm:text-base line-clamp-2">
+                      {product.name}
+                    </h3>
+                    <p className="text-[#00695C] text-xs sm:text-sm mb-3 sm:mb-4 line-clamp-2">
+                      {product.description}
+                    </p>
+                    <p className="text-lg sm:text-xl font-bold text-[#C06014]">
+                      ₹{product.price}
+                    </p>
+                  </div>
+                </motion.div>
               ))}
+            </div>
+
+            {/* Mobile Slider */}
+            <div className="md:hidden">
+              <Swiper
+                spaceBetween={15}
+                grabCursor={true}
+                loop={true}
+                autoplay={{
+                  delay: 3000,
+                  disableOnInteraction: false,
+                }}
+                pagination={{ clickable: true }}
+                modules={[Pagination, Autoplay]}
+                breakpoints={{
+                  0: { slidesPerView: 1.1 },
+                  400: { slidesPerView: 1.4 },
+                  640: { slidesPerView: 2 },
+                }}
+                className="pb-8"
+              >
+                {similarProducts.map((product) => (
+                  <SwiperSlide key={product._id}>
+                    <motion.div
+                      whileHover={{ scale: 1.02 }}
+                      className="bg-white rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg transition-all duration-300"
+                    >
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
+                        alt={product.name}
+                        className="w-full h-48 object-cover"
+                      />
+
+                      <div className="p-4">
+                        <h3 className="font-semibold text-[#003D33] text-sm line-clamp-2">
+                          {product.name}
+                        </h3>
+                        <p className="text-[#00695C] text-xs line-clamp-2">
+                          {product.description}
+                        </p>
+                        <p className="text-lg font-bold text-[#C06014]">
+                          ₹{product.price}
+                        </p>
+                      </div>
+                    </motion.div>
+                  </SwiperSlide>
+                ))}
+              </Swiper>
             </div>
           </motion.section>
 
@@ -804,14 +824,8 @@ const ProductShowcasePage = ({ params }) => {
         </div>
       </div>
 
-      {/* Cart Slide Out */}
-      <CartSlideOut
-        isOpen={isCartOpen}
-        onClose={() => setIsCartOpen(false)}
-        cartItems={cartItems}
-        updateQuantity={updateQuantity}
-        removeFromCart={removeFromCart}
-      />
+      {/* Cart Slide Out - uses CartContext internally (Option A) */}
+      <CartSlideOut />
     </>
   );
 };

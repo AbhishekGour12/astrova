@@ -20,12 +20,12 @@ import { useRef } from "react";
 
 export default function ProductsPage() {
   const [categories] = useState([
-    { name: "Money", img: "/money.png" },
-    { name: "Love", img: "/love.png" },
-    { name: "Career", img: "/career.png" },
-    { name: "Evil Eye", img: "/evileye.png" },
-    { name: "Health", img: "/love.png" },
-    { name: "Gifting", img: "/gifting.png" },
+    { name: "Money", img: "/money.webp" },
+    { name: "Love", img: "/Love.webp" },
+    { name: "Career", img: "/Carrer.webp" },
+    { name: "Evil Eye", img: "/evileye.webp" },
+    { name: "Health", img: "/Health.webp" },
+    { name: "Gifting", img: "/gifting.webp" },
   ]);
 
   // 🟠 Hero Banner Images - Using high-quality astro-themed images

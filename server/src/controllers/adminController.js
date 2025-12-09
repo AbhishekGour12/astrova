@@ -148,10 +148,20 @@ export const deleteProduct = async (req, res) => {
  */
 export const getAllOrders = async (req, res) => {
   try {
-    const orders = await Order.find().populate("user products.product");
-    res.json(orders);
+   const orders = await Order.find()
+  .populate("items.product")   // product details
+  .populate("userId", "username email phone") // user details
+  .sort({ createdAt: -1 });
+
+res.json({
+  success: true,
+  count: orders.length,
+  orders
+});
+
   } catch (error) {
     res.status(500).json({ error: error.message });
+    console.log(error.message)
   }
 };
 
@@ -182,7 +192,7 @@ export const updateOrderStatus = async (req, res) => {
  */
 export const getAllPayments = async (req, res) => {
   try {
-    const payments = await Payment.find().populate("orderId");
+    const payments = await Payment.find().populate("orderId", "shipmentId", "totalAmount");
     res.json(payments);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -11,3 +11,7 @@
 .custom-scroll::-webkit-scrollbar-track {
   background: #F7F3E9;
 }
+button:hover{
+  cursor: pointer;
+  
+}
