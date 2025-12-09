@@ -18,7 +18,7 @@ const otpStore = new Map();
     try {
         const existingUser = await User.findOne( { phone: phone});
         if (existingUser) {
-            return res.status(400).json({ message: "User already exists with this email" });
+            return res.status(400).json({ message: "User already exists with this contact" });
         }
       
         const newUser = new User({ username: name, phone });

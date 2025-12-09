@@ -149,6 +149,7 @@ if (loading) return <SignupLoader/>
                       value={formData.name}
                       onChange={handleChange}
                       className="mt-2 w-full px-6 py-3 pr-10 rounded-3xl bg-[#f4f1e2] focus:outline-none focus:ring-2 focus:ring-[#B2C5B2] placeholder-[gray] placeholder-opacity-70"
+                      minLength={3}
                     />
                     <User
                       size={20}
