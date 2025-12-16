@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { FaShoppingCart, FaUser, FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
@@ -13,6 +13,7 @@ import { useCart } from "../context/CartContext";
 
 const Navbar = () => {
   const { setIsCartOpen, cartItems } = useCart();
+   const [isScrolled, setIsScrolled] = useState(false);
   const itemsArray = Array.isArray(cartItems)
     ? cartItems
     : (cartItems?.items || []);
@@ -26,6 +27,13 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
+useEffect(() => {
+  if (isMobileMenuOpen) {
+    document.body.style.overflow = "hidden";
+  } else {
+    document.body.style.overflow = "auto";
+  }
+}, [isMobileMenuOpen]);
 
 
   const logout = () => {
@@ -35,11 +43,34 @@ const Navbar = () => {
     router.push("/");
     setIsMobileMenuOpen(false);
   };
+ useEffect(() => {
+    const handleScroll = () => {
+      setIsScrolled(window.scrollY > 10);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   return (
-   <div className="w-full flex justify-center  " id="navbar">
+   <div
+   id="navbar"
+  className={`fixed top-0 left-0 right-0 z-[9999]
+transition-all duration-300
+${
+  isScrolled || isMobileMenuOpen
+    ? "bg-[#ECE5D3]/90 backdrop-blur-lg shadow-lg"
+    : "bg-transparent"
+}`}
 
-      <div className="flex max-w-7xl m-auto justify-between items-center absolute px-4 sm:px-6 lg:px-12 py-4 lg:py-6  w-full z-50 text-[#725E43] font-semibold bg-transparent">
+>
+
+
+     <div className="flex max-w-7xl mx-auto justify-between items-center
+  px-4 sm:px-6 lg:px-12
+  h-[72px] lg:h-[88px]
+  text-[#725E43] font-semibold  ">
+
+
         
         {/* LOGO */}
       {/* LOGO FIXED RESPONSIVE */}
@@ -47,14 +78,8 @@ const Navbar = () => {
   onClick={() => router.push("/")} 
   className="cursor-pointer flex items-center"
 >
-  <div className="relative 
-    w-19 h-19
-  
-    max-md:w-16 max-md:h-16
-    max-lg:w-[70px] max-lg:h-[70px] 
-    max-2xl:w-[90px] max-2xl:h-[90px]
-    
-  ">
+ <div className="relative w-[56px] h-[56px] lg:w-[64px] lg:h-[64px]">
+
     <Image
       src="/logo.png"
       alt="MyAstrova Logo"
@@ -63,23 +88,52 @@ const Navbar = () => {
       priority
     />
   </div>
+  <span className="ml-2 text-[20px] lg:text-[24px] font-bold max-sm:text-[15px] max-[380px]:text-[10px]" style={{ fontFamily: "Noto Sans" }}>MYASTROVA</span>
 </div>
 
 
         {/* DESKTOP MENU */}
-        <ul
-          className="hidden lg:flex space-x-6 xl:space-x-10 text-[16px] lg:text-[18px] lg:mr-[50px] font-normal"
-          style={{ fontFamily: "Noto Sans" }}
-        >
-          <li className="hover:text-[#B49A77] transition"><Link href="/">Home</Link></li>
-          <li className="hover:text-[#B49A77] transition"><Link href="/ProductsPage">Products</Link></li>
-          <li className="hover:text-[#B49A77] transition"><Link href="/Chats">Chats</Link></li>
-          <li className="hover:text-[#B49A77] transition"><Link href="/Admin">Admin</Link></li>
-          <li className="hover:text-[#B49A77] transition"><Link href="/">Who are we</Link></li>
-        </ul>
+       <ul
+  className="
+    flex
+    items-center
+    space-x-6 xl:space-x-10
+    text-[16px] lg:text-[18px]
+    font-normal
+    whitespace-nowrap
+
+    max-w-[640px]
+    flex-shrink-0
+    mr-16 xl:mr-24
+    
+    
+    pr-4
+  "
+  style={{ fontFamily: "Noto Sans" }}
+  id="navbar-menu"
+>
+  <li className="hover:text-[#B49A77] transition">
+    <Link href="/">Home</Link>
+  </li>
+  <li className="hover:text-[#B49A77] transition">
+    <Link href="/ProductsPage">Products</Link>
+  </li>
+  <li className="hover:text-[#B49A77] transition">
+    <Link href="/Chats">Chats</Link>
+  </li>
+  <li className="hover:text-[#B49A77] transition">
+    <Link href="/Orders">MyOrders</Link>
+  </li>
+  <li className="hover:text-[#B49A77] transition">
+    <Link href="/">Who Are We</Link>
+  </li>
+  <li className="hover:text-[#B49A77] transition">
+    <Link href="/">Remedies</Link>
+  </li>
+</ul>
 
         {/* MOBILE MENU BUTTON */}
-        <div className="lg:hidden">
+        <div className="hidden" id="menu-button">
           <button className="text-[#725E43]" onClick={toggleMobileMenu}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
@@ -146,21 +200,22 @@ const Navbar = () => {
           {isMobileMenuOpen && (
             <>
               {/* BACKDROP */}
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.7 }}
-                exit={{ opacity: 0 }}
-                className="fixed inset-0 bg-black z-40"
-                onClick={() => setIsMobileMenuOpen(false)}
-              />
+             <motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 0.6 }}
+  exit={{ opacity: 0 }}
+  className="fixed top-[72px] left-0 right-0 bottom-0 bg-black z-40"
+  onClick={() => setIsMobileMenuOpen(false)}
+/>
 
-              {/* SIDEBAR */}
+
               <motion.div
-                initial={{ x: "100%" }}
-                animate={{ x: 0 }}
-                exit={{ x: "100%" }}
-                className="fixed top-0 right-0 h-full w-72 bg-white shadow-2xl z-50"
-              >
+  initial={{ x: "100%" }}
+  animate={{ x: 0 }}
+  exit={{ x: "100%" }}
+  className="fixed top-[72px] right-0 h-[calc(100vh-72px)] w-72 bg-white shadow-2xl z-50"
+>
+
                 <div className="flex justify-between items-center p-4 border-b">
                   <div className="text-[18px] font-bold flex items-center">
                     <Image src="/logo.png" width={30} height={30} alt="logo" />
@@ -179,8 +234,9 @@ const Navbar = () => {
                   <li className="border-b pb-3"><Link href="/">Home</Link></li>
                   <li className="border-b pb-3"><Link href="/ProductsPage">Products</Link></li>
                   <li className="border-b pb-3"><Link href="/Chats">Chats</Link></li>
-                  <li className="border-b pb-3"><Link href="/Admin">Admin</Link></li>
+                  <li className={`border-b pb-3 ${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}><Link href="/Orders" className={`${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}>MyOrders</Link></li>
                   <li className="border-b pb-3"><Link href="/">Who are we</Link></li>
+                  <li className="border-b pb-3"><Link href="/">Remedies</Link></li>
                 </ul>
 
                 {/* USER SECTION */}

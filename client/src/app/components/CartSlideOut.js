@@ -31,6 +31,12 @@ const CartSlideOut = () => {
   const [mappedCart, setMappedCart] = useState([]);
   const [loadingProducts, setLoadingProducts] = useState(true);
   const [showPriceDetails, setShowPriceDetails] = useState(false);
+  // OFFER
+const [offerDiscount, setOfferDiscount] = useState(0);
+
+// PAYMENT TYPE
+const [paymentMethod, setPaymentMethod] = useState(null); // "cod" | "online"
+
 const platformFee = 11;
 
 
@@ -60,6 +66,9 @@ const platformFee = 11;
 
     loadProducts();
   }, [cartItems]);
+
+  // ================================
+
 
   // ================================
   // CHECKOUT STATE
@@ -128,7 +137,26 @@ const platformFee = 11;
   );
 
   const gst = subtotal * 0.18;
- const finalAmount = subtotal + gst + shippingCharge - discount + platformFee;
+ 
+
+// Round off ONLY for COD
+const rawTotal =
+  subtotal +
+  gst +
+  shippingCharge +
+  platformFee -
+  discount -
+  offerDiscount;
+
+// ROUND UP ONLY FOR COD
+const finalAmount =
+ isCOD ? Math.ceil(rawTotal) : Number(rawTotal.toFixed(2));
+
+const roundOff =
+  paymentMethod === "cod"
+    ? Math.ceil(rawTotal) - rawTotal
+    : 0;
+
 
 
   // ================================
@@ -152,6 +180,17 @@ const platformFee = 11;
     setLoading(false);
   };
 
+  // OFFER LOGIC (Example)
+// ================================
+// Example: 5% offer on prepaid orders above ₹1000
+useEffect(() => {
+  if (paymentMethod === "online" && subtotal >= 1000) {
+    setOfferDiscount(Math.round(subtotal * 0.05));
+  } else {
+    setOfferDiscount(0);
+  }
+}, [paymentMethod, subtotal]);
+
   // ================================
   // SHIPPING – now checks login BEFORE API call
   // ================================
@@ -170,7 +209,7 @@ const platformFee = 11;
         weight: totalWeight,
         cod: isCOD ? 1 : 0,
       });
-
+     console.log(charge)
       setShippingCharge(charge.shippingCharge);
       toast.success("Delivery charges updated!");
 
@@ -203,7 +242,7 @@ const platformFee = 11;
           const verify = await paymentAPI.verifyPayment(response);
 
           if (verify.success) {
-            await placeOrder("razorpay", response);
+            await placeOrder("online", response);
           } else toast.error("Payment verification failed!");
         },
         theme: { color: "#C06014" },
@@ -228,13 +267,16 @@ const platformFee = 11;
 
     try {
       await orderAPI.createOrder({
-        shippingAddress: address,
-        paymentMethod,
-        paymentDetails,
-        discount,
-        isCODEnabled: isCOD,
-        totalWeight,
-      });
+  shippingAddress: address,
+  paymentMethod,
+  paymentDetails,
+  discount,
+  offerDiscount,
+  roundOff,
+  isCODEnabled: isCOD,
+  totalWeight,
+  finalAmount,
+});
 
       toast.success("Order placed successfully!");
       setIsCartOpen(false);
@@ -263,7 +305,7 @@ const platformFee = 11;
         <>
           {/* OVERLAY */}
           <motion.div
-            className="fixed inset-0 bg-black/40 z-[9998]"
+            className="fixed inset-x-0 bottom-0 top-[90px] bg-black/40 z-[9998]"
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
@@ -272,7 +314,8 @@ const platformFee = 11;
 
           {/* CART PANEL */}
           <motion.div
-            className="fixed right-0 top-0 h-full max-w-md w-full bg-white shadow-xl z-[9999] flex flex-col"
+           className="fixed right-0 top-[90px] h-[calc(100vh-90px)]
+             max-w-md w-full bg-white shadow-xl z-[9999]"
             initial={{ x: "100%" }}
             animate={{ x: 0 }}
             exit={{ x: "100%" }}
@@ -480,26 +523,28 @@ const platformFee = 11;
     <div className="space-y-3">
       {/* COD */}
       <button
-        onClick={() => {
-          if (!user) return toast.error("Please login");
-          placeOrder("cod");
-        }}
-        className="w-full bg-gray-100 py-3 rounded-lg"
-      >
-        Cash on Delivery
-      </button>
+  onClick={() => {
+    if (!user) return toast.error("Please login");
+    setPaymentMethod("cod");
+    placeOrder("cod");
+  }}
+  className="w-full bg-gray-100 py-3 rounded-lg"
+>
+  Cash on Delivery
+</button>
 
       {/* Razorpay */}
       <button
-        onClick={() => {
-          if (!user) return toast.error("Please login");
-          handleRazorpay();
-        }}
-        className="w-full bg-[#C06014] text-white py-3 rounded-lg"
-      >
-        Pay Securely Online
+  onClick={() => {
+    if (!user) return toast.error("Please login");
+    setPaymentMethod("online");
+    handleRazorpay();
+  }}
+  className="w-full bg-[#C06014] text-white py-3 rounded-lg"
+>
+  Pay Securely Online
+</button>
 
-      </button>
     </div>
 
     
@@ -550,6 +595,13 @@ const platformFee = 11;
             <span>Discount</span>
             <span>-₹{discount}</span>
           </div>
+          {offerDiscount > 0 && (
+  <div className="flex justify-between text-green-700 font-semibold">
+    <span>Offer Applied</span>
+    <span>-₹{offerDiscount}</span>
+  </div>
+)}
+
 
           <div className="flex justify-between text-[#C06014] font-semibold">
             <span>Platform Fee</span>
@@ -559,9 +611,10 @@ const platformFee = 11;
           <hr />
 
           <div className="flex justify-between font-bold text-lg text-[#003D33]">
-            <span>Grand Total</span>
-            <span>₹{finalAmount}</span>
-          </div>
+  <span>Grand Total</span>
+  <span>₹{finalAmount}</span>
+</div>
+
         </div>
       </motion.div>
     )}

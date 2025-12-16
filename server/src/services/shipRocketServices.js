@@ -6,6 +6,7 @@ import { getValidToken } from "../utils/shipRocketToken.js";
  */
 export const createShiprocketOrder = async (order, extra = {}) => {
   const token = await getValidToken();
+  console.log(order.weight)
 
   const payload = {
     order_id: order._id,

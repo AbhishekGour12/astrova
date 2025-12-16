@@ -5,7 +5,7 @@ const ProductSchema = new mongoose.Schema(
     name: { type: String, required: true },
     description: { type: String },
     price: { type: Number, required: true },
-    stock: { type: Number, default: 0 },
+    stock: { type: Number, min: 0, default: 0 },
     productType: { type: String, required: true }, // 🟢 dynamic editable type
     availableTypes: {
       type: [String],
@@ -21,7 +21,18 @@ const ProductSchema = new mongoose.Schema(
     weight: { type: Number, default: 0.2 },   // KG
     length: { type: Number, default: 10 },   // CM
     breadth: { type: Number, default: 10 },  // CM
-    height: { type: Number, default: 10 },   // CM
+    height: { type: Number, default: 10 }, 
+    offerPercent: {
+      type: Number,
+      default: 0,
+      min: 0,
+      max: 100
+    },
+
+    discountedPrice: {
+      type: Number
+    },
+  // CM
 
   },
   { timestamps: true }
@@ -29,9 +40,21 @@ const ProductSchema = new mongoose.Schema(
 
 // 🧮 Auto calculate total price
 ProductSchema.pre("save", function (next) {
-  const gst = (this.price * this.gstPercent) / 100;
-  this.totalPrice = this.price + gst + (this.courierCharge || 0);
+  let finalPrice = this.price;
+
+  if (this.offerPercent && this.offerPercent > 0) {
+    const discount = (this.price * this.offerPercent) / 100;
+    finalPrice = this.price - discount;
+    this.discountedPrice = finalPrice;
+  } else {
+    this.discountedPrice = this.price;
+  }
+
+  const gst = (finalPrice * this.gstPercent) / 100;
+  this.totalPrice = finalPrice + gst;
+
   next();
 });
+
 
 export default mongoose.model("Product", ProductSchema);

@@ -8,6 +8,7 @@ import {
   assignAWB
 } from "../services/shipRocketServices.js";
 export const createOrder = async (req, res) => {
+  
   const session = await mongoose.startSession();
   session.startTransaction();
 
@@ -20,12 +21,20 @@ export const createOrder = async (req, res) => {
       isCODEnabled = false,
       totalWeight = 0.5
     } = req.body;
-
+    
     if (!shippingAddress) throw new Error("Shipping address required");
     if (!paymentMethod) throw new Error("Payment method required");
 
     // Fetch cart
     const cart = await Cart.findOne({ userId: req.user.id }).populate("items.product");
+    for (const item of cart.items) {
+  if (item.quantity > item.product.stock) {
+    throw new Error(
+      `${item.product.name} is out of stock`
+    );
+  }
+}
+
     if (!cart || cart.items.length === 0) throw new Error("Your cart is empty");
 
     // Totals
@@ -33,7 +42,7 @@ export const createOrder = async (req, res) => {
     const gstAmount = Number((subtotal * 0.18).toFixed(2));
     const shippingCharge = subtotal > 500 ? 0 : 50;
     const totalAmount = subtotal + gstAmount + shippingCharge - discount;
-    const paymentStatus = paymentMethod === "razorpay" ? "Paid" : "Pending";
+    const paymentStatus = paymentMethod === "online" ? "Paid" : "Pending";
 
     // Weight
     let calculatedWeight = cart.items.reduce(
@@ -106,13 +115,24 @@ export const createOrder = async (req, res) => {
     await newOrder.save({ session });
 
     // Reduce stock
-    for (const item of cart.items) {
-      await Product.updateOne(
-        { _id: item.product._id },
-        { $inc: { stock: -item.quantity } },
-        { session }
-      );
-    }
+  for (const item of cart.items) {
+  const updated = await Product.updateOne(
+    {
+      _id: item.product._id,
+      stock: { $gte: item.quantity }
+    },
+    { $inc: { stock: -item.quantity } },
+    { session }
+  );
+
+  if (updated.modifiedCount === 0) {
+    throw new Error(
+      `Stock mismatch for ${item.product.name}`
+    );
+  }
+}
+
+
 
     // Clear cart
     cart.items = [];
@@ -159,7 +179,7 @@ export const getOrders = async (req, res) => {
       count: orders.length,
       orders,
     });
-    console.log(orders)
+    
     
   } catch (error) {
     res.status(500).json({

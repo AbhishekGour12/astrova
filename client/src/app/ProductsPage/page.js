@@ -210,8 +210,7 @@ useEffect(() =>{
       
 
       <div className="bg-[#f7f5ea]  min-h-screen ">
-        <Navbar/>
-
+       
         {/* 🌟 HERO BANNER SLIDER */}
        <div className=" pt-28 sm:pt-32 lg:pt-36">  
 <section className="h-[70vh] min-h-[480px] w-full overflow-hidden mt-6 relative">
@@ -434,15 +433,33 @@ useEffect(() =>{
             <motion.div
               whileHover={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 200 }}
-              className="bg-white rounded-2xl shadow-md border border-[#e7e7e7] h-[340px] flex flex-col overflow-hidden"
+              className={`relative rounded-2xl h-[340px] flex flex-col overflow-hidden transition-all
+  ${
+    p.stock === 0
+      ? "bg-gray-100 shadow-lg shadow-gray-400/50"
+      : "bg-white shadow-md border border-[#e7e7e7]"
+  }
+`}
+
             >
+              {p.offerPercent > 0 && (
+  <div className="absolute top-2 right-2 z-10 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded-full">
+    {p.offerPercent}% OFF
+  </div>
+)}
+
               {/* Image Height Fix */}
-              <div className="w-full h-[200px]">
+              <div className="w-full h-[200px] relative overflow-hidden">
+
                 <img
                   src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
                   alt={p.name}
                   className="object-cover w-full h-full"
                 />
+                {p.stock === 0 && (
+  <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[1px]" />
+)}
+
               </div>
 
               <div className="p-3 text-center flex flex-col justify-between flex-grow">
@@ -466,19 +483,36 @@ useEffect(() =>{
                     </span>
                   </div>
 
-                  <p className="font-semibold text-[#7d5732] mb-2 text-sm">
-                    ₹{p.price}{" "}
-                    {p.oldPrice && (
-                      <span className="text-gray-400 line-through ml-2">
-                        ₹{p.oldPrice}
-                      </span>
-                    )}
-                  </p>
+                 <div className="font-semibold text-[#7d5732] mb-2 text-sm">
+  {p.offerPercent > 0 ? (
+    <>
+      <span className="text-gray-400 line-through text-xs">
+        ₹{p.price}
+      </span>
+      <span className="ml-2 text-[#7d5732] font-bold">
+        ₹{p.discountedPrice}
+      </span>
+    </>
+  ) : (
+    <>₹{p.price}</>
+  )}
+</div>
+
                 </div>
 
-                <button className="bg-[#7d5732] text-[#d6ccc0] py-1.5 px-4 rounded-xl text-sm hover:bg-[#b39976] transition w-full">
-                  Add to Cart
-                </button>
+                <button
+  disabled={p.stock === 0}
+  className={`py-1.5 px-4 rounded-xl text-sm transition w-full
+    ${
+      p.stock === 0
+        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+        : "bg-[#7d5732] text-[#d6ccc0] hover:bg-[#b39976]"
+    }
+  `}
+>
+  {p.stock === 0 ? "Out of Stock" : "Add to Cart"}
+</button>
+
               </div>
             </motion.div>
           </Link>
@@ -507,16 +541,42 @@ useEffect(() =>{
     max-[350px]:grid-cols-1
   ">
     {products.map((p, i) => (
-      <Link key={i} href={`/Product/${p._id}`}>
+      <Link key={i} href={`/Product/${p._id}`} onClick={(e) => {
+  if (p.stock === 0) {
+    e.preventDefault();
+    return;
+  }
+}}
+>
         <motion.div
           whileHover={{ scale: 1.03 }}
-          className="w-40 sm:w-48 md:w-56 bg-white rounded-2xl shadow-md overflow-hidden"
+         className={`relative w-40 sm:w-48 md:w-56 rounded-2xl overflow-hidden transition-all
+  ${
+    p.stock === 0
+      ? "bg-gray-100 shadow-lg shadow-gray-400/40"
+      : "bg-white shadow-md"
+  }
+`}
+
         >
-          <img
-            src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
-            alt={p.name}
-            className="object-cover h-32 sm:h-40 md:h-48 w-full"
-          />
+         <div className="relative">
+  <img
+    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
+    alt={p.name}
+    className="object-cover h-32 sm:h-40 md:h-48 w-full"
+  />
+
+  {p.stock === 0 && (
+    <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[1px]" />
+  )}
+
+  {p.offerPercent > 0 && (
+    <div className="absolute top-2 right-2 bg-red-600 text-white text-[10px] font-bold px-2 py-1 rounded-full">
+      {p.offerPercent}% OFF
+    </div>
+  )}
+</div>
+
           <div className="p-3 sm:p-4 text-center">
             <h4 className="font-semibold text-[#111111] text-xs sm:text-sm md:text-base leading-snug truncate">
               {p.name}
@@ -529,22 +589,33 @@ useEffect(() =>{
               </span>
             </div>
 
-            <p className="font-semibold text-[#7d5732] text-sm sm:text-base">
-              ₹{p.price}
-            </p>
+<div className="font-semibold text-[#7d5732] text-sm sm:text-base">
+  {p.offerPercent > 0 ? (
+    <>
+      <span className="text-gray-400 line-through text-xs block">
+        ₹{p.price}
+      </span>
+      <span>₹{p.discountedPrice}</span>
+    </>
+  ) : (
+    <>₹{p.price}</>
+  )}
+</div>
 
-            <button className="
-              mt-2 bg-[#7d5732] 
-              text-[#d6ccc0] 
-              py-1.5 px-3 sm:px-4 
-              rounded-xl 
-              text-xs sm:text-sm 
-              hover:bg-[#b39976] 
-              transition 
-              flex items-center gap-2 justify-center mx-auto
-            ">
-              <FaShoppingCart size={14}/> Add
-            </button>
+           <button
+  disabled={p.stock === 0}
+  className={`mt-2 py-1.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm transition flex items-center gap-2 justify-center mx-auto
+    ${
+      p.stock === 0
+        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+        : "bg-[#7d5732] text-[#d6ccc0] hover:bg-[#b39976]"
+    }
+  `}
+>
+  <FaShoppingCart size={14} />
+  {p.stock === 0 ? "Out of Stock" : "Add"}
+</button>
+
           </div>
         </motion.div>
       </Link>

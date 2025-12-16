@@ -4,6 +4,31 @@ import path from 'path';
 import fs from 'fs';
 const XLSX = xlsx;
 
+
+
+ const calculatePricing = ({
+  price,
+  offerPercent = 0,
+  gstPercent = 18,
+}) => {
+  const basePrice = Number(price);
+
+  const discount =
+    offerPercent > 0 ? (basePrice * offerPercent) / 100 : 0;
+
+  const discountedPrice = basePrice - discount;
+
+  const gstAmount = (discountedPrice * gstPercent) / 100;
+
+  const totalPrice = Number((discountedPrice + gstAmount).toFixed(2));
+
+  return {
+    discountedPrice,
+    gstAmount,
+    totalPrice,
+  };
+};
+
 // ✅ Get all products
 export const getProducts = async (req, res) => {
   try {
@@ -102,55 +127,55 @@ export const getProducts = async (req, res) => {
  * Expects:
  *  - Field "products" (JSON string of array)
  *  - Field "images" (multiple image files)
- */
-export const addBulkProductsWithImages = async (req, res) => {
+ **/
+ export const addBulkProductsWithImages = async (req, res) => {
   try {
-    // Parse product JSON from frontend
     const productsData = JSON.parse(req.body.products);
     const uploadedFiles = req.files || [];
 
-    console.log("🟢 Total Files Received:", uploadedFiles.length);
-
-    const totalImages = uploadedFiles.length;
-    if (totalImages < productsData.length) {
-      console.warn("⚠️ Warning: Less images than products, assigning sequentially");
-    }
-
-    const imageUrls = uploadedFiles.map((file) => `/uploads/products/${file.filename}`);
+    const imageUrls = uploadedFiles.map(
+      (file) => `/uploads/products/${file.filename}`
+    );
 
     let fileIndex = 0;
 
-    // 🟢 Step 1: Process each product
-   const processedProducts = productsData.map((product) => {
-  const count = product.imageCount || product.imageFilesCount || 1;
-  const productImages = imageUrls.slice(fileIndex, fileIndex + count);
-  fileIndex += count;
+    const processedProducts = productsData.map((product) => {
+      const imageCount = product.imageFilesCount || 0;
+      const productImages = imageUrls.slice(
+        fileIndex,
+        fileIndex + imageCount
+      );
+      fileIndex += imageCount;
 
-  const gstPercent = product.gstPercent || 18;
-  const gstAmount = (product.price * gstPercent) / 100;
-  const totalPrice = Number(product.price) + gstAmount;
+      const offerPercent = Number(product.offerPercent) || 0;
+      const gstPercent = Number(product.gstPercent) || 18;
 
-  return {
-    ...product,
-    rating: Number(product.rating) || 0, // ⭐ Added rating
-    imageUrls: productImages,
-    gstPercent,
-    totalPrice,
-    createdAt: new Date(),
-    updatedAt: new Date(),
-  };
-});
+      const pricing = calculatePricing({
+        price: product.price,
+        offerPercent,
+        gstPercent,
+      });
 
-    // 🟢 Step 2: Save to DB
-    const savedProducts = await Product.insertMany(processedProducts);
+      return {
+        ...product,
+        offerPercent,
+        discountedPrice: pricing.discountedPrice,
+        gstPercent,
+        totalPrice: pricing.totalPrice,
+        imageUrls: productImages,
+        rating: Number(product.rating) || 0,
+      };
+    });
+
+    const saved = await Product.insertMany(processedProducts);
 
     res.status(201).json({
       message: "✅ Products added successfully",
-      count: savedProducts.length,
-      products: savedProducts,
+      count: saved.length,
+      products: saved,
     });
   } catch (err) {
-    console.error("❌ Error saving products:", err);
+    console.error("❌ Bulk add error:", err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -193,7 +218,7 @@ export const addProductType = async (req, res) => {
   }
 };
 
-// ✅ Bulk upload products via Excel
+// ✅ Bulk upload products via Excel (ENHANCED WITH OFFER LOGIC)
 export const uploadBulkProductsWithImages = async (req, res) => {
   try {
     console.log("🟢 Files received:", Object.keys(req.files || {}));
@@ -205,7 +230,7 @@ export const uploadBulkProductsWithImages = async (req, res) => {
       return res.status(400).json({ error: "Excel file is required" });
     }
 
-    // ✅ Validate file format
+    // ✅ Validate Excel format
     const excelExt = path.extname(excelFile.originalname).toLowerCase();
     if (![".xlsx", ".xls", ".csv"].includes(excelExt)) {
       fs.unlinkSync(excelFile.path);
@@ -225,81 +250,91 @@ export const uploadBulkProductsWithImages = async (req, res) => {
 
     for (let i = 0; i < rawData.length; i++) {
       try {
-        // ✅ Clean headers and trim values
-        const cleanRow = {};
+        // 🔹 Normalize headers
+        const row = {};
         for (const key in rawData[i]) {
-          cleanRow[key.trim().toLowerCase()] = rawData[i][key];
+          row[key.trim().toLowerCase()] = rawData[i][key];
         }
-        const row = cleanRow;
 
-        console.log(`🔹 Row ${i + 2}:`, row);
-
-        // ✅ Validate required fields
+        // ✅ Required fields
         const required = ["name", "price", "stock", "producttype", "category"];
         const missing = required.filter((f) => !row[f]);
-        if (missing.length > 0) {
-          errors.push(`Row ${i + 2}: Missing required fields (${missing.join(", ")})`);
+        if (missing.length) {
+          errors.push(
+            `Row ${i + 2}: Missing required fields (${missing.join(", ")})`
+          );
           continue;
         }
 
-        // ✅ Find images (case-insensitive)
-        const productImages = [];
-        if (row.images) {
-          const imageNames = row.images
-            .split(",")
-            .map((n) => n.trim().toLowerCase())
-            .filter((n) => n);
+        // ✅ Parse numeric values safely
+        const price = Number(row.price);
+        const stock = Number(row.stock);
+        const weight = Number(row.weight) || 0.2;
+        const rating = Number(row.rating) || 0;
+        const gstPercent = Number(row.gstpercent) || 18;
+        const offerPercent = Number(row.offerpercent) || 0;
 
-          for (const imageName of imageNames) {
-            const foundImage = imageFiles.find(
-              (img) => img.originalname.toLowerCase() === imageName
-            );
-
-            if (foundImage) {
-              const ext = path.extname(foundImage.originalname);
-              const uniqueName = `product-${Date.now()}-${Math.round(
-                Math.random() * 1e9
-              )}${ext}`;
-              const targetPath = path.join("uploads", "products", uniqueName);
-
-              // Ensure directory exists
-              fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-              fs.renameSync(foundImage.path, targetPath);
-
-              productImages.push(`/uploads/products/${uniqueName}`);
-            } else {
-              console.warn(`⚠️ Image not found: ${imageName}`);
-              errors.push(`Row ${i + 2}: Image "${imageName}" not found`);
-            }
-          }
-        }
-
-        // ✅ Parse numbers correctly
-        const price = parseFloat(row.price);
-        const stock = parseInt(row.stock);
-        const weight = parseFloat(row.weight) || 0;
-        const gstPercent = row.gstpercent > 1 ? row.gstpercent : row.gstpercent * 100;
-        const rating = parseFloat(row.rating) || 0;
-
-        if (isNaN(price) || price <= 0) {
+        if (price <= 0 || isNaN(price)) {
           errors.push(`Row ${i + 2}: Invalid price`);
           continue;
         }
-        if (isNaN(stock) || stock < 0) {
+
+        if (stock < 0 || isNaN(stock)) {
           errors.push(`Row ${i + 2}: Invalid stock`);
           continue;
         }
 
-        const totalPrice = parseFloat((price + (price * gstPercent) / 100).toFixed(2));
+        // 🔥 PRICE CALCULATION (DISCOUNT → GST)
+        const discount =
+          offerPercent > 0 ? (price * offerPercent) / 100 : 0;
 
-        // ✅ Prepare final product
+        const discountedPrice = price - discount;
+        const gstAmount = (discountedPrice * gstPercent) / 100;
+        const totalPrice = Number(
+          (discountedPrice + gstAmount).toFixed(2)
+        );
+
+        // ✅ Image matching
+        const productImages = [];
+        if (row.images) {
+          const imageNames = row.images
+            .split(",")
+            .map((n) => n.trim().toLowerCase());
+
+          for (const imgName of imageNames) {
+            const img = imageFiles.find(
+              (f) => f.originalname.toLowerCase() === imgName
+            );
+
+            if (img) {
+              const ext = path.extname(img.originalname);
+              const uniqueName = `product-${Date.now()}-${Math.round(
+                Math.random() * 1e9
+              )}${ext}`;
+
+              const targetPath = path.join("uploads", "products", uniqueName);
+              fs.mkdirSync(path.dirname(targetPath), { recursive: true });
+              fs.renameSync(img.path, targetPath);
+
+              productImages.push(`/uploads/products/${uniqueName}`);
+            } else {
+              errors.push(
+                `Row ${i + 2}: Image "${imgName}" not found`
+              );
+            }
+          }
+        }
+
+        // ✅ Final product object
         const productData = {
-          name: row.name.trim(),
+          name: row.name.toString().trim(),
           description: (row.description || "").toString().trim(),
           price,
+          discountedPrice,
+          offerPercent,
           stock,
-          productType: row.producttype.trim(),
-          category: row.category.trim(),
+          productType: row.producttype.toString().trim(),
+          category: row.category.toString().trim(),
           weight,
           gstPercent,
           rating,
@@ -309,34 +344,30 @@ export const uploadBulkProductsWithImages = async (req, res) => {
             row.isfeatured === "true",
           imageUrls: productImages,
           totalPrice,
-          createdAt: new Date(),
-          updatedAt: new Date(),
         };
 
-        const product = new Product(productData);
-        await product.save();
+        const product = await Product.create(productData);
         products.push(product);
+
         console.log(`✅ Added product: ${product.name}`);
       } catch (err) {
-        console.error(`❌ Error in row ${i + 2}:`, err.message);
+        console.error(`❌ Row ${i + 2} error:`, err.message);
         errors.push(`Row ${i + 2}: ${err.message}`);
       }
     }
 
-    // ✅ Cleanup temporary Excel file
+    // 🧹 Cleanup temp files
     try {
       if (fs.existsSync(excelFile.path)) fs.unlinkSync(excelFile.path);
-      imageFiles.forEach((file) => {
-        if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
-      });
+      imageFiles.forEach((f) => fs.existsSync(f.path) && fs.unlinkSync(f.path));
     } catch (cleanupErr) {
       console.warn("⚠️ Cleanup error:", cleanupErr.message);
     }
 
-    console.log(`📊 ${products.length} products created, ${errors.length} errors`);
+    // 📊 Response
     if (errors.length > 0) {
       return res.status(207).json({
-        message: `Processed with ${errors.length} errors`,
+        message: "Uploaded with partial errors",
         created: products.length,
         errors,
         products,
@@ -344,14 +375,15 @@ export const uploadBulkProductsWithImages = async (req, res) => {
     }
 
     res.status(201).json({
-      message: `${products.length} products created successfully`,
+      message: `${products.length} products uploaded successfully`,
       products,
     });
   } catch (error) {
-    console.error("💥 Bulk upload error:", error);
+    console.error("💥 Excel upload error:", error);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 export const deleteProduct = async (req, res) => {
   try {
@@ -365,42 +397,51 @@ export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
     const product = await Product.findById(id);
+    if (!product) return res.status(404).json({ error: "Product not found" });
 
-    if (!product) {
-      return res.status(404).json({ error: "Product not found" });
-    }
+    const offerPercent = Number(req.body.offerPercent ?? product.offerPercent ?? 0);
+    const gstPercent = Number(req.body.gstPercent ?? product.gstPercent ?? 18);
+    const price = Number(req.body.price ?? product.price);
 
-    // ✅ Update product fields
-    const fieldsToUpdate = {
-  name: req.body.name || product.name,
-  description: req.body.description || product.description,
-  price: req.body.price || product.price,
-  stock: req.body.stock || product.stock,
-  productType: req.body.productType || product.productType,
-  weight: req.body.weight || product.weight,
-  gstPercent: req.body.gstPercent || 18,
-  rating: req.body.rating || product.rating, // ⭐ Added
-  isFeatured: req.body.isFeatured === "true" || req.body.isFeatured === true,
-  category: req.body.category || product.category,
-};
+    const pricing = calculatePricing({
+      price,
+      offerPercent,
+      gstPercent,
+    });
 
-
-    // ✅ Handle new images (if uploaded)
     let newImages = [];
-    if (req.files && req.files.length > 0) {
-      newImages = req.files.map((file) => `/uploads/products/${path.basename(file.path)}`);
+    if (req.files?.length) {
+      newImages = req.files.map(
+        (f) => `/uploads/products/${path.basename(f.path)}`
+      );
     }
+ let stock;
+if (req.body.stock !== undefined) {
+  stock = Math.max(0, Number(req.body.stock));
+} else {
+  stock = product.stock;
+}
 
-    // ✅ Merge existing + new images
-    const finalImages = [
-      ...(product.imageUrls || []),
-      ...newImages,
-    ];
 
-    // ✅ Update database
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
-      { ...fieldsToUpdate, imageUrls: finalImages },
+      {
+        name: req.body.name ?? product.name,
+        description: req.body.description ?? product.description,
+        price,
+        stock,
+        productType: req.body.productType ?? product.productType,
+        category: req.body.category ?? product.category,
+        weight: req.body.weight ?? product.weight,
+        rating: req.body.rating ?? product.rating,
+        isFeatured:
+          req.body.isFeatured === "true" || req.body.isFeatured === true,
+        gstPercent,
+        offerPercent,
+        discountedPrice: pricing.discountedPrice,
+        totalPrice: pricing.totalPrice,
+        imageUrls: [...product.imageUrls, ...newImages],
+      },
       { new: true }
     );
 
@@ -408,9 +449,9 @@ export const updateProduct = async (req, res) => {
       message: "✅ Product updated successfully",
       product: updatedProduct,
     });
-  } catch (error) {
-    console.error("❌ updateProduct error:", error);
-    res.status(500).json({ error: error.message });
+  } catch (err) {
+    console.error("❌ updateProduct error:", err);
+    res.status(500).json({ error: err.message });
   }
 };
 

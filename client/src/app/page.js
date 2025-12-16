@@ -24,7 +24,7 @@ const HeroSection = () => {
     {
       title: "Kundli Matching",
       img: "/kundli.png",
-      link: "/"
+      link: "/Kundli-Matching"
     },
     {
       title: "Horoscope",
@@ -76,61 +76,105 @@ const HeroSection = () => {
       {/* Content Section */}
       <div className="relative z-10 flex flex-col lg:flex-row w-full h-full">
         {/* Left Content */}
-        <div className="w-full lg:w-[50%] mx-auto flex flex-col justify-center px-4 sm:px-6 md:px-8 lg:pl-12 xl:pl-20 lg:pr-0 mt-8 sm:mt-10 md:mt-12 lg:mt-0 lg:py-20">
+        <div className="w-full lg:w-[50%] mx-auto flex flex-col justify-center px-4 sm:px-6 md:px-8 lg:pl-12 xl:pl-16 lg:pr-0 mt-8 sm:mt-10 md:mt-12 lg:mt-0 lg:py-20 ">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 1 }}
-            className="w-full max-w-2xl mx-auto lg:mx-0"
+            className="w-full max-w-4xl mx-auto lg:mx-0 "
           >
             {/* Tagline */}
-            <div className="flex justify-center lg:justify-start mb-4 sm:mb-5 md:mb-6">
-              <p className="inline-block px-3 py-1.5 sm:px-4 sm:py-2 bg-[#E5DECED6] rounded-full text-[#7E5833] text-xs sm:text-sm md:text-base lg:text-lg font-medium text-center">
-                Personalized Astrology, Products & Consultations
+            <div className="flex justify-center lg:justify-start mb-4 sm:mb-5 md:mb-6  ">
+              <p className="inline-block px-3 py-1.5 sm:px-4 sm:py-2 bg-[#E5DECED6] rounded-full text-[#7E5833] text-xs sm:text-sm md:text-base lg:text-lg font-medium text-center ">
+                 Personalized Consultations 
               </p>
+               <button className="w-full  ml-9 lg:w-auto px-6 py-3 bg-[#7E5833] text-white rounded-full shadow-md hover:bg-[#5A3E25] transition-all duration-300 text-sm sm:text-base font-medium whitespace-nowrap" onClick={() =>{router.push("/ProductsPage")}}>
+                Shop Astrology Products
+              </button>
             </div>
 
             {/* Main Heading */}
-            <div className="flex flex-col items-center lg:items-start space-y-3 sm:space-y-4 mb-4 sm:mb-5 md:mb-6">
-              <div className="flex items-center justify-center lg:justify-start space-x-2 sm:space-x-3">
-                <h1 className="text-2xl sm:text-3xl md:text-4xl lg:text-5xl xl:text-[50px] leading-tight sm:leading-snug md:leading-normal lg:leading-[135%] font-normal text-[#000000] text-center lg:text-left">
-                  Discover the Power <br className="hidden sm:block" /> of the Stars
-                </h1>
+            <div className="flex w-full items-center lg:items-start space-y-3 sm:space-y-4 mb-4 sm:mb-5 md:mb-6 ">
+              <div className="flex items-center justify-center lg:justify-start sm:space-x-3 w-full relative">
+         <h1
+  className="
+    w-full
+    max-w-4xl
+    mx-auto
+    lg:mx-0
+
+    text-[26px]
+    sm:text-[32px]
+    md:text-[40px]
+    lg:text-[48px]
+    xl:text-[50px]
+
+    leading-tight
+    font-normal
+    text-[#000000]
+
+    text-center
+    lg:text-left
+  "
+>
+  Discover the Power of the Stars
+</h1>
+
+                 
                 {/* Star icon beside heading */}
                 <Image
                   src="/star.png"
                   alt="Star Icon"
                   width={24}
                   height={24}
-                  className="opacity-80 hidden sm:block sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 mt-1"
+                  className="opacity-80 hidden sm:block sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 mt-1 absolute"
                 />
               </div>
             </div>
 
             {/* Button and Description */}
-            <div className="flex flex-col lg:flex-row justify-between items-center lg:items-start gap-4 sm:gap-5 md:gap-6 mb-6 sm:mb-8 md:mb-10 lg:mb-12"> 
-              <button className="w-full lg:w-auto px-6 py-3 bg-[#7E5833] text-white rounded-lg shadow-md hover:bg-[#5A3E25] transition-all duration-300 text-sm sm:text-base font-medium whitespace-nowrap" onClick={() =>{router.push("/ProductsPage")}}>
-                Shop Astrology Products
-              </button>
-              <p className="text-[#5C4B3A] text-sm sm:text-base md:text-lg lg:text-xl text-center lg:text-left w-full lg:max-w-md leading-relaxed sm:leading-loose">
-                Unlock your potential with personalized astrology readings, celestial products, and expert consultations.
-              </p>
-            </div>
+            
+             
+             <p
+  className="
+    text-[#5C4B3A]
+    text-sm
+    sm:text-base
+    md:text-lg
+    lg:text-xl
+    text-center
+    lg:text-left
+    max-w-4xl
+    mx-auto
+    lg:mx-0
+    leading-relaxed
+    
+
+  "
+>
+  Unlock your potential with personalized astrology readings, celestial
+  products, and expert consultations.
+</p>
+
+            
 
             {/* Service Cards */}
 
-<div className="
-  grid 
-  grid-cols-2 
-  sm:grid-cols-3 
-  md:grid-cols-4 
-  gap-3 
-  w-full 
-  max-w-3xl 
-  lg:max-w-4xl 
-  mx-auto 
-  mt-6
-">
+<div
+  className="
+    grid
+    grid-cols-2
+    sm:grid-cols-3
+    md:grid-cols-4
+    gap-2
+    w-full
+    max-w-4xl
+    mx-auto
+    mt-6
+    
+  "
+>
+
   {serviceCards.map((card, index) => (
     <Link key={index} href={card.link || "#"}>
       <motion.div
@@ -141,8 +185,8 @@ const HeroSection = () => {
           rounded-xl  
           text-center 
           cursor-pointer 
-          border 
-          border-[#7E5833] 
+           
+          -[#7E5833] 
           hover:shadow-xl 
           transition-all 
           duration-300
@@ -150,6 +194,7 @@ const HeroSection = () => {
           flex flex-col
            
         "
+    
       >
         {/* Image Section */}
         <div className="relative w-full aspect-[3/4]">
@@ -188,7 +233,7 @@ const HeroSection = () => {
         </div>
 
         {/* Right Side - Pandit Image */}
-        <div className="w-full lg:w-1/2 relative flex justify-center items-center mt-6 sm:mt-8 md:mt-10 lg:mt-0 px-4 sm:px-6 md:px-8 lg:px-0 pb-8 sm:pb-10 md:pb-12 lg:pb-0">
+        <div className="w-full  lg:w-1/2 relative flex justify-center items-center mt-6 sm:mt-8 md:mt-10 lg:mt-0 px-4 sm:px-6 md:px-8 lg:px-0 pb-8 sm:pb-10 md:pb-12 lg:pb-0">
           {/* Halo + Rings */}
           <motion.div
             initial={{ opacity: 0, scale: 0.8 }}
@@ -215,7 +260,7 @@ const HeroSection = () => {
               animate={{ rotate: -360 }}
               transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
               className="
-                absolute rounded-full border border-yellow-300/25
+                absolute rounded-full  -yellow-300/25
                 w-[320px] h-[320px]
                 sm:w-[400px] sm:h-[400px]
                 md:w-[500px] md:h-[500px]
@@ -259,7 +304,7 @@ const HeroSection = () => {
             transition={{ duration: 1 }}
             className="relative z-10"
           >
-            <div className="relative w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[450px] md:h-[450px] lg:w-[500px] lg:h-[500px] xl:w-[600px] xl:h-[600px]">
+            <div className="relative w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[450px] md:h-[450px] lg:w-[500px] lg:h-[500px] xl:w-[500px] xl:h-[600px]">
               <Image
                 src="/pandit.png"
                 alt="Astrologer"

@@ -33,8 +33,13 @@ const Header = () => {
 
   return (
     <header
-      className={`fixed top-0 left-0 right-0 z-50 transition-all duration-500 bg-[#ECE5D3]
-         py-5 hover:bg-[#ebe1c5] shadow-md `}
+  
+  className={`fixed top-0 left-0 right-0 z-[9999]
+    transition-all duration-300
+    ${isScrolled ? "bg-[#ECE5D3]/90 backdrop-blur-lg shadow-lg" : "bg-[#ECE5D3]"}
+    py-5`}
+
+
     >
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between">

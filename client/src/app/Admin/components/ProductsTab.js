@@ -81,22 +81,25 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
     isFeatured: false,
     imageUrls: [],
     category: "",
+    offerPercent: 0
   });
 
   function createEmptyProduct() {
-    return {
-      name: "",
-      description: "",
-      price: "",
-      stock: "",
-      productType: "",
-      weight: "",
-      rating: 0,
-      isFeatured: false,
-      imageFiles: [],
-      category: "",
-    };
-  }
+  return {
+    name: "",
+    description: "",
+    price: "",
+    stock: "",
+    productType: "",
+    weight: "",
+    rating: 0,
+    isFeatured: false,
+    imageFiles: [],
+    category: "",
+    offerPercent: 0,
+  };
+}
+
 
   // Fetch product types + products on filters change
   useEffect(() => {
@@ -196,17 +199,19 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
       const formData = new FormData();
 
       const productsData = bulkProducts.map((product) => ({
-        name: product.name,
-        description: product.description || "",
-        price: Number(product.price),
-        stock: Number(product.stock),
-        weight: Number(product.weight),
-        rating: Number(product.rating) || 0,
-        productType: product.productType,
-        isFeatured: Boolean(product.isFeatured),
-        imageFilesCount: product.imageFiles.length,
-        category: product.category || "",
-      }));
+  name: product.name,
+  description: product.description || "",
+  price: Number(product.price),
+  stock: Number(product.stock),
+  weight: Number(product.weight),
+  rating: Number(product.rating) || 0,
+  productType: product.productType,
+  isFeatured: Boolean(product.isFeatured),
+  category: product.category || "",
+  offerPercent: Number(product.offerPercent) || 0, // ✅ ADDED
+  imageFilesCount: product.imageFiles.length,
+}));
+
 
       formData.append("products", JSON.stringify(productsData));
 
@@ -237,18 +242,19 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
   const openEditModal = (product) => {
     setEditingProduct(product);
     setEditForm({
-      name: product.name,
-      description: product.description || "",
-      price: product.price,
-      stock: product.stock,
-      productType: product.productType,
-      weight: product.weight,
-      gstPercent: product.gstPercent || 18,
-      rating: product.rating || 0,
-      isFeatured: product.isFeatured || false,
-      imageUrls: product.imageUrls || [],
-      category: product.category || "",
-    });
+  name: product.name,
+  description: product.description || "",
+  price: product.price,
+  stock: product.stock,
+  productType: product.productType,
+  weight: product.weight,
+  gstPercent: product.gstPercent || 18,
+  rating: product.rating || 0,
+  isFeatured: product.isFeatured || false,
+  imageUrls: product.imageUrls || [],
+  category: product.category || "",
+  offerPercent: product.offerPercent || 0, // ✅ ADDED
+});
 
     setShowEditModal(true);
   };
@@ -270,6 +276,8 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
     formData.append("courierCharge", editForm.courierCharge || "");
     formData.append("isFeatured", editForm.isFeatured);
     formData.append("category", editForm.category);
+    formData.append("offerPercent", editForm.offerPercent || 0); // ✅ ADDED
+
 
     selectedFiles.forEach((file) => {
       formData.append("images", file);
@@ -386,19 +394,21 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
 
   const downloadExcelTemplate = () => {
     const templateData = [
-      {
-        name: "Sample Product",
-        description: "Product description",
-        price: 99.99,
-        stock: 10,
-        productType: "Bracelet",
-        weight: 0.5,
-        gstPercent: 18,
-        rating: 4.5,
-        images: "product1.jpg,product2.jpg",
-        category: "Gift",
-        isFeatured: "TRUE",
-      },
+     {
+  name: "Sample Product",
+  description: "Product description",
+  price: 99.99,
+  stock: 10,
+  productType: "Bracelet",
+  weight: 0.5,
+  gstPercent: 18,
+  offerPercent: 10, // ✅ ADDED
+  rating: 4.5,
+  images: "product1.jpg,product2.jpg",
+  category: "Gift",
+  isFeatured: "TRUE",
+},
+
     ];
 
     const worksheet = XLSX.utils.json_to_sheet(templateData);
@@ -723,6 +733,12 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
                   >
                     {product.stock > 0 ? "Available" : "Out of Stock"}
                   </span>
+                  {product.offerPercent > 0 && (
+  <span className="text-xs text-red-600 font-semibold">
+    {product.offerPercent}% OFF
+  </span>
+)}
+
 
                   <div className="flex gap-2">
                     <button
@@ -774,6 +790,9 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
                 </th>
                 <th className="px-6 py-4 text-left text-[#003D33] font-semibold">
                   Status
+                </th>
+                 <th className="px-6 py-4 text-left text-[#003D33] font-semibold">
+                  Offer
                 </th>
                 <th className="px-6 py-4 text-left text-[#003D33] font-semibold">
                   Actions
@@ -844,6 +863,15 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
                     >
                       {product.stock > 0 ? "Available" : "Out of Stock"}
                     </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    {product.offerPercent > 0 && (
+  <span className="text-xs text-red-600 font-semibold">
+    {product.offerPercent}% OFF
+  </span>
+)}
+
+
                   </td>
 
                   <td className="px-6 py-4">
@@ -1037,6 +1065,22 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
                               placeholder="0.00"
                             />
                           </div>
+                         <div>
+  <label className="block text-[#003D33] font-semibold mb-2 text-sm">
+    Offer Percentage (%)
+  </label>
+  <input
+    type="number"
+    min="0"
+    max="100"
+    value={product.offerPercent}
+    onChange={(e) =>
+      updateBulkProduct(index, "offerPercent", e.target.value)
+    }
+    className="w-full px-3 py-2 bg-white border border-[#B2C5B2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33] text-sm"
+    placeholder="0"
+  />
+</div>
 
                           <div>
                             <label className="block text-[#003D33] font-semibold mb-2 text-sm">
@@ -1051,6 +1095,7 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
                               }
                               className="w-full px-3 py-2 bg-white border border-[#B2C5B2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33] text-sm"
                               placeholder="0"
+                              min={0}
                             />
                           </div>
 
@@ -1419,6 +1464,22 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
                     className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
                   />
                 </div>
+                <div>
+  <label className="block text-[#003D33] font-semibold mb-2">
+    Offer Percentage (%)
+  </label>
+  <input
+    type="number"
+    min="0"
+    max="100"
+    value={editForm.offerPercent}
+    onChange={(e) =>
+      setEditForm({ ...editForm, offerPercent: e.target.value })
+    }
+    className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+  />
+</div>
+
 
                 <div>
                   <label className="block text-[#003D33] font-semibold mb-2">
@@ -1432,6 +1493,7 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
                       setEditForm({ ...editForm, stock: e.target.value })
                     }
                     className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+                    min={0}
                   />
                 </div>
 

@@ -11,7 +11,7 @@ import { getValidToken } from "../utils/shipRocketToken.js";
 // -------------------------------
 export const shippingCharge = async (req, res) => {
   try {
-    const { pincode, weight } = req.body;
+    const { pincode, weight, delivery_postcode, cod } = req.body;
 
     const token = await getValidToken();
 
@@ -20,8 +20,8 @@ export const shippingCharge = async (req, res) => {
   {
     params: {
       pickup_postcode: 452010,
-      delivery_postcode: 443404,
-      cod: 0,
+      delivery_postcode: delivery_postcode,
+      cod: cod,
       weight: weight || 1,
     },
     headers: {
@@ -32,7 +32,7 @@ export const shippingCharge = async (req, res) => {
 
 
     const available = response.data.data.available_courier_companies;
-
+      console.log(available)
     if (!available || available.length === 0) {
       return res.status(400).json({ message: "No courier options available" });
     }

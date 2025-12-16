@@ -151,15 +151,19 @@ const ProductShowcasePage = ({ params }) => {
   // ------------------------------------------------------------------
   // Quantity Controls
   // ------------------------------------------------------------------
-  const incrementQty = () => {
-    if (selectedProduct && quantity < (selectedProduct.stock || 1)) {
-      setQuantity((q) => q + 1);
-    }
-  };
+ const incrementQty = () => {
+  if (!selectedProduct || selectedProduct.stock === 0) return;
 
-  const decrementQty = () => {
-    setQuantity((q) => (q > 1 ? q - 1 : 1));
-  };
+  if (quantity < selectedProduct.stock) {
+    setQuantity((q) => q + 1);
+  }
+};
+
+const decrementQty = () => {
+  if (selectedProduct?.stock === 0) return;
+
+  setQuantity((q) => (q > 1 ? q - 1 : 1));
+};
 
   // ------------------------------------------------------------------
   // Add to Cart (supports guest + logged-in via CartContext)
@@ -200,54 +204,50 @@ const ProductShowcasePage = ({ params }) => {
   // SUBMIT RATING
   // ------------------------------------------------------------------
   const handleSubmitRating = async (e) => {
-    e.preventDefault();
-    if (!checkLogin()) return;
-    if (!rating) return toast.error("Please select rating");
+  e.preventDefault();
+  if (!checkLogin()) return;
+  if (!rating) return toast.error("Please select rating");
 
-    try {
-      await productAPI.submitRating({
-        productId,
-        rating: Number(rating),
-        review,
-      });
+  try {
+    await productAPI.submitRating({
+      productId,
+      rating: Number(rating),
+      review,
+    });
 
-      toast.success("Review submitted!");
+    toast.success("Review submitted!");
 
-      // Append to existing reviews (no full refetch)
-      const newReview = {
-        _id: `local-${Date.now()}`,
-        rating,
-        review,
-        userId: { username: user?.username || "You" },
-        createdAt: new Date().toISOString(),
-      };
+    // 🔁 Re-fetch updated reviews
+    const updatedReviews = await productAPI.getProductRatings(productId);
+    setReviews(updatedReviews);
 
-      const updatedReviews = [...reviews, newReview];
-      setReviews(updatedReviews);
+    // 🔄 Recalculate summary
+    const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    updatedReviews.forEach((r) => {
+      if (breakdown[r.rating] !== undefined) breakdown[r.rating] += 1;
+    });
 
-      // Recalculate summary
-      const newBreakdown = { ...ratingSummary.breakdown };
-      if (newBreakdown[rating] !== undefined) {
-        newBreakdown[rating] += 1;
-      }
+    const count = updatedReviews.length;
+    const avg =
+      count === 0
+        ? 0
+        : updatedReviews.reduce((sum, r) => sum + r.rating, 0) / count;
 
-      const newCount = ratingSummary.count + 1;
-      const newAvg =
-        (ratingSummary.avg * ratingSummary.count + rating) / newCount;
+    setRatingSummary({
+      avg: avg.toFixed(1),
+      count,
+      breakdown,
+    });
 
-      setRatingSummary({
-        avg: newAvg,
-        count: newCount,
-        breakdown: newBreakdown,
-      });
+    // Reset form
+    setShowRatingForm(false);
+    setRating(0);
+    setReview("");
+  } catch (err) {
+    toast.error(err.error || err.message || "Something went wrong");
+  }
+};
 
-      setShowRatingForm(false);
-      setRating(0);
-      setReview("");
-    } catch (err) {
-      toast.error(err.error || err.message || "Something went wrong");
-    }
-  };
 
   // ------------------------------------------------------------------
   // IMAGE HOVER
@@ -437,17 +437,39 @@ const ProductShowcasePage = ({ params }) => {
                 {selectedProduct?.name}
               </h1>
 
-              {/* Price + Stock */}
-              <div className="flex items-center flex-wrap gap-3 sm:gap-4">
-                <span className="text-2xl sm:text-3xl font-bold text-[#C06014]">
-                  ₹{selectedProduct?.price}
-                </span>
-                {selectedProduct?.stock < 10 && (
-                  <span className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs sm:text-sm font-semibold">
-                    Only {selectedProduct?.stock} left!
-                  </span>
-                )}
-              </div>
+             {/* Price + Offer */}
+<div className="flex flex-wrap items-center gap-3">
+  {selectedProduct?.offerPercent > 0 ? (
+    <>
+      {/* MRP */}
+      <span className="text-sm text-gray-400 line-through">
+        ₹{selectedProduct.price}
+      </span>
+
+      {/* Discounted price */}
+      <span className="text-2xl sm:text-3xl font-bold text-[#C06014]">
+        ₹{selectedProduct.discountedPrice}
+      </span>
+
+      {/* Offer badge */}
+      <span className="px-3 py-1 bg-green-100 text-green-700 rounded-full text-xs font-semibold">
+        {selectedProduct.offerPercent}% OFF
+      </span>
+    </>
+  ) : (
+    <span className="text-2xl sm:text-3xl font-bold text-[#C06014]">
+      ₹{selectedProduct.price}
+    </span>
+  )}
+
+  {/* Low stock warning */}
+  {selectedProduct.stock > 0 && selectedProduct.stock < 10 && (
+    <span className="px-3 py-1 bg-red-100 text-red-600 rounded-full text-xs font-semibold">
+      Only {selectedProduct.stock} left!
+    </span>
+  )}
+</div>
+
 
               {/* Description */}
               <p className="text-sm sm:text-base lg:text-lg text-[#00695C] leading-relaxed">
@@ -457,7 +479,7 @@ const ProductShowcasePage = ({ params }) => {
               {/* Features */}
               <div className="space-y-3">
                 <h3 className="text-lg sm:text-xl font-semibold text-[#003D33]">
-                  Sacred Features:
+                  MyAstrova Features:
                 </h3>
                 {selectedProduct?.features && selectedProduct?.features.length > 0 ? (
                   <div className="grid grid-cols-1 gap-2">
@@ -478,7 +500,7 @@ const ProductShowcasePage = ({ params }) => {
                       <FaCheck className="text-white text-[10px] sm:text-xs" />
                     </div>
                     <span className="text-xs sm:text-sm md:text-base text-[#00695C] italic">
-                      This sacred product comes with unique blessings and natural benefits.
+                      This MyAstrova product comes with unique blessings and natural benefits.
                     </span>
                   </div>
                 )}
@@ -490,23 +512,31 @@ const ProductShowcasePage = ({ params }) => {
                   Quantity:
                 </h3>
                 <div className="flex items-center flex-wrap gap-3 sm:gap-4">
-                  <div className="flex items-center border border-[#B2C5B2] rounded-2xl overflow-hidden">
-                    <button
-                      onClick={decrementQty}
-                      className="px-3 sm:px-4 py-2 sm:py-3 bg-[#ECE5D3] hover:bg-[#C06014] hover:text-white transition-colors text-base"
-                    >
-                      -
-                    </button>
-                    <span className="px-4 sm:px-6 py-2 sm:py-3 bg-white text-[#003D33] font-semibold text-sm sm:text-base">
-                      {quantity}
-                    </span>
-                    <button
-                      onClick={incrementQty}
-                      className="px-3 sm:px-4 py-2 sm:py-3 bg-[#ECE5D3] hover:bg-[#C06014] hover:text-white transition-colors text-base"
-                    >
-                      +
-                    </button>
-                  </div>
+                 <div className="flex items-center border border-[#B2C5B2] rounded-2xl overflow-hidden">
+  <button
+    onClick={decrementQty}
+    disabled={selectedProduct.stock === 0 || quantity === 1}
+    className="px-4 py-3 bg-[#ECE5D3] disabled:opacity-40 disabled:cursor-not-allowed"
+  >
+    -
+  </button>
+
+  <span className="px-6 py-3 bg-white text-[#003D33] font-semibold">
+    {quantity}
+  </span>
+
+  <button
+    onClick={incrementQty}
+    disabled={
+      selectedProduct.stock === 0 ||
+      quantity >= selectedProduct.stock
+    }
+    className="px-4 py-3 bg-[#ECE5D3] disabled:opacity-40 disabled:cursor-not-allowed"
+  >
+    +
+  </button>
+</div>
+
                   <span className="text-xs sm:text-sm text-[#00695C]">
                     {selectedProduct?.stock} available
                   </span>
@@ -515,24 +545,33 @@ const ProductShowcasePage = ({ params }) => {
 
               {/* Action Buttons */}
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 pt-4 sm:pt-6">
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleAddToCart}
-                  className="flex-1 bg-gradient-to-r from-[#003D33] to-[#00695C] text-white py-3 sm:py-4 rounded-2xl font-semibold text-sm sm:text-lg flex items-center justify-center gap-2 sm:gap-3 transition-all duration-300 hover:shadow-lg hover:shadow-[#003D33]/30"
-                >
-                  <FaShoppingCart />
-                  <span>Add to Sacred Cart</span>
-                </motion.button>
+               <motion.button
+  disabled={selectedProduct.stock === 0}
+  onClick={handleAddToCart}
+  className={`flex-1 py-4 rounded-2xl font-semibold text-lg flex items-center justify-center gap-3
+    ${
+      selectedProduct.stock === 0
+        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+        : "bg-gradient-to-r from-[#003D33] to-[#00695C] text-white hover:shadow-lg"
+    }`}
+>
+  <FaShoppingCart />
+  {selectedProduct.stock === 0 ? "Out of Stock" : "Add to MyAstrova Cart"}
+</motion.button>
 
-                <motion.button
-                  whileHover={{ scale: 1.02 }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={handleAddToCart}
-                  className="flex-1 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white py-3 sm:py-4 rounded-2xl font-semibold text-sm sm:text-lg flex items-center justify-center gap-2 sm:gap-3 transition-all duration-300 hover:shadow-lg hover:shadow-[#C06014]/30"
-                >
-                  <span>Buy Now with Blessings</span>
-                </motion.button>
+
+             <motion.button
+  disabled={selectedProduct.stock === 0}
+  className={`flex-1 py-4 rounded-2xl font-semibold text-lg
+    ${
+      selectedProduct.stock === 0
+        ? "bg-gray-300 text-gray-500 cursor-not-allowed"
+        : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white hover:shadow-lg"
+    }`}
+>
+  Buy Now with Blessings
+</motion.button>
+
               </div>
 
               {/* Secondary Actions */}
@@ -659,6 +698,67 @@ const ProductShowcasePage = ({ params }) => {
               </motion.form>
             )}
           </motion.section>
+         
+          {/* ALL REVIEWS SECTION */}
+<motion.section
+  initial={{ opacity: 0, y: 40 }}
+  animate={{ opacity: 1, y: 0 }}
+  transition={{ delay: 0.25 }}
+  className="bg-white rounded-3xl border border-[#B2C5B2] p-5 sm:p-8 mb-10 sm:mb-16"
+>
+  <h3 className="text-xl sm:text-2xl font-bold text-[#003D33] mb-6">
+    Customer Reviews ({ratingSummary.count})
+  </h3>
+
+  {reviews.length === 0 ? (
+    <p className="text-[#00695C] italic">
+      No reviews yet. Be the first to share your experience 🌟
+    </p>
+  ) : (
+   
+ <div className="space-y-6 max-h-[200px] overflow-y-auto pr-2
+                scrollbar-thin scrollbar-thumb-[#C06014]/60
+                scrollbar-track-transparent">
+  {reviews.map((r) => (
+    <div
+      key={r._id}
+      className="border-b border-[#B2C5B2]/60 pb-5 last:border-none"
+    >
+      {/* User + Rating */}
+      <div className="flex items-center justify-between mb-2">
+        <div className="font-semibold text-[#003D33]">
+          {r.userId?.username || "Anonymous"}
+        </div>
+
+        <div className="flex gap-1 text-amber-400">
+          {[...Array(5)].map((_, i) => (
+            <FaStar
+              key={i}
+              className={i < r.rating ? "fill-current" : "text-gray-300"}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Review */}
+      {r.review && (
+        <p className="text-[#00695C] text-sm leading-relaxed">
+          {r.review}
+        </p>
+      )}
+
+      {/* Date */}
+      <p className="text-xs text-gray-400 mt-2">
+        {new Date(r.createdAt).toLocaleDateString()}
+      </p>
+    </div>
+  ))}
+</div>
+
+    
+  
+  )}
+</motion.section>
 
           {/* Similar Products Section */}
           <motion.section

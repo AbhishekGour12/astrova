@@ -165,9 +165,20 @@ ${
               <motion.div
                 whileHover={{ y: -5 }}
                 transition={{ type: "spring", stiffness: 200 }}
-                className="bg-white rounded-xl shadow-md  flex flex-col p-2 hover:cursor-pointer "
+                className={`rounded-xl shadow-md flex flex-col p-2 hover:cursor-pointer relative
+  ${product.stock === 0 
+    ? "bg-gray-100 shadow-gray-300" 
+    : "bg-white"}
+`}
+
                 onClick={() => router.push(`/Product/${product._id}`)}
               >
+                {product.offerPercent > 0 && (
+  <div className="absolute top-2 right-2 z-10 bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full">
+    {product.offerPercent}% OFF
+  </div>
+)}
+
                 {/* Image height optimized for mobile */}
                  
             <div className="h-[200px] xs:h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px] relative">
@@ -184,18 +195,37 @@ ${
                   {product.name}
                 </h3>
 
-                <p className="text-[#7E5833] font-semibold text-xs sm:text-sm md:text-[15px] text-center">
-                  {product.price}
-                  <span className="line-through text-gray-400 text-[10px] sm:text-xs md:text-[13px] ml-2">
-                    {product.oldPrice}
-                  </span>
-                </p>
+                <div className="text-center">
+  {product.offerPercent > 0 ? (
+    <>
+      <span className="text-gray-400 line-through text-[10px] sm:text-xs block">
+        ₹{product.price}
+      </span>
+      <span className="text-[#7E5833] font-bold text-sm sm:text-base">
+        ₹{product.discountedPrice}
+      </span>
+    </>
+  ) : (
+    <span className="text-[#7E5833] font-semibold text-sm sm:text-base">
+      ₹{product.price}
+    </span>
+  )}
+</div>
+
               </div>
 
-              <button className="mt-3 sm:mt-4 md:mt-5 w-full py-1.5 sm:py-2 text-xs sm:text-sm bg-[#7E5833] 
-                text-[#F6F3E4] rounded-full hover:bg-[#5A3E25] transition-all duration-300">
-                Add to Cart
-              </button>
+             <button
+  disabled={product.stock === 0}
+  className={`mt-3 sm:mt-4 md:mt-5 w-full py-1.5 sm:py-2 text-xs sm:text-sm rounded-full transition-all duration-300
+    ${product.stock === 0
+      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+      : "bg-[#7E5833] text-[#F6F3E4] hover:bg-[#5A3E25]"
+    }
+  `}
+>
+  {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+</button>
+
             </div>
               </motion.div>
             </SwiperSlide>
@@ -212,16 +242,45 @@ ${
             key={index}
             whileHover={{ y: -8 }}
             transition={{ type: "spring", stiffness: 200 }}
-            className="bg-white rounded-xl sm:rounded-2xl shadow-md sm:shadow-lg  flex flex-col p-1.5 sm:p-2 hover:cursor-pointer"
-            onClick={() => router.push(`/Product/${product._id}`)}
+           className={`relative rounded-xl sm:rounded-2xl flex flex-col p-2 sm:p-2 hover:cursor-pointer
+  transition-all duration-300
+  ${
+    product.stock === 0
+      ? "bg-gray-100 shadow-lg shadow-gray-400/50"
+      : "bg-white shadow-md sm:shadow-lg"
+  }
+`}
+
+
+            onClick={() => {
+  if (product.stock === 0) return;
+  router.push(`/Product/${product._id}`);
+}}
+
           >
+            {product.offerPercent > 0 && (
+  <div className="absolute top-2 right-2 z-10 bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full">
+    {product.offerPercent}% OFF
+  </div>
+)}
+
             {/* Image */}
-            <div className="h-[200px] xs:h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px] relative">
+            <div className={`h-[200px] xs:h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px] 
+  relative rounded-lg sm:rounded-xl overflow-hidden
+  ${
+    product.stock === 0 ? "shadow-inner" : ""
+  }
+`}>
+
               <img
                 src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
                 alt={product.name}
                 className="object-cover rounded-lg sm:rounded-xl w-full h-full"
               />
+              {product.stock === 0 && (
+  <div className="absolute inset-0 bg-gray-900/40 backdrop-blur-[1px]" />
+)}
+
             </div>
 
             <div className="p-3 sm:p-4 md:p-5 lg:p-6 flex flex-col flex-grow justify-between">
@@ -230,18 +289,37 @@ ${
                   {product.name}
                 </h3>
 
-                <p className="text-[#7E5833] font-semibold text-xs sm:text-sm md:text-[15px] text-center">
-                  {product.price}
-                  <span className="line-through text-gray-400 text-[10px] sm:text-xs md:text-[13px] ml-2">
-                    {product.oldPrice}
-                  </span>
-                </p>
+                <div className="text-center">
+  {product.offerPercent > 0 ? (
+    <>
+      <span className="text-gray-400 line-through text-[10px] sm:text-xs block">
+        ₹{product.price}
+      </span>
+      <span className="text-[#7E5833] font-bold text-sm sm:text-base">
+        ₹{product.discountedPrice}
+      </span>
+    </>
+  ) : (
+    <span className="text-[#7E5833] font-semibold text-sm sm:text-base">
+      ₹{product.price}
+    </span>
+  )}
+</div>
+
               </div>
 
-              <button className="mt-3 sm:mt-4 md:mt-5 w-full py-1.5 sm:py-2 text-xs sm:text-sm bg-[#7E5833] 
-                text-[#F6F3E4] rounded-full hover:bg-[#5A3E25] transition-all duration-300">
-                Add to Cart
-              </button>
+            <button
+  disabled={product.stock === 0}
+  className={`mt-3 sm:mt-4 md:mt-5 w-full py-1.5 sm:py-2 text-xs sm:text-sm rounded-full transition-all duration-300
+    ${product.stock === 0
+      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+      : "bg-[#7E5833] text-[#F6F3E4] hover:bg-[#5A3E25]"
+    }
+  `}
+>
+  {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+</button>
+
             </div>
           </motion.div>
         ))}

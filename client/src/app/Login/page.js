@@ -150,7 +150,7 @@ const Login = () => {
         {/* Left Panel */}
         <div className="hidden md:flex flex-1 flex-col items-center justify-center text-center p-10 bg-[#f6f3e4]">
           <div className="mb-4 uppercase text-lg font-[Cagliostro] text-[#796243]">
-            <h2 className="text-[#7b5430] text-3xl font-semibold">Astrova</h2>
+            <h2 className="text-[#7b5430] text-3xl font-semibold">MyAstrova</h2>
             <p className="text-sm text-[#7b5430]">Align Your Energy</p>
           </div>
 
@@ -196,12 +196,12 @@ const Login = () => {
                         onChange={(e) => setCountryCode(e.target.value)}
                         className="px-4 py-3  max-md:w-[30%] max-md:text-sm bg-[#f4f1e2] text-[#7b5430] font-semibold focus:outline-none border-r border-[#bba989]"
                       >
-                        <option value="+91">🇮🇳 +91</option>
-                        <option value="+1">🇺🇸 +1</option>
-                        <option value="+44">🇬🇧 +44</option>
-                        <option value="+61">🇦🇺 +61</option>
-                        <option value="+971">🇦🇪 +971</option>
-                        <option value="+81">🇯🇵 +81</option>
+                       <option value="+91">🇮🇳 +91</option>
+      <option value="+1">🇺🇸 +1</option>
+      <option value="+44">🇬🇧 +44</option>
+      <option value="+61">🇦🇺 +61</option>
+      <option value="+971">🇦🇪 +971</option>
+      <option value="+65">🇸🇬 +65</option>
                       </select>
 
                       {/* Phone Input */}

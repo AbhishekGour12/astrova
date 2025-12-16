@@ -15,3 +15,29 @@ button:hover{
   cursor: pointer;
   
 }
+
+/* Tailwind scrollbar support */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(192, 96, 20, 0.6);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+@media (max-width: 1280px){
+  #navbar-menu{
+    padding-right: 60px;
+    
+  }
+}
+@media (max-width: 1260px){
+  #navbar-menu{
+    display: none;
+  }
+  #menu-button{
+    display: flex;
+  }
+}
