@@ -125,7 +125,7 @@ ${
     <Link href="/Orders">MyOrders</Link>
   </li>
   <li className="hover:text-[#B49A77] transition">
-    <Link href="/">Who Are We</Link>
+    <Link href="/">Calls</Link>
   </li>
   <li className="hover:text-[#B49A77] transition">
     <Link href="/">Remedies</Link>
