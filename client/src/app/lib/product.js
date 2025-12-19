@@ -75,7 +75,14 @@ updateCartItem: async (itemId, quantity) => {
   });
   return response.data;
 },
-
+  clearCart: async () => {
+  const response = await api.delete('/cart', {
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token')}`
+    }
+  });
+  return response.data;
+},
 // User Interest methods
  addUserInterest: async (productId) => {
   const response = await api.post('/user-interests', {productId: productId},{

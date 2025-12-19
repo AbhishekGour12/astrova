@@ -75,7 +75,8 @@ export const createShiprocketOrder = async (order, extra = {}) => {
  */
 export const assignAWB = async (shipmentId) => {
   const token = await getValidToken();
-
+  
+try{
   const res = await axios.post(
     "https://apiv2.shiprocket.in/v1/external/courier/assign/awb",
     { shipment_id: shipmentId },
@@ -83,6 +84,9 @@ export const assignAWB = async (shipmentId) => {
   );
 
   return res.data;
+}catch(err){
+  console.log("🚨 SHIPROCKET RESPONSE ERROR RAW:", err.response?.data);
+}
 };
 
 /**
@@ -95,7 +99,33 @@ export const trackShipment = async (awb) => {
     `https://apiv2.shiprocket.in/v1/external/courier/track/awb/${awb}`,
     { headers: { Authorization: `Bearer ${token}` } }
   );
+  
 
   return res.data;
 };
 
+
+export const getAWBFromOrder = async (shiprocketOrderId) => {
+  const token = await getValidToken();
+  console.log(shiprocketOrderId)
+  const res = await axios.get(
+    `https://apiv2.shiprocket.in/v1/external/orders/show/${shiprocketOrderId}`,
+    {
+      headers: { Authorization: `Bearer ${token}` }
+    }
+  );
+ 
+  
+
+  const shipments = res.data?.data?.shipments;
+ 
+
+  if (!shipments || shipments.length === 0) {
+    throw new Error("No shipments found for this order");
+  }
+
+  
+ 
+
+  return shipments
+}

@@ -10,6 +10,8 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [page, setPage] = useState(1);
   const [selectedOrder, setSelectedOrder] = useState(null); // for "View details" modal
+const normalizeStatus = (status = "") =>
+  status.toLowerCase().replace(/_/g, " ").trim();
 
   const LIMIT = 10; // 10 orders per page
 
@@ -17,7 +19,8 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const res = await adminAPI.getAllOrders(); // must return { orders: [...] }
+      const res = await adminAPI.getAllOrders();
+      console.log(res) // must return { orders: [...] }
       if (res?.orders) {
         setOrders(res.orders);
         
@@ -40,15 +43,20 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
 
   // 🌈 Status badge color classes based on shiprocketStatus
   const getStatusColor = (status = "") => {
-    const s = status.toLowerCase();
-    if (s.includes("delivered")) return "bg-green-100 text-green-700";
-    if (s.includes("transit")) return "bg-blue-100 text-blue-700";
-    if (s.includes("shipped")) return "bg-indigo-100 text-indigo-700";
-    if (s.includes("created") || s.includes("order")) return "bg-amber-100 text-amber-700";
-    if (s.includes("cancel")) return "bg-red-100 text-red-700";
-    if (s.includes("pending")) return "bg-gray-100 text-gray-700";
-    return "bg-gray-100 text-gray-700";
-  };
+  const s = normalizeStatus(status);
+
+  if (s === "delivered") return "bg-green-100 text-green-700";
+  if (s === "out for delivery") return "bg-orange-100 text-orange-700";
+  if (["in transit", "reached at hub"].includes(s))
+    return "bg-blue-100 text-blue-700";
+  if (["picked up", "out for pickup"].includes(s))
+    return "bg-purple-100 text-purple-700";
+  if (s.includes("rto")) return "bg-red-100 text-red-700";
+  if (s.includes("cancel")) return "bg-red-100 text-red-700";
+
+  return "bg-amber-100 text-amber-700";
+};
+
 
   // 🔎 Filtering (search + status + date range)
   const filteredOrders = useMemo(() => {
@@ -62,7 +70,7 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
       // search on: user name, email, phone, order id, shiprocketOrderId
       const matchesSearch =
         !s ||
-        (user.fullName || user.name || "")
+        (user.username || user.name || "")
           .toLowerCase()
           .includes(s) ||
         (user.email || "").toLowerCase().includes(s) ||
@@ -129,21 +137,19 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
   };
 
   // 🚚 Track shipment (Shiprocket Tracking)
-  const handleTrackShipment = (order) => {
-    const awb = order.awbCode || order.shiprocketAWB;
-    const shipId = order.shiprocketOrderId || order.shipmentId;
+ const handleTrackShipment = (order) => {
+  if (!order.awbCode) {
+    alert("AWB not assigned yet.");
+    return;
+  }
 
-    if (!awb && !shipId) {
-      alert("No AWB or Shiprocket Order ID available for tracking.");
-      return;
-    }
+  window.open(
+    `https://shiprocket.co/tracking/${order.awbCode}`,
+    "_blank",
+    "noopener,noreferrer"
+  );
+};
 
-    const code = awb || shipId;
-    const url = `https://shiprocket.co/tracking/${code}`;
-    if (typeof window !== "undefined") {
-      window.open(url, "_blank", "noopener,noreferrer");
-    }
-  };
 
   // 📦 Items summary (for table)
  
@@ -177,6 +183,55 @@ const totalItemCount = (order) => {
   return items.reduce((sum, i) => sum + (i.quantity || 0), 0);
 };
 
+const getProgressStep = (status = "") => {
+  const s = normalizeStatus(status);
+
+  if (["pickup scheduled"].includes(s)) return 1;
+
+  if (["picked up", "out for pickup"].includes(s)) return 2;
+
+  // 🔥 SHIPPED == IN TRANSIT
+  if (["shipped", "in transit", "reached at hub"].includes(s)) return 3;
+
+  if (["out for delivery"].includes(s)) return 4;
+
+  if (["delivered"].includes(s)) return 5;
+
+  return 0;
+};
+
+const mapAdminReadableStatus = (status = "") => {
+  const s = normalizeStatus(status);
+
+  if (["order created", "pending"].includes(s))
+    return "Order Created";
+
+  if (["pickup scheduled"].includes(s))
+    return "Pickup Scheduled";
+
+  if (["out for pickup", "picked up"].includes(s))
+    return "Picked Up";
+
+  // 🔥 KEY FIX
+  if (["shipped", "in transit", "reached at hub", "departed hub"].includes(s))
+    return "In Transit";
+
+  if (["out for delivery"].includes(s))
+    return "Out for Delivery";
+
+  if (["delivered"].includes(s))
+    return "Delivered";
+
+  if (s.includes("rto"))
+    return "RTO / Returned";
+
+  if (s.includes("cancel"))
+    return "Cancelled";
+
+  return "Processing";
+};
+
+
 
   return (
     <div className="space-y-6">
@@ -199,12 +254,15 @@ const totalItemCount = (order) => {
             className="px-3 py-2 rounded-xl border border-[#B2C5B2] text-sm text-[#003D33] bg-white"
           >
             <option value="all">All Status</option>
-            <option value="pending">Pending</option>
-            <option value="order created">Order Created</option>
-            <option value="shipped">Shipped</option>
-            <option value="transit">In Transit</option>
-            <option value="delivered">Delivered</option>
-            <option value="cancel">Cancelled</option>
+<option value="pickup scheduled">Pickup Scheduled</option>
+<option value="picked up">Picked Up</option>
+<option value="out for pickup">Out for Pickup</option>
+<option value="in transit">In Transit</option>
+<option value="out for delivery">Out for Delivery</option>
+<option value="delivered">Delivered</option>
+<option value="rto">RTO</option>
+<option value="cancel">Cancelled</option>
+
           </select>
 
           {/* Date Filters */}
@@ -326,7 +384,7 @@ const totalItemCount = (order) => {
                     {/* Payment */}
                     <td className="px-4 py-3 text-xs">
                       <div className="font-semibold text-[#003D33]">
-                        {order.paymentMethod === "razorpay"
+                        {order.paymentMethod === "online"
                           ? "Prepaid"
                           : "COD"}
                       </div>
@@ -344,17 +402,40 @@ const totalItemCount = (order) => {
                     </td>
 
                     {/* Shiprocket Status */}
-                    <td className="px-4 py-3 text-xs">
-                      <StatusDropdown
-                        order={order}
-                        shipStatus={shipStatus}
-                        getStatusColor={getStatusColor}
-                        onUpdateStatus={handleUpdateShiprocketStatus}
-                      />
-                      <div className="text-[11px] text-[#00695C] mt-1">
-                        AWB: {order.awbCode || order.shiprocketAWB || "—"}
-                      </div>
-                    </td>
+                   <td className="px-4 py-3 text-xs">
+  {/* User-facing meaning */}
+  <span
+    className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+      mapAdminReadableStatus(shipStatus)
+    )}`}
+  >
+    {mapAdminReadableStatus(shipStatus)}
+  </span>
+
+  {/* Raw courier status */}
+  <div className="text-[11px] text-gray-500 mt-1">
+    Courier: {shipStatus}
+  </div>
+
+  <div className="text-[11px] text-[#00695C] mt-1">
+    AWB: {order.awbCode || "—"}
+  </div>
+
+  {/* Progress bar */}
+  <div className="flex gap-1 mt-1">
+    {Array.from({ length: 5 }).map((_, i) => (
+      <span
+        key={i}
+        className={`h-1.5 w-5 rounded-full ${
+          i < getProgressStep(shipStatus)
+            ? "bg-[#C06014]"
+            : "bg-gray-200"
+        }`}
+      />
+    ))}
+  </div>
+</td>
+
 
                     {/* Actions */}
                     <td className="px-4 py-3">
@@ -457,7 +538,7 @@ const totalItemCount = (order) => {
               </div>
 
               <p className="text-sm text-[#00695C] mt-1">
-                {user.fullName || user.name || "Unknown User"}
+                {user.username || user.name || "Unknown User"}
               </p>
 
               <div className="flex justify-between mt-2 text-xs text-[#00695C]">
@@ -467,25 +548,36 @@ const totalItemCount = (order) => {
                 </span>
               </div>
 
-              <div className="flex justify-between items-center gap-2 mt-3">
-                <StatusDropdown
-                  order={order}
-                  shipStatus={shipStatus}
-                  getStatusColor={getStatusColor}
-                  onUpdateStatus={handleUpdateShiprocketStatus}
-                  small
-                />
-                <div className="flex gap-2 text-xs">
-                  <ActionIcon
-                    icon={<FaEye />}
-                    onClick={() => setSelectedOrder(order)}
-                  />
-                  <ActionIcon
-                    icon={<FaTruck />}
-                    onClick={() => handleTrackShipment(order)}
-                  />
-                </div>
-              </div>
+             <div className="mt-3 space-y-1">
+  {/* Main Status */}
+  <span
+    className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+      mapAdminReadableStatus(shipStatus)
+    )}`}
+  >
+    {mapAdminReadableStatus(shipStatus)}
+  </span>
+
+  {/* Courier Status */}
+  <p className="text-[11px] text-gray-500">
+    Courier: {shipStatus}
+  </p>
+
+  {/* Progress bar */}
+  <div className="flex gap-1 mt-1">
+    {Array.from({ length: 5 }).map((_, i) => (
+      <span
+        key={i}
+        className={`h-1.5 flex-1 rounded-full ${
+          i < getProgressStep(shipStatus)
+            ? "bg-[#C06014]"
+            : "bg-gray-200"
+        }`}
+      />
+    ))}
+  </div>
+</div>
+
             </motion.div>
           );
         })}
@@ -586,7 +678,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
                 Customer
               </h4>
               <p className="text-sm text-[#003D33]">
-                {user.fullName || user.name || "Unknown User"}
+                {user.username || user.name || "Unknown User"}
               </p>
               <p className="text-xs text-[#00695C]">
                 {user.email || order.shippingAddress?.email || "—"}
@@ -616,6 +708,16 @@ const OrderDetailsModal = ({ order, onClose }) => {
                 {order.shippingAddress?.state} -{" "}
                 {order.shippingAddress?.pincode}
               </p>
+              <p className="text-xs text-[#00695C]">
+  AWB: <span className="font-semibold">{order.awbCode || "—"}</span>
+</p>
+<p className="text-xs text-[#00695C]">
+  Last Updated:{" "}
+  {order.shiprocketStatusDate
+    ? new Date(order.shiprocketStatusDate).toLocaleString()
+    : "—"}
+</p>
+
             </div>
           </div>
 
@@ -692,7 +794,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
                 ₹{order.totalAmount?.toFixed(2)}
               </p>
               <p className="text-xs mt-2 text-[#00695C]">
-                Payment: {order.paymentMethod === "razorpay" ? "Prepaid" : "COD"}{" "}
+                Payment: {order.paymentMethod === "online" ? "Prepaid" : "COD"}{" "}
                 ({order.paymentStatus || "Pending"})
               </p>
               <p className="text-xs text-[#00695C]">

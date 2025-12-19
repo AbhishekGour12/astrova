@@ -11,10 +11,14 @@ const MyOrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [trackId, setTrackId] = useState(null);
   const [expanded, setExpanded] = useState({});
+const normalizeStatus = (status = "") =>
+  status.toLowerCase().replace(/_/g, " ").trim();
+
 
   const loadOrders = async () => {
     try {
       const data = await orderAPI.getUserOrders();
+      console.log(data)
       setOrders(data.orders);
       console.log(data)
     } catch (e) {
@@ -31,20 +35,77 @@ const MyOrdersPage = () => {
   };
 
   const getStatusStyle = (status) => {
-    switch (status?.toLowerCase()) {
-      case "delivered":
-        return "bg-green-200 text-green-800";
-      case "out for delivery":
-      case "intransit":
-        return "bg-blue-200 text-blue-800";
-      case "shipped":
-        return "bg-indigo-200 text-indigo-800";
-      case "cancelled":
-        return "bg-red-200 text-red-800";
-      default:
-        return "bg-amber-200 text-amber-800";
-    }
-  };
+  const s = normalizeStatus(status);
+
+  if (s === "delivered")
+    return "bg-green-200 text-green-800";
+
+  if (s === "out for delivery")
+    return "bg-orange-200 text-orange-800";
+
+  if (["in transit", "reached at hub"].includes(s))
+    return "bg-blue-200 text-blue-800";
+
+  if (["picked up", "out for pickup"].includes(s))
+    return "bg-purple-200 text-purple-800";
+
+  if (s.includes("rto"))
+    return "bg-red-200 text-red-800";
+
+  return "bg-amber-200 text-amber-800";
+};
+
+const getProgressStep = (status = "") => {
+  const s = normalizeStatus(status);
+
+  if (s === "order placed") return 0;
+  if (s === "pickup scheduled") return 1;
+  if (s === "picked up") return 2;
+  if (s === "in transit") return 3;
+  if (s === "out for delivery") return 4;
+  if (s === "delivered") return 5;
+  if(s === "undelivered") return 6;
+  if(s === "pickup generated") return 1;
+  if(s === "pickup completed") return 2;
+  if(s.includes("rto")) return 7;
+
+  return 0;
+};
+
+const mapStatusForUser = (status = "") => {
+  const s = normalizeStatus(status);
+
+  if (["order placed", "processing"].includes(s))
+    return "Order Placed";
+
+  if (["pickup scheduled"].includes(s))
+    return "Pickup Scheduled";
+
+  if (["out for pickup", "picked up", "pickup completed"].includes(s))
+    return "Picked Up";
+
+  // 🔥 VERY IMPORTANT
+  // SHIPPED === IN TRANSIT (user meaning)
+  if (["shipped", "in transit", "reached at hub", "departed hub"].includes(s))
+    return "In Transit";
+
+  if (["out for delivery"].includes(s))
+    return "Out for Delivery";
+
+  if (["delivered"].includes(s))
+    return "Delivered";
+  
+  if (["undelivered"].includes(s))
+    return "In Transit";
+  if(["pickup generated"].includes(s))
+    return "Pickup scheduled";
+
+  if (s.includes("rto"))
+    return "Returned";
+
+  return "Processing";
+};
+
 
   return (
     <div className="min-h-screen bg-[#F7F3E9] p-6">
@@ -66,7 +127,7 @@ const MyOrdersPage = () => {
               key={order._id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              className="bg-white p-6 rounded-2xl shadow border border-[#B2C5B2]"
+              className="bg-white p-6 rounded-2xl shadow  border-[#B2C5B2]"
             >
               {/* HEADER */}
               <div className="flex justify-between items-center">
@@ -79,9 +140,15 @@ const MyOrdersPage = () => {
                   </p>
                 </div>
 
-                <span className={`px-3 py-1 rounded-xl text-sm font-semibold ${getStatusStyle(order.shiprocketStatus)}`}>
-                  {order.shiprocketStatus || "Processing"}
-                </span>
+          <span
+  className={`px-3 py-1 rounded-xl text-sm font-semibold
+  ${getStatusStyle(mapStatusForUser(order.shiprocketStatus))}`}
+>
+  {mapStatusForUser(order.shiprocketStatus)}
+</span>
+
+
+
               </div>
 
              {/* ITEMS */}
@@ -121,9 +188,9 @@ const MyOrdersPage = () => {
                   Total: ₹{order.totalAmount}
                 </p>
 
-                {order.shiprocketShipmentId ? (
+                {order.shiprocketOrderId ? (
                   <button
-                    onClick={() => setTrackId(order.shiprocketShipmentId)}
+                    onClick={() => setTrackId(order.shiprocketOrderId)}
                     className="px-4 py-2 bg-[#C06014] text-white rounded-xl flex items-center gap-2 shadow hover:opacity-90"
                   >
                     <FaTruck /> Track Order
@@ -178,7 +245,10 @@ const MyOrdersPage = () => {
                       <p className="font-semibold text-[#003D33]">Shipment Info</p>
                       <p className="text-sm text-gray-700">Order ID: {order.shiprocketOrderId}</p>
                       <p className="text-sm text-gray-700">Shipment ID: {order.shiprocketShipmentId}</p>
-                      <p className="text-sm text-gray-700">AWB: {order.shiprocketAWB || "Assigning..."}</p>
+                     <p className="text-sm text-gray-700">
+  AWB: <span className="font-semibold">{order.awbCode || "Assigning..."}</span>
+</p>
+
                     </div>
                   )}
 
@@ -187,32 +257,30 @@ const MyOrdersPage = () => {
                     <p className="font-semibold text-[#003D33] mb-2">Order Progress</p>
 
                     <div className="flex items-center justify-between">
-                      {["Order Placed", "Packed", "Shipped", "In Transit", "Delivered"].map(
-                        (step, index) => {
-                          const isActive = index <=
-                            (order.shiprocketStatus?.toLowerCase() === "delivered"
-                              ? 4
-                              : order.shiprocketStatus?.toLowerCase() === "intransit"
-                              ? 3
-                              : order.shiprocketStatus?.toLowerCase() === "shipped"
-                              ? 2
-                              : order.shiprocketStatus?.toLowerCase() === "packed"
-                              ? 1
-                              : 0);
+                 {[
+  "Order Placed",
+  "Pickup Scheduled",
+  "Picked Up",
+  "In Transit",
+  "Out for Delivery",
+  "Delivered"
+].map((step, index) => {
+  const isActive = index <= getProgressStep(mapStatusForUser(order.shiprocketStatus))
 
-                          return (
-                            <div key={index} className="flex flex-col items-center w-full">
-                              <div
-                                className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs 
-                                ${isActive ? "bg-[#C06014]" : "bg-gray-300"}`}
-                              >
-                                {index + 1}
-                              </div>
-                              <p className="text-xs mt-1 text-center text-gray-700">{step}</p>
-                            </div>
-                          );
-                        }
-                      )}
+  return (
+    <div key={index} className="flex flex-col items-center w-full">
+      <div
+        className={`w-8 h-8 rounded-full flex items-center justify-center text-white text-xs
+        ${isActive ? "bg-[#C06014]" : "bg-gray-300"}`}
+      >
+        {index + 1}
+      </div>
+      <p className="text-xs mt-1 text-center text-gray-700">{step}</p>
+    </div>
+  );
+})}
+
+
                     </div>
                   </div>
 

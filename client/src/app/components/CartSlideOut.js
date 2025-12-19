@@ -21,6 +21,7 @@ const CartSlideOut = () => {
     updateQuantity,
     removeFromCart,
     fetchCart,
+    clearCart
   } = useCart();
 
   const user = useSelector((s) => s.auth.user);
@@ -279,6 +280,7 @@ useEffect(() => {
 });
 
       toast.success("Order placed successfully!");
+     await clearCart()
       setIsCartOpen(false);
     } catch (err) {
       toast.error(err.message);

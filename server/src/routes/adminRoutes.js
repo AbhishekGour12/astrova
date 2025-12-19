@@ -28,7 +28,10 @@ import {
 } from "../controllers/productController.js";
 import multer from "multer";
 import  { uploadExcelAndImages, uploadImages } from "../utils/multer.js";
-const router = express.Router();
+import { addSlide, deleteSlide, getAllCarousels, getCarouselByPage, updateSlide } from "../controllers/carouselController.js";
+
+
+const router = express.Router()
 
 // Dashboard
 router.get("/stats", getDashboardStats);
@@ -42,10 +45,20 @@ router.get("/astrologers", getAllAstrologers);
 router.patch("/astrologers/approve/:id", approveAstrologer);
 router.delete("/astrologers/:id", deleteAstrologer);
 
+// Get all carousels (for admin)
+router.get("/carousel", getAllCarousels);
 
+// Get carousel by page
+router.get("/carousel/:page", getCarouselByPage);
 
+// Add single slide
+router.post("/carousel/slide", uploadImages.single("image"), addSlide);
 
+// Update slide
+router.put("/carousel/:page/:slideId", uploadImages.single("image"), updateSlide);
 
+// Delete slide
+router.delete("/carousel/:page/:slideId", deleteSlide);
 
 //Product
 

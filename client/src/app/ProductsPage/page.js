@@ -14,6 +14,7 @@ import "swiper/css/effect-fade";
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { useRef } from "react";
+import axios from "axios";
 
 
 
@@ -27,6 +28,26 @@ export default function ProductsPage() {
     { name: "Health", img: "/Health.webp" },
     { name: "Gifting", img: "/gifting.webp" },
   ]);
+const page = "products"
+const [carousel, setCarousel] = useState()
+const [loading1, setLoading1] = useState(true)
+
+
+  const fetchCarousel = async () => {
+    try {
+      console.log("hii")
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API}/api/admin/carousel/${page}`
+      );
+      console.log(res.data)
+      setCarousel(res.data.carousel);
+    } catch (error) {
+      console.error("Error fetching carousel:", error);
+    } finally {
+      setLoading1(false);
+    }
+  };
+
 
   // 🟠 Hero Banner Images - Using high-quality astro-themed images
   const [heroBanners] = useState([
@@ -125,7 +146,7 @@ const scrollToProducts = () => {
   };
 
   useEffect(() => {
-   
+     fetchCarousel()
     fetchBestSellers();
   }, []);
   console.log(types)
@@ -203,8 +224,6 @@ useEffect(() =>{
 
 },[filters])
 
-
-
   return (
     <>
       
@@ -214,102 +233,96 @@ useEffect(() =>{
         {/* 🌟 HERO BANNER SLIDER */}
        <div className=" pt-28 sm:pt-32 lg:pt-36">  
 <section className="h-[70vh] min-h-[480px] w-full overflow-hidden mt-6 relative">
-  <Swiper
-    modules={[Autoplay, Pagination, EffectFade]}
-    effect="fade"
-    speed={900}
-    autoplay={{
-      delay: 4500,
-      disableOnInteraction: false,
-    }}
-    pagination={{
-      clickable: true,
-      dynamicBullets: true,
-      renderBullet: (index, className) => {
-        return `<span class="${className} bg-white w-3 h-3 opacity-80 hover:opacity-100 rounded-full"></span>`;
-      },
-    }}
-    loop={true}
-    className="h-full w-full relative z-0"
-  >
-    {heroBanners.map((banner) => (
-      <SwiperSlide key={banner.id}>
-        {/* Slide Wrapper */}
-        <div className="relative h-full w-full overflow-hidden">
+      <Swiper
+        modules={[Autoplay, Pagination, EffectFade]}
+        effect="fade"
+        speed={900}
+        autoplay={{
+          delay: 3000,
+          disableOnInteraction: false,
+        }}
+        pagination={{
+          clickable: true,
+          dynamicBullets: true,
+          renderBullet: (index, className) => {
+            return `<span class="${className} bg-white w-3 h-3 opacity-80 hover:opacity-100 rounded-full"></span>`;
+          },
+        }}
+        loop={true}
+        className="h-full w-full relative z-0"
+      >
+        {carousel?.slides.map((slide) => (
+          <SwiperSlide key={slide._id}>
+            <div className="relative h-[70vh]  w-full overflow-hidden">
+              {/* Background Image */}
+              <img
+                src={`${process.env.NEXT_PUBLIC_API}${slide.image}`}
+                alt={slide.title}
+                className="w-full h-full object-cover scale-100 transition-transform duration-700 hover:scale-[1.02] rounded-none"
+              />
 
-          {/* Background Image */}
-          <img
-            src={banner.image}
-            alt={banner.title}
-            className="
-              w-full h-full object-cover 
-              scale-100 
-              transition-transform duration-700 
-              hover:scale-[1.02]
-              rounded-none
-            "
-          />
+              {/* Gradient Overlay */}
+              <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/45 to-transparent z-[2]"></div>
 
-          {/* Gradient Overlay */}
-          <div className="absolute inset-0 bg-gradient-to-r from-black/65 via-black/45 to-transparent z-[2]"></div>
+              {/* Banner Content */}
+              <div className="absolute inset-0 flex items-center z-[3]">
+                <div className="max-w-6xl mx-auto px-6 lg:px-12 w-full">
+                  <motion.div
+                    initial={{ opacity: 0, x: -50 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ duration: 0.9 }}
+                    className="max-w-xl text-white"
+                  >
+                    {/* Title */}
+                    <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 leading-tight drop-shadow-lg">
+                      {slide.title}
+                    </h1>
 
-          {/* Banner Content */}
-          <div className="absolute inset-0 flex items-center z-[3]">
-            <div className="max-w-6xl mx-auto px-6 lg:px-12 w-full">
-              <motion.div
-                initial={{ opacity: 0, x: -50 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ duration: 0.9 }}
-                className="max-w-xl text-white"
-              >
-                {/* Title */}
-                <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold mb-3 leading-tight drop-shadow-lg">
-                  {banner.title}
-                </h1>
+                    {/* Subtitle */}
+                    <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold mb-3 text-yellow-200">
+                      {slide.subtitle}
+                    </h2>
 
-                {/* Subtitle */}
-                <h2 className="text-lg sm:text-xl md:text-2xl lg:text-3xl font-semibold mb-3 text-yellow-200">
-                  {banner.subtitle}
-                </h2>
+                    {/* Description */}
+                    <p className="text-sm sm:text-base md:text-lg mb-6 text-gray-200">
+                      {slide.description}
+                    </p>
 
-                {/* Description */}
-                <p className="text-sm sm:text-base md:text-lg mb-6 text-gray-200">
-                  {banner.description}
-                </p>
+                    {/* Button */}
+                    {slide.showButton && slide.buttonText && (
+                      <a
+                        href={slide.buttonLink}
+                        className={`${slide.buttonColor} inline-block text-white px-6 sm:px-7 md:px-8 py-3 sm:py-3.5 md:py-4 rounded-xl font-semibold text-sm sm:text-base md:text-lg shadow-xl hover:scale-[1.06] transition-all duration-300`}
+                      >
+                        {slide.buttonText}
+                      </a>
+                    )}
+                  </motion.div>
+                </div>
+              </div>
 
-                {/* Button */}
-                <button
-                  className={`${banner.buttonColor} text-white px-6 sm:px-7 md:px-8 py-3 sm:py-3.5 md:py-4 rounded-xl font-semibold text-sm sm:text-base md:text-lg shadow-xl hover:scale-[1.06] transition-all duration-300`}
-                >
-                  {banner.buttonText}
-                </button>
-              </motion.div>
+              {/* Decorative Elements */}
+              <div className="absolute top-12 right-12 w-16 h-16 opacity-20 z-[1]">
+                <div className="w-full h-full border border-white rounded-full animate-pulse"></div>
+              </div>
+              <div className="absolute bottom-14 left-14 w-10 h-10 opacity-25 z-[1]">
+                <div className="w-full h-full border border-white rounded-full animate-spin-slow"></div>
+              </div>
             </div>
-          </div>
+          </SwiperSlide>
+        ))}
+      </Swiper>
 
-          {/* Decorative Stars (Optional) */}
-          <div className="absolute top-12 right-12 w-16 h-16 opacity-20 z-[1]">
-            <div className="w-full h-full border border-white rounded-full animate-pulse"></div>
+      {/* Scroll Indicator */}
+      <div className="absolute left-1/2 -translate-x-1/2 z-10 bottom-10">
+        <div className="flex flex-col items-center text-white">
+          <span className="text-xs sm:text-sm mb-1 opacity-80">Scroll Down</span>
+          <div className="w-5 h-8 sm:w-6 sm:h-10 border-2 border-white rounded-full flex justify-center">
+            <div className="w-1 h-3 bg-white rounded-full mt-1 animate-bounce"></div>
           </div>
-          <div className="absolute bottom-14 left-14 w-10 h-10 opacity-25 z-[1]">
-            <div className="w-full h-full border border-white rounded-full animate-spin-slow"></div>
-          </div>
-
         </div>
-      </SwiperSlide>
-    ))}
-  </Swiper>
-
-  {/* Scroll Indicator */}
-  <div className="absolute left-1/2 -translate-x-1/2 z-10 bottom-10">
-    <div className="flex flex-col items-center text-white">
-      <span className="text-xs sm:text-sm mb-1 opacity-80">Scroll Down</span>
-      <div className="w-5 h-8 sm:w-6 sm:h-10 border-2 border-white rounded-full flex justify-center">
-        <div className="w-1 h-3 bg-white rounded-full mt-1 animate-bounce"></div>
       </div>
-    </div>
-  </div>
-</section>
+    </section>
 
         {/* 🟢 SHOP BY PURPOSE */}
         <section className="py-12 mt-6">
@@ -539,6 +552,7 @@ useEffect(() =>{
     gap-4 sm:gap-6 lg:gap-8 
     place-items-center
     max-[350px]:grid-cols-1
+    pb-6
   ">
     {products.map((p, i) => (
       <Link key={i} href={`/Product/${p._id}`} onClick={(e) => {
@@ -623,7 +637,7 @@ useEffect(() =>{
   </div>
 
   {hasMore && (
-    <div className="flex justify-center mt-8">
+    <div className="flex justify-center mt-8 pb-6">
       <button
         onClick={handleShowMore}
         className="bg-[#7d5732] text-[#d6ccc0] px-6 py-3 rounded-2xl font-medium hover:bg-[#b39976] transition disabled:opacity-50"

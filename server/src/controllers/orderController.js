@@ -5,8 +5,11 @@ import Product from "../models/Products.js";
 
 import {
   createShiprocketOrder,
-  assignAWB
+  assignAWB,
+  getAWBFromOrder,
+  trackShipment,
 } from "../services/shipRocketServices.js";
+import { getValidToken } from "../utils/shipRocketToken.js";
 export const createOrder = async (req, res) => {
   
   const session = await mongoose.startSession();
@@ -219,5 +222,91 @@ export const getOrderById = async (req, res) => {
       message: "Error fetching order",
       error: error.message,
     });
+  }
+};
+
+const mapShiprocketStatus = (code) => {
+  const map = {
+    17: "Pickup Scheduled",
+    18: "Picked Up",
+    19: "Out for Pickup",
+    20: "In Transit",
+    21: "Out for Delivery",
+    22: "Delivered",
+    23: "RTO Initiated",
+    24: "RTO Delivered"
+  };
+
+  return map[code] || "Processing";
+};
+
+
+
+
+export const trackUserOrder = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { shipmentId: shiprocketOrderId } = req.params;
+
+    // 1️⃣ Find order
+    const order = await Order.findOne({
+      shiprocketOrderId,
+      userId
+    });
+
+    if (!order)
+      return res.status(404).json({ message: "Order not found" });
+
+    // 2️⃣ Get AWB (DB → Shiprocket)
+    
+
+   
+      const shipments = await getAWBFromOrder(shiprocketOrderId);
+    
+
+      const awb = shipments.awb;
+
+      order.awbCode = awb; // ✅ correct field
+    
+
+    // 3️⃣ Track shipment
+    const trackingRes = await trackShipment(awb);
+    
+    const tracking = trackingRes?.tracking_data;
+   
+  
+   
+    if (!tracking)
+      return res.status(500).json({ message: "Tracking data unavailable" });
+
+    // 4️⃣ Update order status
+    //const readableStatus = mapShiprocketStatus(tracking.shipment_status);
+
+    order.shiprocketStatus = shipments.status; // ✅ string
+    order.shiprocketStatusDate = new Date();
+    order.trackingHistory = tracking.shipment_track_activities || [];
+
+    await order.save();
+    const data = {
+       success: true,
+      orderId: order._id,
+      shiprocketOrderId,
+      awb,
+      courier: shipments.courier,
+      current_status: shipments.status,
+      shipment_status_code: tracking.shipment_status,
+      tracking_data: tracking,
+      track_url: tracking.track_url,
+      etd: tracking.track_status == 0?trackingRes.etd:shipments.etd
+
+    }
+   
+
+    // 5️⃣ Send clean response
+    res.json(data)
+
+  } catch (err) {
+    console.error("❌ Track Order Error:", err.message);
+    res.status(500).json({ message: err.message || "Tracking failed" });
   }
 };

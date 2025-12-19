@@ -29,7 +29,7 @@ const HeroSection = () => {
     {
       title: "Horoscope",
       img: "/horoscope.png",
-      link: "/"
+      link: "/Horoscope"
     },
     {
       title: "MyAstrova Mall",

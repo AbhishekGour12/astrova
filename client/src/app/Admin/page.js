@@ -14,6 +14,7 @@ import SettingsTab from './components/SettingsTab';
 import { PageLoader } from './components/Loading';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import CouponsTab from './components/CouponsTab';
+import CarouselTab from './components/CarouselTab'
 
 // Dummy data (move to separate file if needed)
 const dummyData = {
@@ -174,7 +175,8 @@ const AdminDashboard = () => {
       onDeleteChat={deleteChat}
     />,
     coupon: <CouponsTab/>,
-    settings: <SettingsTab />
+    settings: <SettingsTab />,
+    carousel: <CarouselTab/>
   };
 
   return (

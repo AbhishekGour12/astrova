@@ -10,18 +10,19 @@ import {
   FaCog,
   FaSignOutAlt,
   FaGift,
-  FaTimes, // Added Close Icon
+  FaTimes,
+  FaAdversal, // Added Close Icon
 } from 'react-icons/fa';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: FaChartLine },
-  { id: 'users', label: 'Users', icon: FaUsers },
   { id: 'astrologers', label: 'Astrologers', icon: FaUserAstronaut },
   { id: 'products', label: 'Products', icon: FaShoppingBag },
   { id: 'orders', label: 'Orders', icon: FaBox },
   { id: 'payments', label: 'Payments', icon: FaRupeeSign },
   { id: 'chats', label: 'Chats', icon: FaComments },
   { id: 'coupon', label: 'Coupon', icon: FaGift },
+  { id: 'carousel', label: 'Advsertisements', icon: FaAdversal },
   { id: 'settings', label: 'Settings', icon: FaCog },
 ];
 
@@ -31,7 +32,7 @@ const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
       initial={{ x: -260 }}
       animate={{ x: sidebarOpen ? 0 : -260 }}
       transition={{ duration: 0.3 }}
-      className={`fixed lg:static top-0 left-0 h-screen bg-white shadow-lg z-40
+      className={`fixed lg:static top-0 left-0 h-vw bg-white shadow-lg z-40
       w-64 border-r border-gray-300 
       ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
       lg:translate-x-0 lg:block`}

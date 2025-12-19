@@ -20,7 +20,8 @@ export const orderAPI = {
   },
 
   trackOrder: async (shipmentId) => {
-    const res = await api.get(`/shiprocket/track/${shipmentId}`);
+    console.log((shipmentId))
+    const res = await api.get(`/shipping/track/${shipmentId}`);
     return res.data;
   },
 };

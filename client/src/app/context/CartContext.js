@@ -144,6 +144,26 @@ export const CartProvider = ({ children }) => {
       toast.error(err?.message || "Failed to remove cart item");
     }
   };
+  // ---------------------------------------------------------
+// CLEAR CART (After Successful Order)
+// ---------------------------------------------------------
+const clearCart = async () => {
+  try {
+    if (!user) {
+      // Guest cart
+      localStorage.removeItem("guest_cart");
+      setCartItems([]);
+      return;
+    }
+
+    // Logged-in user cart
+    await productAPI.clearCart(); // API should empty cart
+    setCartItems([]);
+  } catch (err) {
+    console.error("Failed to clear cart", err);
+  }
+};
+
 
   return (
     <CartContext.Provider
@@ -153,6 +173,7 @@ export const CartProvider = ({ children }) => {
         updateQuantity,
         removeFromCart,
         fetchCart,
+        clearCart,
         isCartOpen,
         setIsCartOpen,
       }}
