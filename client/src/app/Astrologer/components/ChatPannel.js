@@ -8,7 +8,7 @@ const socket = io(process.env.NEXT_PUBLIC_API, {
 });
 
 export default function ChatPanel() {
-  const astrologerId = localStorage.getItem("astrologer_id");
+  
 
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
@@ -24,6 +24,7 @@ export default function ChatPanel() {
 
   const loadChats = async () => {
     try {
+      const astrologerId = localStorage.getItem("astrologer_id");
       const res = await api.get(`/chat/astrologer/my/${astrologerId}`);
       setChats(res.data);
     } catch (err) {
