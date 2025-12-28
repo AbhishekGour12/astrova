@@ -1,75 +1,125 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import bodyParser from "body-parser";
 import path from "path";
+import http from "http";
 import { fileURLToPath } from "url";
 
 import MongoDBConnect from "./config/MongoDBConnect.js";
+import { initSocket } from "./services/socket.js";
+import { shiprocketCron } from "./cron/shiprocketCron.js";
+
+/* =======================
+   ROUTES
+======================= */
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-import chatsRoutes from "./routes/chatsRoutes.js";
+import chatRoutes from "./routes/chatsRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import userInterestRoutes from "./routes/userIntrested.js";
 import ratingRoutes from "./routes/ratingRoutes.js";
-import orderRoutes from "./routes/ordersRoutes.js"
+import orderRoutes from "./routes/ordersRoutes.js";
 import couponRoutes from "./routes/couponRoutes.js";
 import shippingRoutes from "./routes/shippingRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
-import { shiprocketCron } from "./cron/shiprocketCron.js";
+import remedyRoutes from "./routes/remedyRoutes.js";
+import astrologerRoutes from "./routes/astrologerRoutes.js";
 
-// =======================
-// ✅ INITIAL SETUP
-// =======================
+/* =======================
+   INITIAL SETUP
+======================= */
+dotenv.config();
 const app = express();
-dotenv.config()
-// For ES module __dirname
+const server = http.createServer(app);
+
+/* =======================
+   SOCKET.IO INIT
+======================= */
+const io = initSocket(server);
+
+// 🔥 Make io available everywhere
+app.set("io", io);
+
+/* =======================
+   ES MODULE DIR FIX
+======================= */
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// =======================
-// ✅ MIDDLEWARES
-// =======================
-app.use(cors());
-app.use(express.json());
-app.use(bodyParser.json());
+/* =======================
+   GLOBAL MIDDLEWARES
+======================= */
+app.use(
+  cors({
+    origin: "*", // 🔐 replace with frontend URL in prod
+    credentials: true,
+  })
+);
 
-// =======================
-// ✅ STATIC FILE SERVING
-// =======================
-// This allows access to uploaded product images via URL:
-// e.g., http://localhost:5000/uploads/products/filename.jpg
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// 🔥 attach io to every request
+app.use((req, res, next) => {
+  req.io = io;
+  next();
+});
+
+/* =======================
+   STATIC FILES
+======================= */
 app.use(
   "/uploads/products",
   express.static(path.join(process.cwd(), "uploads", "products"))
 );
-shiprocketCron()
-// =======================
-// ✅ ROUTES
-// =======================
+
+/* =======================
+   ROUTES
+======================= */
 app.use("/api/auth", userRoutes);
 app.use("/api/admin", adminRoutes);
-app.use("/api/chats", chatsRoutes);
-app.use('/api/cart', cartRoutes);
-app.use('/api/user-interests', userInterestRoutes);
-app.use('/api/ratings', ratingRoutes);
-app.use('/api/order', orderRoutes);
+app.use("/api/chat", chatRoutes);
+app.use("/api/cart", cartRoutes);
+app.use("/api/user-interests", userInterestRoutes);
+app.use("/api/ratings", ratingRoutes);
+app.use("/api/order", orderRoutes);
 app.use("/api/coupon", couponRoutes);
 app.use("/api/shipping", shippingRoutes);
 app.use("/api/payment", paymentRoutes);
+app.use("/api/remedy", remedyRoutes);
+app.use("/api/astrologer", astrologerRoutes);
 
+/* =======================
+   HEALTH CHECK
+======================= */
+app.get("/health", (req, res) => {
+  res.json({
+    success: true,
+    status: "OK",
+    uptime: process.uptime(),
+    timestamp: new Date(),
+  });
+});
 
+/* =======================
+   ERROR HANDLER
+======================= */
+app.use((err, req, res, next) => {
+  console.error("❌ Server Error:", err.stack);
+  res.status(500).json({
+    success: false,
+    message: "Internal Server Error",
+  });
+});
 
-// =======================
-// ✅ DATABASE CONNECTION
-// =======================
+/* =======================
+   DB + CRON + SERVER START
+======================= */
 MongoDBConnect();
+shiprocketCron();
 
-// =======================
-// ✅ SERVER START
-// =======================
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
 });

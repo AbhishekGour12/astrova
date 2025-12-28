@@ -28,14 +28,13 @@ api.interceptors.response.use(
         message.includes("Token") ||
         error.response.status === 401
       ) {
-        toast.error("Session expired. Please login again.");
+        //toast.error("Session expired. Please login again.");
 
         // CLEAR USER + TOKEN
         localStorage.removeItem("token");
         localStorage.removeItem("user");
 
-        // Redirect to login page
-        window.location.href = "/Login";
+        // Redirect to login pagewindow.location.href = "/Login";
       }
     }
 

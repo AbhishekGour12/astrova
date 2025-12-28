@@ -4,8 +4,7 @@ const UserInterestSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
     productId: { type: mongoose.Schema.Types.ObjectId, ref: "Product", required: true },
-    isLiked: { type: Boolean, default: false },
-    likeCount: { type: Number, default: 0 }
+    isLiked: { type: Boolean, default: false }
   },
   { timestamps: true }
 );

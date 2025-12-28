@@ -80,6 +80,8 @@ const ProductShowcasePage = ({ params }) => {
   const [similarProducts, setSimilarProducts] = useState([]);
   const [reviews, setReviews] = useState([]);
   const [isLiked, setIsLiked] = useState(false);
+  const [likesCount, setLikesCount] = useState(0);
+
 
   const [ratingSummary, setRatingSummary] = useState({
     avg: 0,
@@ -104,7 +106,11 @@ const ProductShowcasePage = ({ params }) => {
       const [product, reviewsList] = await Promise.all([
         productAPI.getProductById(productId),
         productAPI.getProductRatings(productId),
+        
       ]);
+      const likesRes = await productAPI.getProductLikesCount(productId);
+setLikesCount(likesRes.count || 0);
+
 
       setSelectedProduct(product);
       setReviews(reviewsList);
@@ -177,20 +183,22 @@ const decrementQty = () => {
   // LIKE / WISHLIST
   // ------------------------------------------------------------------
   const handleToggleLike = async () => {
-    if (!checkLogin()) return;
+  if (!checkLogin()) return;
 
-    try {
-      if (isLiked) {
-        await productAPI.removeUserInterest(productId);
-        setIsLiked(false);
-      } else {
-        await productAPI.addUserInterest(productId);
-        setIsLiked(true);
-      }
-    } catch (err) {
-      toast.error(err.message || "Something went wrong");
+  try {
+    if (isLiked) {
+      await productAPI.removeUserInterest(productId);
+      setIsLiked(false);
+      setLikesCount((c) => Math.max(0, c - 1));
+    } else {
+      await productAPI.addUserInterest(productId);
+      setIsLiked(true);
+      setLikesCount((c) => c + 1);
     }
-  };
+  } catch (err) {
+    toast.error(err.message || "Something went wrong");
+  }
+};
 
   // ------------------------------------------------------------------
   // Rating: show form
@@ -238,13 +246,36 @@ const decrementQty = () => {
       count,
       breakdown,
     });
-
+    
     // Reset form
     setShowRatingForm(false);
     setRating(0);
     setReview("");
+    fetchProductPageData()
   } catch (err) {
     toast.error(err.error || err.message || "Something went wrong");
+  }
+};
+const handleShare = async () => {
+  const shareUrl = `${window.location.origin}/Product/${productId}`;
+  const shareData = {
+    title: selectedProduct?.name,
+    text: `Check out this product on MyAstrova 🌟`,
+    url: shareUrl,
+  };
+
+  try {
+    // ✅ Modern browsers & mobile
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else {
+      // ✅ Fallback for desktop
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Product link copied to clipboard!");
+    }
+  } catch (err) {
+    console.error(err);
+    toast.error("Unable to share right now");
   }
 };
 
@@ -575,46 +606,74 @@ const decrementQty = () => {
               </div>
 
               {/* Secondary Actions */}
-              <div className="flex gap-3 sm:gap-4 justify-center">
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  onClick={handleToggleLike}
-                  className={`p-2.5 sm:p-3 rounded-2xl border transition-all duration-300 ${
-                    isLiked
-                      ? "bg-red-500 border-red-500 text-white"
-                      : "bg-white border-[#B2C5B2] text-[#00695C] hover:bg-[#C06014] hover:text-white"
-                  }`}
-                >
-                  <FaHeart className="text-base sm:text-lg" />
-                </motion.button>
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  className="p-2.5 sm:p-3 rounded-2xl bg-white border border-[#B2C5B2] text-[#00695C] hover:bg-[#C06014] hover:text-white transition-all duration-300"
-                >
-                  <FaShare className="text-base sm:text-lg" />
-                </motion.button>
-              </div>
+              <div className="flex flex-col items-center gap-2">
+  <div className="flex gap-3 sm:gap-4 justify-center">
+    <motion.button
+      whileHover={{ scale: 1.05 }}
+      onClick={handleToggleLike}
+      className={`p-2.5 sm:p-3 rounded-2xl border transition-all duration-300 flex items-center gap-2
+        ${
+          isLiked
+            ? "bg-red-500 border-red-500 text-white"
+            : "bg-white border-[#B2C5B2] text-[#00695C] hover:bg-[#C06014] hover:text-white"
+        }`}
+    >
+      <FaHeart className="text-base sm:text-lg" />
+      <span className="text-xs sm:text-sm font-semibold">
+        {isLiked ? "Liked" : "Like"}
+      </span>
+    </motion.button>
 
-              {/* Trust Badges */}
-              <div className="grid grid-cols-3 gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-[#B2C5B2]">
-                {[
-                  { icon: FaTruck, text: "Free Shipping", subtext: "Over ₹999" },
-                  { icon: FaShieldAlt, text: "Secure Payment", subtext: "256-bit SSL" },
-                  { icon: FaLeaf, text: "Eco Friendly", subtext: "Sustainable" },
-                ].map((item, index) => (
-                  <div key={index} className="text-center">
-                    <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#ECE5D3] rounded-full flex items-center justify-center mx-auto mb-1.5 sm:mb-2">
-                      <item.icon className="text-[#C06014] text-lg sm:text-xl" />
-                    </div>
-                    <div className="text-xs sm:text-sm font-semibold text-[#003D33]">
-                      {item.text}
-                    </div>
-                    <div className="text-[10px] sm:text-xs text-[#00695C]">
-                      {item.subtext}
-                    </div>
-                  </div>
-                ))}
-              </div>
+    <motion.button
+  whileHover={{ scale: 1.05 }}
+  onClick={handleShare}
+  className="p-2.5 sm:p-3 rounded-2xl bg-white border border-[#B2C5B2] text-[#00695C] hover:bg-[#C06014] hover:text-white transition-all duration-300"
+>
+  <FaShare className="text-base sm:text-lg" />
+</motion.button>
+
+  </div>
+
+  {/* ❤️ Likes Count */}
+  <p className="text-xs sm:text-sm text-[#00695C]">
+    ❤️ {likesCount} people love this product
+  </p>
+</div>
+
+
+           {/* Trust Badges */}
+<div className="grid grid-cols-3 gap-3 sm:gap-4 pt-4 sm:pt-6 border-t border-[#B2C5B2]">
+  {[
+    {
+      icon: FaTruck,
+      text: "Fast Delivery",
+      subtext: "Pan India Shipping",
+    },
+    {
+      icon: FaShieldAlt,
+      text: "Secure Payment",
+      subtext: "256-bit SSL",
+    },
+    {
+      icon: FaLeaf,
+      text: "Authentic Products",
+      subtext: "Energized & Verified",
+    },
+  ].map((item, index) => (
+    <div key={index} className="text-center">
+      <div className="w-10 h-10 sm:w-12 sm:h-12 bg-[#ECE5D3] rounded-full flex items-center justify-center mx-auto mb-1.5 sm:mb-2">
+        <item.icon className="text-[#C06014] text-lg sm:text-xl" />
+      </div>
+      <div className="text-xs sm:text-sm font-semibold text-[#003D33]">
+        {item.text}
+      </div>
+      <div className="text-[10px] sm:text-xs text-[#00695C]">
+        {item.subtext}
+      </div>
+    </div>
+  ))}
+</div>
+
             </motion.div>
           </div>
 

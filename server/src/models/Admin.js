@@ -3,7 +3,7 @@ import mongoose from "mongoose";
 const AdminSchema = new mongoose.Schema(
   {
     // Base Details
-    adminId: {type: String, required: true, unique: true, ref:"User" },
+    adminId: {type: String, required: true, unique: true },
     name: { type: String, required: true },
     phone: { type: Number, required: true, unique: true },
     

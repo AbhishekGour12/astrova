@@ -5,6 +5,11 @@ import Product from "../models/Products.js";
 import Order from "../models/Order.js";
 import Payment from "../models/Payment.js";
 import Chat from "../models/Chat.js";
+import sendEmail from "../utils/sendEmail.js";
+import crypto from "crypto";
+import bcrypt from "bcryptjs";
+import razorpayX from "../utils/Razorpayx.js";
+
 
 // ===================== //
 // 🔐 ADMIN DASHBOARD OPS //
@@ -81,22 +86,7 @@ export const getAllAstrologers = async (req, res) => {
   }
 };
 
-/**
- * @desc Approve astrologer (Admin verification)
- * @route PATCH /api/admin/astrologers/approve/:id
- */
-export const approveAstrologer = async (req, res) => {
-  try {
-    const astrologer = await Astrologer.findByIdAndUpdate(
-      req.params.id,
-      { verified: true },
-      { new: true }
-    );
-    res.json({ message: "Astrologer approved", astrologer });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
+
 
 /**
  * @desc Delete astrologer
@@ -270,5 +260,84 @@ export const deleteSubAdmin = async (req, res) => {
     res.json({ message: "Admin removed" });
   } catch (error) {
     res.status(500).json({ error: error.message });
+  }
+};
+
+
+
+/**
+ * @desc Approve astrologer (Admin verification)
+ * @route PATCH /api/admin/astrologers/approve/:id
+ */
+
+export const approveAstrologer = async (req, res) => {
+  try {
+    const astrologer = await Astrologer.findById(req.params.id);
+    if (!astrologer) {
+      return res.status(404).json({ message: "Astrologer not found" });
+    }
+
+    if (astrologer.isApproved) {
+      return res.status(400).json({ message: "Already approved" });
+    }
+
+    /* ================= 1️⃣ PASSWORD ================= */
+    const rawPassword = crypto.randomBytes(6).toString("hex");
+    astrologer.password = await bcrypt.hash(rawPassword, 10);
+
+    /* ================= 2️⃣ CREATE CONTACT ================= */
+    const contactRes = await razorpayX.post("/contacts", {
+      name: astrologer.fullName,
+      email: astrologer.email,
+      contact: astrologer.phone,
+      type: astrologer.isAdmin ? "vendor" : "employee",
+      reference_id: astrologer._id.toString(),
+    });
+
+    const contactId = contactRes.data.id;
+
+    /* ================= 3️⃣ CREATE FUND ACCOUNT ================= */
+    const fundAccountRes = await razorpayX.post("/fund_accounts", {
+      contact_id: contactId,
+      account_type: "bank_account",
+      bank_account: {
+        name: astrologer.fullName,
+        ifsc: astrologer.ifsc,
+        account_number: astrologer.bankAccountNumber,
+      },
+    });
+
+    /* ================= 4️⃣ SAVE DB ================= */
+    astrologer.razorpayContactId = contactId;
+    astrologer.razorpayFundAccountId = fundAccountRes.data.id;
+    astrologer.isApproved = true;
+    astrologer.approvedAt = new Date();
+    await astrologer.save();
+
+    /* ================= 5️⃣ EMAIL ================= */
+    await sendEmail({
+      to: astrologer.email,
+      subject: "Astrologer Account Approved",
+      html: `
+        <h3>Welcome ${astrologer.fullName}</h3>
+        <p>Your account has been approved.</p>
+        <p><b>Email:</b> ${astrologer.email}</p>
+        <p><b>Password:</b> ${rawPassword}</p>
+        <p>Please login and change your password.</p>
+      `,
+    });
+
+    res.json({
+      success: true,
+      message: astrologer.isAdmin
+        ? "Admin approved with RazorpayX fund account"
+        : "Astrologer approved with RazorpayX fund account",
+    });
+
+  } catch (err) {
+    console.error("Approve astrologer error:", err.response?.data || err.message);
+    res.status(500).json({
+      message: err.response?.data?.error?.description || err.message,
+    });
   }
 };

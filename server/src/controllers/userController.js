@@ -2,8 +2,7 @@ import User  from "../models/User.js";
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
 import axios from 'axios'
-
-
+import crypto from "crypto";
 
 
 
@@ -116,33 +115,6 @@ const userProfile = async (req, res) =>{
     }
 }
 
-const updateUser = async (req, res) =>{
-    try {
-        const userId = req.user.id;
-        const { username, phone } = req.body;
-
-        // Find user by ID
-        const user = await User.findById(userId);
-        if (!user) {
-            return res.status(404).json({ message: "User not found" });
-        }
-
-        // Update user fields
-        user.username = username || user.username;
-        user.phone = phone || user.phone;
-       
-
-        if (password) {
-            user.password = await bcrypt.hash(password, 10);
-        }
-
-        await user.save();
-        res.status(200).json({ message: "User updated successfully", user });
-    } catch (error) {
-        console.error("Error updating user:", error);
-        res.status(500).json({ message: "Internal server error" });
-    }
-}
 
 const deleteUser = async(req, res) =>{
     try {
@@ -228,5 +200,129 @@ const mobile = phone.substring(3);
 
 }
 
+const convertTo24Hour = (hour, meridiem) => {
+  let h = Number(hour);
+  if (meridiem === "PM" && h !== 12) h += 12;
+  if (meridiem === "AM" && h === 12) h = 0;
+  return h;
+};
+ const updateAstroProfile = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const data = req.body;
+   
+ const getLatLngFromCity = async (city) => {
+  if (!city) return null;
 
-export { Signup, Login, userProfile, updateUser, deleteUser, user, requestotp };
+  const res = await fetch(
+    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+      city
+    )}&format=json&limit=1`
+  );
+
+  const data = await res.json();
+
+  if (!data.length) {
+    throw new Error("Location not found");
+  }
+
+  return {
+    lat: parseFloat(data[0].lat),
+    lon: parseFloat(data[0].lon),
+  };
+};
+
+    const geo = await getLatLngFromCity(data.birthCity);
+
+   const hour24 = convertTo24Hour(
+      data.birthHour,
+      data.birthMeridiem
+    );
+
+    await User.findByIdAndUpdate(userId, {
+      astroProfile: {
+        fullName: data.fullName,
+        gender: data.gender,
+        dateOfBirth: data.dateOfBirth,
+        birthDetails: {
+          day: new Date(data.dateOfBirth).getDate(),
+          month: new Date(data.dateOfBirth).getMonth() + 1,
+          year: new Date(data.dateOfBirth).getFullYear(),
+          hour: hour24,
+          minute: Number(data.birthMinute),
+        },
+        birthPlace: {
+          city: data.birthCity,
+          state: data.birthState,
+          country: data.birthCountry || "India",
+          latitude: geo.lat,
+          longitude: geo.lon,
+          timezone: 5.5,
+        },
+        maritalStatus: data.maritalStatus,
+        occupation: data.occupation,
+        problemAreas: data.problemAreas,
+      },
+      isProfileComplete: true,
+    });
+
+    res.json({ success: true });
+  } catch (err) {
+    res.status(400).json({ message: err.message });
+  }
+};
+
+const getwalletBalance = async(req, res) =>{
+  const userId = req.user.id;
+  const result = await User.findById(userId);
+  if(result){
+    res.send({balance: result.walletBalance})
+  }
+}
+
+
+
+
+
+
+/**
+ * @desc Add balance to wallet after payment success
+ * @route POST /api/wallet/add
+ * body: { amount }
+ */
+ const addMoneyToWallet = async (req, res) => {
+  try {
+    let { amount } = req.body;
+
+    amount = Number(amount);
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ message: "Invalid amount" });
+    }
+
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // ✅ SAFE DEFAULT
+    user.walletBalance = Number(user.walletBalance || 0) + amount;
+
+    await user.save();
+
+    res.json({
+      success: true,
+      balance: user.walletBalance,
+      addedAmount: amount,
+    });
+
+  } catch (err) {
+    console.error("Wallet update error:", err);
+    res.status(500).json({ message: "Wallet update failed" });
+  }
+};
+
+
+
+export { Signup, Login, userProfile,  deleteUser, user, requestotp, updateAstroProfile, getwalletBalance, addMoneyToWallet };

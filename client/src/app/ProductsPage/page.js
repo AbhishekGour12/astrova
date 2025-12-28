@@ -100,6 +100,8 @@ const [loading1, setLoading1] = useState(true)
     maxPrice: "",
   });
 const productsRef = useRef(null);
+const swiperRef = useRef(null);
+
   const [products, setProducts] = useState([]);
   const [bestSellers, setBestSellers] = useState([]);
   const types = useSelector((state) => state.productType.value)
@@ -151,10 +153,7 @@ const scrollToProducts = () => {
   }, []);
   console.log(types)
 
-  useEffect(() => {
-   
-    fetchProducts();
-  }, [filters.page]);
+  
 
   const handleCategoryClick = (category) => {
   scrollToProducts();
@@ -224,6 +223,8 @@ useEffect(() =>{
 
 },[filters])
 
+
+
   return (
     <>
       
@@ -233,25 +234,26 @@ useEffect(() =>{
         {/* 🌟 HERO BANNER SLIDER */}
        <div className=" pt-28 sm:pt-32 lg:pt-36">  
 <section className="h-[70vh] min-h-[480px] w-full overflow-hidden mt-6 relative">
-      <Swiper
-        modules={[Autoplay, Pagination, EffectFade]}
-        effect="fade"
-        speed={900}
-        autoplay={{
-          delay: 3000,
-          disableOnInteraction: false,
-        }}
-        pagination={{
-          clickable: true,
-          dynamicBullets: true,
-          renderBullet: (index, className) => {
-            return `<span class="${className} bg-white w-3 h-3 opacity-80 hover:opacity-100 rounded-full"></span>`;
-          },
-        }}
-        loop={true}
-        className="h-full w-full relative z-0"
-      >
-        {carousel?.slides.map((slide) => (
+    {carousel?.slides?.length > 0 && (
+        <Swiper
+    key={carousel.slides.length}   // 🔥 FORCE RE-INIT
+    modules={[Autoplay, Pagination, EffectFade]}
+    effect="fade"
+    loop
+    observer
+    observeParents
+    autoplay={{
+      delay: 3000,
+      disableOnInteraction: false,
+    }}
+    pagination={{ clickable: true, dynamicBullets: true }}
+    onSwiper={(swiper) => {
+      swiperRef.current = swiper;
+    }}
+    className="h-full w-full"
+  >
+
+        {carousel.slides.map((slide) => (
           <SwiperSlide key={slide._id}>
             <div className="relative h-[70vh]  w-full overflow-hidden">
               {/* Background Image */}
@@ -312,6 +314,7 @@ useEffect(() =>{
           </SwiperSlide>
         ))}
       </Swiper>
+      )}
 
       {/* Scroll Indicator */}
       <div className="absolute left-1/2 -translate-x-1/2 z-10 bottom-10">

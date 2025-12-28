@@ -36,15 +36,6 @@ export const authAPI ={
 
     },
 
-    updateProfil: async (userdata) =>{
-        try{
-        const response = await api.put('/auth/profile', userdata);
-        return response.data
-        }catch (error){
-            const errorMessage = error.response?.data?.message || 'Failed to update profile. please try again.';
-            throw new Error (errorMessage);
-        }
-    },
     userFind: async (phone) =>{
         try{
        
@@ -73,6 +64,10 @@ export const authAPI ={
             throw new Error (errorMessage);
         }
     },
+    updateAstroProfile: async (data) => {
+  const res = await api.put("/auth/astro-profile", data);
+  return res.data;
+},
 
     logout: () =>{
         localStorage.removeItem("token");

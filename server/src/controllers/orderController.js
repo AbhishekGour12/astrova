@@ -116,6 +116,24 @@ export const createOrder = async (req, res) => {
     });
 
     await newOrder.save({ session });
+// -----------------------------------
+// SAVE PAYMENT INFO (CASH / COD / OFFLINE)
+// -----------------------------------
+
+if (paymentMethod !== "online") {
+  await Payment.create(
+    [
+      {
+        user: req.user.id,
+        orderId: newOrder._id,
+        amount: totalAmount,
+        method: paymentMethod === "cash" || isCODEnabled ? "Cash" : "UPI",
+        status: "initiated", // cash / COD not paid yet
+      },
+    ],
+    { session }
+  );
+}
 
     // Reduce stock
   for (const item of cart.items) {

@@ -83,6 +83,7 @@ const platformFee = 11;
   const [couponCode, setCouponCode] = useState("");
   const [discount, setDiscount] = useState(0);
   const [availableCoupons, setAvailableCoupons] = useState([]);
+  const [deliveryETA, setDeliveryETA] = useState(null);
 
   // ADDRESS
   const [isCOD, setIsCOD] = useState(false);
@@ -204,17 +205,33 @@ useEffect(() => {
     setLoading(true);
 
     try {
-      const charge = await productAPI.getShippingCharges({
-        pickup_postcode: 452010,
-        delivery_postcode: address.pincode,
-        weight: totalWeight,
-        cod: isCOD ? 1 : 0,
-      });
-     console.log(charge)
-      setShippingCharge(charge.shippingCharge);
-      toast.success("Delivery charges updated!");
+      
+    const charge = await productAPI.getShippingCharges({
+  pickup_postcode: 452010,
+  delivery_postcode: address.pincode,
+  weight: totalWeight,
+  cod: isCOD ? 1 : 0,
+});
 
-      setCheckoutStep("coupon");
+setShippingCharge(charge.shippingCharge);
+console.log(charge)
+// ✅ ETA handling
+if (charge.estimated_delivery_days) {
+  setDeliveryETA(`${charge.estimated_delivery_days} days`);
+} else if (charge.etd) {
+  setDeliveryETA(
+    new Date(charge.etd).toLocaleDateString("en-IN", {
+      day: "numeric",
+      month: "short",
+    })
+  );
+} else {
+  setDeliveryETA(null);
+}
+
+toast.success("Delivery charges updated!");
+setCheckoutStep("coupon");
+
     } catch (err) {
       toast.error(err.message);
     }
@@ -297,6 +314,9 @@ useEffect(() => {
     else if (checkoutStep === "coupon") setCheckoutStep("address");
     else if (checkoutStep === "payment") setCheckoutStep("coupon");
   };
+useEffect(() => {
+  setDeliveryETA(null);
+}, [address.pincode, mappedCart.length]);
 
   // ================================
   // UI
@@ -616,6 +636,13 @@ useEffect(() => {
   <span>Grand Total</span>
   <span>₹{finalAmount}</span>
 </div>
+{deliveryETA && (
+  <div className="flex justify-between text-sm text-[#00695C]">
+    <span>Estimated Delivery</span>
+    <span>{deliveryETA}</span>
+  </div>
+)}
+
 
         </div>
       </motion.div>

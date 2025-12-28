@@ -23,7 +23,9 @@ const menuItems = [
   { id: 'chats', label: 'Chats', icon: FaComments },
   { id: 'coupon', label: 'Coupon', icon: FaGift },
   { id: 'carousel', label: 'Advsertisements', icon: FaAdversal },
+  { id: 'remedies', label: 'Remedies', icon: FaAdversal },
   { id: 'settings', label: 'Settings', icon: FaCog },
+  
 ];
 
 const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {

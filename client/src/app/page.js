@@ -16,10 +16,18 @@ import { useRouter } from "next/navigation";
 import Navbar from './components/Navbar'
 import { adminAPI } from "./lib/admin";
 import { useDispatch, useSelector } from "react-redux";
+import MiniAdStrip from './components/Home/MiniAdStrip'
 import { productType } from "./store/features/productTypeSlice";
+import axios from "axios";
+
 
 const HeroSection = () => {
+  const [carousel, setCarousel] = useState()
   const router = useRouter()
+
+
+  
+
   const serviceCards = [
     {
       title: "Kundli Matching",
@@ -43,8 +51,26 @@ const HeroSection = () => {
     },
   ];
 
+  const fetchCarousel = async () => {
+    try {
+     
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API}/api/admin/carousel/home`
+      );
+     
+      setCarousel(res.data.carousel.slides);
+    } catch (error) {
+      console.error("Error fetching carousel:", error);
+    } 
+  };
+  useEffect(() =>{
+    fetchCarousel()
+
+  },[])
+  
+
   return (
-  <section className="relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 ">
+  <section className=" relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 ">
 
       {/* Background split */}
       <div className="absolute inset-0 flex flex-col lg:flex-row">
@@ -226,6 +252,7 @@ const HeroSection = () => {
     </Link>
   ))}
 </div>
+<div className="ad"><MiniAdStrip slides={carousel || []}/></div>
 
 
           </motion.div>
@@ -321,6 +348,7 @@ const HeroSection = () => {
 };
 
 export default function AstroHeroPage() {
+ 
   const productType = useSelector((state) => state.productType.value);
   
   return (

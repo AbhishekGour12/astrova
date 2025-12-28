@@ -8,7 +8,7 @@ import Footer from "./components/Footer";
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
 
-  const hideNavbar = ["/Login", "/Signup"].includes(pathname);
+  const hideNavbar = ["/Login", "/Signup", "/Astrologer/login", "/Astrologer/register", "/Astrologer"].includes(pathname);
 
   return (
     <>

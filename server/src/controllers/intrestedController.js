@@ -28,23 +28,22 @@ export const addUserInterest = async (req, res) => {
         userId,
         productId,
         isLiked: true,
-        likeCount: 1
+        
       });
 
-      return res.json({ isLiked: true, likeCount: interest.likeCount });
+      return res.json({ isLiked: true });
     }
 
     // If already exists and isLiked is true, don't increment again
     if (interest.isLiked) {
-      return res.status(200).json({ message: "Already liked", isLiked: true, likeCount: interest.likeCount });
+      return res.status(200).json({ message: "Already liked", isLiked: true });
     }
 
     // If exists but not liked, mark liked and increment
     interest.isLiked = true;
-    interest.likeCount = (interest.likeCount || 0) + 1;
     await interest.save();
 
-    res.json({ isLiked: true, likeCount: interest.likeCount });
+    res.json({ isLiked: true });
   } catch (error) {
     console.log(error);
     res.status(500).json({ message: "Failed to like product" });
@@ -65,7 +64,7 @@ export const removeUserInterest = async (req, res) => {
       { new: true }
     );
 
-    res.json({ isLiked: false, likeCount: doc.likeCount });
+    res.json({ isLiked: false });
   } catch (error) {
     res.status(500).json({ message: "Failed to unlike product" });
   }
@@ -82,10 +81,20 @@ export const checkUserInterest = async (req, res) => {
 
     res.json({
       isLiked: interest?.isLiked || false,
-      likeCount: interest?.likeCount || 0
     });
 
   } catch (error) {
     res.status(500).json({ message: "Failed to check interest" });
   }
 };
+export const getProductLikesCount = async (req, res) => {
+  const { productId } = req.params;
+
+  const count = await UserInterest.countDocuments({
+    productId,
+    isLiked: true,
+  });
+
+  res.json({ count });
+};
+

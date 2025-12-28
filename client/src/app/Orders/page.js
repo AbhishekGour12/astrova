@@ -18,9 +18,10 @@ const normalizeStatus = (status = "") =>
   const loadOrders = async () => {
     try {
       const data = await orderAPI.getUserOrders();
-      console.log(data)
+     
       setOrders(data.orders);
-      console.log(data)
+      
+      
     } catch (e) {
       toast.error(e.message);
     }
@@ -33,6 +34,9 @@ const normalizeStatus = (status = "") =>
   const toggleExpand = (id) => {
     setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
   };
+const isCanceledOrder = (status = "") => {
+  return normalizeStatus(status) === "canceled";
+};
 
   const getStatusStyle = (status) => {
   const s = normalizeStatus(status);
@@ -46,8 +50,13 @@ const normalizeStatus = (status = "") =>
   if (["in transit", "reached at hub"].includes(s))
     return "bg-blue-200 text-blue-800";
 
-  if (["picked up", "out for pickup"].includes(s))
+  if (["picked up", "out for pickup", "pickup generated", "pickup completed"].includes(s))
     return "bg-purple-200 text-purple-800";
+
+
+  if (s === "canceled")
+    return "bg-red-100 text-red-700";
+
 
   if (s.includes("rto"))
     return "bg-red-200 text-red-800";
@@ -99,7 +108,8 @@ const mapStatusForUser = (status = "") => {
     return "In Transit";
   if(["pickup generated"].includes(s))
     return "Pickup scheduled";
-
+if (s === "canceled")
+    return "Canceled";
   if (s.includes("rto"))
     return "Returned";
 
@@ -122,7 +132,18 @@ const mapStatusForUser = (status = "") => {
         )}
 
         <div className="space-y-6">
-          {orders.map((order) => (
+         {[...orders]
+  .sort((a, b) => {
+    const aCanceled = isCanceledOrder(a.shiprocketStatus);
+    const bCanceled = isCanceledOrder(b.shiprocketStatus);
+
+    if (aCanceled && !bCanceled) return 1;   // move down
+    if (!aCanceled && bCanceled) return -1;  // move up
+
+    return new Date(b.createdAt) - new Date(a.createdAt);
+  })
+  .map((order) => (
+
             <motion.div
               key={order._id}
               initial={{ opacity: 0, y: 20 }}
@@ -217,6 +238,14 @@ const mapStatusForUser = (status = "") => {
               {/* EXPANDED AREA */}
               {expanded[order._id] && (
                 <div className="mt-5 border-t border-gray-300 pt-4 space-y-4">
+                 {isCanceledOrder(order.shiprocketStatus) && (
+  <div className="bg-red-50 border border-red-200 p-4 rounded-xl text-sm text-red-700">
+    <p className="font-semibold">Order Canceled</p>
+    <p>
+      For refund related queries, please contact us.
+    </p>
+  </div>
+)}
 
                   {/* SHIPPING ADDRESS */}
                   <div className="flex items-start gap-3">

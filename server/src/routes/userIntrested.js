@@ -3,7 +3,8 @@ import {
   getUserInterests, 
   addUserInterest, 
   removeUserInterest, 
-  checkUserInterest 
+  checkUserInterest, 
+  getProductLikesCount
 } from '../controllers/intrestedController.js';
 import { authMiddleware } from '../middleware/authMiddleware.js';
 
@@ -19,5 +20,5 @@ router.route('/')
 router.route('/:productId')
   .get(checkUserInterest)
   .delete(removeUserInterest);
-
+router.route('/likeCount/:productId').get(getProductLikesCount)
 export default router;

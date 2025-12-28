@@ -1,10 +1,12 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
+import Payment from "../models/Payment.js";
+import { console } from "inspector";
 console.log(process.env.RAZORPAY_KEY)
 
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY || "rzp_test_pEZdDpwnJejkWR",
-  key_secret: process.env.RAZORPAY_SECRET ||"YVC6HQFJ8OJGeFq6MNzCzjEN",
+  key_id: process.env.RAZORPAY_KEY || "rzp_test_RwXcLi65KXy3eV",
+  key_secret: process.env.RAZORPAY_SECRET ||"QMecJwhjnGFqqSfRr1dcfieJ",
 });
 
 export const createOrder = async (req, res) => {
@@ -17,6 +19,18 @@ export const createOrder = async (req, res) => {
       currency: "INR",
       receipt: "receipt_order_" + Date.now(),
     });
+    // -----------------------------------
+// SAVE PAYMENT INFO (COMMON FOR ALL)
+// -----------------------------------
+console.log(order)
+ await Payment.create({
+      user: req.user.id,
+      razorpayOrderId: order.id,
+      amount: amount,
+      method: "Razorpay",
+      status: "initiated",
+    });
+
 
     res.json(order);
   } catch (err) {
@@ -24,22 +38,44 @@ export const createOrder = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
-
 export const verifyPayment = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } = req.body;
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body;
+    console.log(razorpay_order_id)
+
+    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
+      return res.status(400).json({ message: "Missing payment fields" });
+    }
 
     const sign = crypto
-      .createHmac("sha256", process.env.RZP_KEY_SECRET || "YVC6HQFJ8OJGeFq6MNzCzjEN")
-      .update(razorpay_order_id + "|" + razorpay_payment_id)
+      .createHmac("sha256", process.env.RAZORPAY_SECRET || "YVC6HQFJ8OJGeFq6MNzCzjEN")
+      .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
-    if (sign !== razorpay_signature)
-      return res.status(400).json({ message: "Invalid payment signature" });
+    if (sign !== razorpay_signature) {
+      await Payment.findOneAndUpdate(
+        { razorpayOrderId: razorpay_order_id },
+        { status: "failed" }
+      );
 
-    res.json({ success: true });
+      return res.status(400).json({ message: "Invalid signature" });
+    }
+
+    await Payment.findOneAndUpdate(
+      { razorpayOrderId: razorpay_order_id },
+      {
+        status: "success",
+        razorpayPaymentId: razorpay_payment_id,
+      }
+    );
+
+    return res.json({ success: true });
   } catch (err) {
-    console.log(err.message)
+    console.error("Verify error:", err.message);
     res.status(500).json({ message: err.message });
   }
 };

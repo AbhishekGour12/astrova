@@ -119,7 +119,7 @@ ${
     <Link href="/ProductsPage">Products</Link>
   </li>
   <li className="hover:text-[#B49A77] transition">
-    <Link href="/Chats">Chats</Link>
+    <Link href="/astrologers">Chats</Link>
   </li>
   <li className="hover:text-[#B49A77] transition">
     <Link href="/Orders">MyOrders</Link>
@@ -128,7 +128,7 @@ ${
     <Link href="/">Calls</Link>
   </li>
   <li className="hover:text-[#B49A77] transition">
-    <Link href="/">Remedies</Link>
+    <Link href="/Remedy">Remedies</Link>
   </li>
 </ul>
 
@@ -236,7 +236,7 @@ ${
                   <li className="border-b pb-3"><Link href="/Chats">Chats</Link></li>
                   <li className={`border-b pb-3 ${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}><Link href="/Orders" className={`${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}>MyOrders</Link></li>
                   <li className="border-b pb-3"><Link href="/">Who are we</Link></li>
-                  <li className="border-b pb-3"><Link href="/">Remedies</Link></li>
+                  <li className="border-b pb-3"><Link href="/Remedy">Remedies</Link></li>
                 </ul>
 
                 {/* USER SECTION */}

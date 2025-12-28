@@ -115,6 +115,11 @@ checkUserInterest: async (productId) => {
   return response.data;
 },
 
+getProductLikesCount: async (productId) => {
+  const response = await api.get(`/user-interests/likeCount/${productId}`);
+  return response.data;
+},
+
 // Rating methods
 submitRating: async(data) => {
   

@@ -1,69 +1,129 @@
-import Chat  from "../models/Chat.js";
+import Chat from "../models/Chat.js";
+import Astrologer from "../models/Astrologer.js";
+import User from "../models/User.js";
 import { Message } from "../models/Message.js";
 
-// 🧠 Create or Get Chat
+/* ======================================================
+   USER → START CHAT (WAITING)
+====================================================== */
 export const startChat = async (req, res) => {
-  const { userId, astrologerId } = req.body;
-
   try {
+    const userId = req.user.id;
+    const { astrologerId } = req.body;
+
+    const astrologer = await Astrologer.findById(astrologerId);
+    if (!astrologer)
+      return res.status(404).json({ message: "Astrologer not found" });
+
+    // 🔒 Prevent duplicate WAITING / ACTIVE chat
     let chat = await Chat.findOne({
-      participants: { $all: [userId, astrologerId] },
+      user: userId,
+      astrologer: astrologerId,
+      status: { $ne: "ENDED" },
     });
 
     if (!chat) {
-      chat = await Chat.create({ participants: [userId, astrologerId] });
+      chat = await Chat.create({
+        user: userId,
+        astrologer: astrologerId,
+        ratePerMinute: astrologer.pricing.chatPerMinute,
+        status: "WAITING",
+      });
     }
 
     res.json(chat);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// 📜 Get all chats of a particular user
-export const getUserChats = async (req, res) => {
-  const { userId } = req.params;
+/* ======================================================
+   ASTROLOGER → ACCEPT CHAT (ACTIVE)
+====================================================== */
+export const acceptChat = async (req, res) => {
+  const { chatId } = req.params;
 
+  const chat = await Chat.findById(chatId);
+  if (!chat) {
+    return res.status(404).json({ message: "Chat not found" });
+  }
+
+  if (chat.status !== "WAITING") {
+    return res.status(400).json({ message: "Chat already handled" });
+  }
+
+  chat.status = "ACTIVE";
+  chat.startedAt = new Date();
+  await chat.save();
+
+  // ✅ NOW req.io EXISTS
+  req.io.to(chat._id.toString()).emit("chatActivated", {
+    chatId: chat._id,
+    startedAt: chat.startedAt,
+  });
+
+  res.json({ success: true, chat });
+};
+
+
+
+/* ======================================================
+   USER → MY CHATS
+====================================================== */
+export const getUserChats = async (req, res) => {
   try {
-    const chats = await Chat.find({ participants: { $in: [userId] } })
-      .populate("participants", "name role profilePic")
+    const chats = await Chat.find({ user: req.user.id })
+      .populate("astrologer", "fullName profileImageUrl")
       .sort({ updatedAt: -1 });
 
     res.json(chats);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// 💬 Send a message
-export const sendMessage = async (req, res) => {
-  const { chatId, senderId, content } = req.body;
-
+/* ======================================================
+   ASTROLOGER → MY CHATS (WAITING + ACTIVE)
+====================================================== */
+export const getAstrologerChats = async (req, res) => {
   try {
-    const message = await Message.create({ chatId, senderId, content });
+    const { astrologerId } = req.params;
 
-    await Chat.findByIdAndUpdate(chatId, {
-      lastMessage: content,
-      lastMessageTime: Date.now(),
-    });
+    const chats = await Chat.find({
+      astrologer: astrologerId,
+      status: { $in: ["WAITING", "ACTIVE"] },
+    })
+      .populate("user", "name profileImageUrl")
+      .sort({ createdAt: -1 });
 
-    res.json(message);
+    res.json(chats);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
 };
 
-// 🕓 Get all messages of a specific chat
+/* ======================================================
+   LOAD CHAT MESSAGES
+====================================================== */
 export const getMessages = async (req, res) => {
-  const { chatId } = req.params;
-
   try {
-    const messages = await Message.find({ chatId })
-      .populate("senderId", "name role profilePic")
-      .sort({ timestamp: 1 });
+    const messages = await Message.find({
+      chat: req.params.chatId,
+    }).sort({ createdAt: 1 });
 
     res.json(messages);
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ message: err.message });
   }
+};
+
+/* ======================================================
+   END CHAT (MANUAL / SYSTEM)
+====================================================== */
+export const endChat = async (chatId) => {
+  await Chat.findByIdAndUpdate(chatId, {
+    status: "ENDED",
+    endedAt: new Date(),
+    graceUntil: null,
+  });
 };

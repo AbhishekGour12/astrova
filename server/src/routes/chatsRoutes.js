@@ -2,22 +2,37 @@ import express from "express";
 import {
   startChat,
   getUserChats,
-  sendMessage,
+  getAstrologerChats,
   getMessages,
+  acceptChat,
 } from "../controllers/chatController.js";
+import { authMiddleware } from "../middleware/authMiddleware.js";
+import { attachIO } from "../middleware/attachIo.js";
+
+
+
 
 const router = express.Router();
 
-// 🧠 Create or Get Chat between user & astrologer
-router.post("/start", startChat);
+/* ================= USER ROUTES ================= */
 
-// 📜 Get all chats of a particular user (user or astrologer)
-router.get("/user/:userId", getUserChats);
+// 🧠 Start / Resume chat
+router.post("/start", authMiddleware, startChat);
 
-// 💬 Send a message
-router.post("/message/send", sendMessage);
+// 📜 User → My chats
+router.get("/my", authMiddleware, getUserChats);
 
-// 🕓 Get all messages of a specific chat
-router.get("/message/:chatId", getMessages);
+// 🕓 Load messages of a chat
+router.get("/messages/:chatId", authMiddleware, getMessages);
+
+/* ================= ASTROLOGER ROUTES ================= */
+
+/* ASTROLOGER */
+router.get("/astrologer/my/:astrologerId", getAstrologerChats);
+router.post("/accept/:chatId", attachIO, acceptChat);
+
+
+// 🕓 Load messages (same endpoint)
+router.get("/messages/:chatId", getMessages);
 
 export default router;
