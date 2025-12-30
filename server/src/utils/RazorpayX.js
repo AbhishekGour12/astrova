@@ -1,6 +1,6 @@
 import axios from "axios";
 
-const razorpayX = axios.create({
+const RazorpayX = axios.create({
   baseURL: "https://api.razorpay.com/v1",
   auth: {
     username: process.env.RAZORPAY_KEY || "rzp_test_RwXcLi65KXy3eV" ,
@@ -11,4 +11,4 @@ const razorpayX = axios.create({
   },
 });
 
-export default razorpayX;
+export default RazorpayX;

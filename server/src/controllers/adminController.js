@@ -8,7 +8,7 @@ import Chat from "../models/Chat.js";
 import sendEmail from "../utils/sendEmail.js";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import razorpayX from "../utils/Razorpayx.js";
+import RazorpayX from "../utils/Razorpayx.js";
 
 
 // ===================== //
@@ -286,7 +286,7 @@ export const approveAstrologer = async (req, res) => {
     astrologer.password = await bcrypt.hash(rawPassword, 10);
 
     /* ================= 2️⃣ CREATE CONTACT ================= */
-    const contactRes = await razorpayX.post("/contacts", {
+    const contactRes = await RazorpayX.post("/contacts", {
       name: astrologer.fullName,
       email: astrologer.email,
       contact: astrologer.phone,
@@ -297,7 +297,7 @@ export const approveAstrologer = async (req, res) => {
     const contactId = contactRes.data.id;
 
     /* ================= 3️⃣ CREATE FUND ACCOUNT ================= */
-    const fundAccountRes = await razorpayX.post("/fund_accounts", {
+    const fundAccountRes = await RazorpayX.post("/fund_accounts", {
       contact_id: contactId,
       account_type: "bank_account",
       bank_account: {
