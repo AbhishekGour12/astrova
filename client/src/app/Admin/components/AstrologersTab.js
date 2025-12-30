@@ -10,6 +10,8 @@ export default function AstrologersTab() {
   const [astrologers, setAstrologers] = useState([]);
   const [searchTerm, setSearchTerm] = useState("");
   const [loading, setLoading] = useState(false);
+  const [selectedAstrologer, setSelectedAstrologer] = useState(null);
+
 
   /* ================= FETCH ASTROLOGERS ================= */
   const fetchAstrologers = async () => {
@@ -63,6 +65,7 @@ export default function AstrologersTab() {
 
   /* ================= UI ================= */
   return (
+    <div>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -148,23 +151,31 @@ export default function AstrologersTab() {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-2">
-                {!ast.isApproved && (
-                  <button
-                    onClick={() => approveAstrologer(ast._id)}
-                    className="flex-1 bg-green-600 text-white py-2 rounded-lg text-sm flex items-center justify-center gap-1"
-                  >
-                    <FaCheckCircle /> Approve
-                  </button>
-                )}
+             <div className="flex flex-col gap-2">
+  <button
+    onClick={() => setSelectedAstrologer(ast)}
+    className="w-full border border-[#00695C] text-[#00695C] py-2 rounded-lg text-sm hover:bg-[#F7F3E9]"
+  >
+    View Profile
+  </button>
 
-                <button
-                  onClick={() => deleteAstrologer(ast._id)}
-                  className="flex-1 bg-red-500 text-white py-2 rounded-lg text-sm flex items-center justify-center gap-1"
-                >
-                  <FaTrash /> Delete
-                </button>
-              </div>
+  {!ast.isApproved && (
+    <button
+      onClick={() => approveAstrologer(ast._id)}
+      className="bg-green-600 text-white py-2 rounded-lg text-sm flex items-center justify-center gap-1"
+    >
+      <FaCheckCircle /> Approve
+    </button>
+  )}
+
+  <button
+    onClick={() => deleteAstrologer(ast._id)}
+    className="bg-red-500 text-white py-2 rounded-lg text-sm flex items-center justify-center gap-1"
+  >
+    <FaTrash /> Delete
+  </button>
+</div>
+
             </motion.div>
           ))}
 
@@ -176,6 +187,101 @@ export default function AstrologersTab() {
         </div>
       )}
     </div>
+    {selectedAstrologer&& (
+  <div className="fixed inset-0 z-50 bg-black/40 flex items-center justify-center p-4">
+    <div className="bg-white rounded-2xl w-full max-w-3xl max-h-[90vh] overflow-y-auto p-6 relative">
+
+      {/* Close */}
+      <button
+        onClick={() => setSelectedAstrologer(null)}
+        className="absolute top-3 right-4 text-xl text-gray-500 hover:text-black"
+      >
+        ✕
+      </button>
+
+      {/* Header */}
+      <div className="flex gap-5 items-center mb-6">
+        <img
+          src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${selectedAstrologer.profileImageUrl}`}
+          className="w-24 h-24 rounded-xl object-cover border"
+        />
+        <div>
+          <h2 className="text-2xl font-bold text-[#003D33]">
+            {selectedAstrologer.fullName}
+          </h2>
+          <p className="text-[#00695C] text-sm">
+            {selectedAstrologer.expertise?.join(", ")}
+          </p>
+          <p className="text-xs text-gray-500">
+            {selectedAstrologer.languages?.join(", ")}
+          </p>
+        </div>
+      </div>
+
+      {/* DETAILS GRID */}
+      <div className="grid md:grid-cols-2 gap-4 text-sm">
+        <ProfileRow label="Email" value={selectedAstrologer.email} />
+        <ProfileRow label="Phone" value={selectedAstrologer.phone} />
+        <ProfileRow label="Gender" value={selectedAstrologer.gender} />
+        <ProfileRow label="Age" value={selectedAstrologer.age} />
+        <ProfileRow label="Experience" value={`${selectedAstrologer.experienceYears} years`} />
+        <ProfileRow label="Education" value={selectedAstrologer.education} />
+        <ProfileRow label="Availability" value={selectedAstrologer.availability} />
+        <ProfileRow label="Chat Rate" value={`₹${selectedAstrologer.pricing?.chatPerMinute}/min`} />
+        <ProfileRow label="Call Rate" value={`₹${selectedAstrologer.pricing?.callPerMinute}/min`} />
+        <ProfileRow label="Total Earnings" value={`₹${selectedAstrologer.totalEarnings}`} />
+      </div>
+
+      {/* BIO */}
+      <div className="mt-4">
+        <h4 className="font-semibold text-[#003D33] mb-1">Bio</h4>
+        <p className="text-sm text-gray-700">
+          {selectedAstrologer.bio}
+        </p>
+      </div>
+
+      {/* ACHIEVEMENTS */}
+      {selectedAstrologer.achievements?.length > 0 && (
+        <div className="mt-4">
+          <h4 className="font-semibold text-[#003D33] mb-1">Achievements</h4>
+          <ul className="list-disc pl-5 text-sm text-gray-700">
+            {selectedAstrologer.achievements.map((a, i) => (
+              <li key={i}>{a}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* CERTIFICATIONS */}
+      {selectedAstrologer.certifications?.length > 0 && (
+        <div className="mt-6">
+          <h4 className="font-semibold text-[#003D33] mb-2">
+            Certifications
+          </h4>
+
+          {selectedAstrologer.certifications.map((c) => (
+            <div
+              key={c._id}
+              className="flex items-center justify-between border rounded-lg p-3 mb-2"
+            >
+              <span className="text-sm">{c.title}</span>
+
+              <a
+                href={`${process.env.NEXT_PUBLIC_IMAGE_URL}${c.fileUrl}`}
+                download
+                target="_blank"
+                className="text-sm text-[#C06014] font-medium hover:underline"
+              >
+                Download
+              </a>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  </div>
+)}
+</div>
   );
 }
 
@@ -184,5 +290,12 @@ const InfoRow = ({ label, value, badge }) => (
   <div className="flex justify-between">
     <span className="text-[#00695C]">{label}</span>
     <span className={`px-2 py-1 rounded ${badge || ""}`}>{value}</span>
+  </div>
+);
+
+const ProfileRow = ({ label, value }) => (
+  <div className="flex justify-between border-b pb-1">
+    <span className="text-[#00695C]">{label}</span>
+    <span className="font-medium text-[#003D33]">{value || "-"}</span>
   </div>
 );

@@ -8,11 +8,26 @@ import Chat from "../models/Chat.js";
 import sendEmail from "../utils/sendEmail.js";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import {razorpayX} from "../utils/razorpayX.js"
-
+import axios from "axios";
 // ===================== //
 // 🔐 ADMIN DASHBOARD OPS //
 // ===================== //
+
+
+
+
+export const razorpayX = axios.create({
+  baseURL: "https://api.razorpay.com/v1",
+  auth: {
+    username: process.env.RAZORPAY_KEY || "rzp_test_RwXcLi65KXy3eV" ,
+    password: process.env.RAZORPAY_SECRET || "QMecJwhjnGFqqSfRr1dcfieJ",
+  },
+  headers: {
+    "Content-Type": "application/json",
+  },
+});
+
+
 
 /**
  * @desc Get overall dashboard stats

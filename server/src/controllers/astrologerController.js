@@ -21,9 +21,17 @@ export const registerAstrologer = async (req, res) => {
       experienceYears,
       education,
       certificationTitle,
-      achievements
+      achievements,
+      bankName,
+      bankAccountNumber,
+      ifsc
+
     } = req.body;
-console.log(achievements)
+
+    const certifications = [{
+        title: certificationTitle,
+        fileUrl: `/uploads/products/${req.files.certificationFile[0].filename}`
+      }];
     const astrologer = new Astrologer({
       fullName,
       email,
@@ -42,19 +50,15 @@ console.log(achievements)
       languages: JSON.parse(req.body.languages),
       achievements: req.body.achievements
         ? JSON.parse(req.body.achievements)
-        : []
+        : [],
+      bankName,
+      bankAccountNumber,
+      ifsc,
+      profileImageUrl: `/uploads/products/${req.files.profileImage[0].filename}`,
+      certifications
     });
 
-    if (req.files?.profileImage?.[0]) {
-      astrologer.profileImageUrl = `/uploads/products/${req.files.profileImage[0].filename}`
-    }
-
-    if (req.files?.certificationFile?.[0]) {
-      astrologer.certifications = [{
-        title: certificationTitle,
-        fileUrl: `/uploads/products/${req.files.certificationFile[0].filename}`
-      }];
-    }
+    
 
     await astrologer.save();
     res.json({ success: true });
