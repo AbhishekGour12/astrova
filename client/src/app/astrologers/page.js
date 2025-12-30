@@ -37,6 +37,10 @@ export default function AstrologerList() {
     });
 
     setSocket(newSocket);
+    if(!user){
+      toast.error("login first")
+      router.push("/")
+    }
 
     return () => {
       newSocket.disconnect();
@@ -201,6 +205,10 @@ export default function AstrologerList() {
 
   const handleStartChat = async (astrologerId) => {
     try {
+      if(!user){
+        toast.error("login first");
+        return;
+      }
       toast.loading("Starting chat...", { id: "start-chat" });
       
       const response = await api.post("/chat/user/start", {
