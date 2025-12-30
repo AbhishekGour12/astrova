@@ -237,6 +237,8 @@ ${
                   <li className={`border-b pb-3 ${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}><Link href="/Orders" className={`${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}>MyOrders</Link></li>
                   <li className="border-b pb-3"><Link href="/">Who are we</Link></li>
                   <li className="border-b pb-3"><Link href="/Remedy">Remedies</Link></li>
+                  <li className="border-b pb-3"><Link href="/">Calls</Link></li>
+                  <li className="border-b pb-3"><Link href="/About">About</Link></li>
                 </ul>
 
                 {/* USER SECTION */}
