@@ -269,6 +269,7 @@ const convertTo24Hour = (hour, meridiem) => {
     res.json({ success: true });
   } catch (err) {
     res.status(400).json({ message: err.message });
+    console.log(err.message)
   }
 };
 
