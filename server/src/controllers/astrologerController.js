@@ -20,9 +20,10 @@ export const registerAstrologer = async (req, res) => {
       callPerMinute,
       experienceYears,
       education,
-      certificationTitle
+      certificationTitle,
+      achievements
     } = req.body;
-
+console.log(achievements)
     const astrologer = new Astrologer({
       fullName,
       email,
@@ -44,21 +45,21 @@ export const registerAstrologer = async (req, res) => {
         : []
     });
 
-    if (req.files?.profileImage) {
-      astrologer.profileImageUrl = req.files.profileImage[0].path;
+    if (req.files?.profileImage?.[0]) {
+      astrologer.profileImageUrl = `/uploads/products/${req.files.profileImage[0].filename}`
     }
 
-    if (req.files?.certificationFile) {
+    if (req.files?.certificationFile?.[0]) {
       astrologer.certifications = [{
         title: certificationTitle,
-        fileUrl: req.files.certificationFile[0].path
+        fileUrl: `/uploads/products/${req.files.certificationFile[0].filename}`
       }];
     }
 
     await astrologer.save();
     res.json({ success: true });
   } catch (err) {
-    console.error(err);
+    console.log(err.message);
     res.status(500).json({ success: false, message: "Registration failed" });
   }
 };

@@ -100,7 +100,7 @@ export default function AstrologersTab() {
               <div className="flex items-center gap-4 mb-4">
                 {ast.profileImageUrl ? (
                   <img
-                    src={`${process.env.NEXT_PUBLIC_API}${ast.profileImageUrl}`}
+                    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${ast.profileImageUrl}`}
                     className="w-14 h-14 rounded-xl object-cover"
                   />
                 ) : (

@@ -14,14 +14,39 @@ const AstrologerProfileSchema = new mongoose.Schema(
     // Password will be auto-generated after admin approval
     password: { type: String },
 
+
+   // * ================= EXPERIENCE ================= */
+    experienceYears: {
+      type: Number,
+      default: 0
+    },
+
+    education: {
+      type: String,
+      trim: true
+    },
+
+    achievements: {
+      type: [String], // ✅ multiple achievements
+      default: []
+    },
     /* ================= PROFILE ================= */
     bio: { type: String, required: true },
+/* ================= CERTIFICATIONS ================= */
+    certifications: [
+      {
+        title: { type: String },
+        fileUrl: { type: String }, // cloudinary / s3 url
+        uploadedAt: { type: Date, default: Date.now }
+      }
+    ],
+
+
 
     // ✅ MUST BE ARRAY
     expertise: {
       type: [String],
-      required: true,
-      enum: ["Vedic", "Tarot", "Numerology", "Palmistry", "Vastu", "KP"]
+      required: true
     },
 
     languages: {
