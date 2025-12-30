@@ -6,8 +6,8 @@ import { trackUserOrder } from "../controllers/orderController.js";
 
 
 const router = express.Router();
-router.use(authMiddleware, onlyUser)
+
 router.post("/charge", shippingCharge);
-router.get("/track/:shipmentId", trackUserOrder );
+router.get("/track/:shipmentId", authMiddleware, onlyUser, trackUserOrder );
 
 export default router;

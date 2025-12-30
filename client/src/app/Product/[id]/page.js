@@ -597,6 +597,7 @@ const handleShare = async () => {
 
              <motion.button
   disabled={selectedProduct.stock === 0}
+  onClick={handleAddToCart}
   className={`flex-1 py-4 rounded-2xl font-semibold text-lg
     ${
       selectedProduct.stock === 0
