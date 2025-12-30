@@ -6,12 +6,12 @@ import {
   checkUserInterest, 
   getProductLikesCount
 } from '../controllers/intrestedController.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, onlyUser } from '../middleware/authMiddleware.js';
 
 
 const router = express.Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware, onlyUser);
 
 router.route('/')
   .get(getUserInterests)

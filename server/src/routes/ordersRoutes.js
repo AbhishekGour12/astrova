@@ -4,11 +4,11 @@ import {
   getOrders, 
   getOrderById
 } from '../controllers/orderController.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, onlyUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.use(authMiddleware);
+router.use(authMiddleware, onlyUser);
 
 router.route('/')
   .get(getOrders)

@@ -20,7 +20,7 @@ const storage = multer.diskStorage({
 
 // ✅ Image-only filter
 const imageFileFilter = (req, file, cb) => {
-  const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/avif", "image/svg+xml", "image/gif", "image/tiff","image/bmp", "image/heic"];
+  const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/avif", "image/svg+xml", "image/gif", "image/tiff","image/bmp", "image/heic", ""];
   if (allowed.includes(file.mimetype)) cb(null, true);
   else cb(new Error("Invalid image file type"), false);
 };
@@ -35,6 +35,7 @@ const excelAndImageFileFilter = (req, file, cb) => {
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/vnd.ms-excel",
     "text/csv",
+    
   ];
   if (allowed.includes(file.mimetype)) cb(null, true);
   else cb(new Error("Invalid file type. Only images and Excel files are allowed."), false);

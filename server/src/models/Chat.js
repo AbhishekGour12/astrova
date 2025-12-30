@@ -31,7 +31,11 @@ const chatSchema = new mongoose.Schema(
     startedAt: Date,
     endedAt: Date,
 
-    graceUntil: Date, // ⏱️ 5 min grace window
+    graceUntil: {
+  type: Date,
+  default: null
+}
+
   },
   { timestamps: true }
 );
@@ -41,5 +45,6 @@ chatSchema.index(
   { user: 1, astrologer: 1 },
   { unique: true, partialFilterExpression: { status: { $ne: "ENDED" } } }
 );
+
 
 export default mongoose.model("Chat", chatSchema);

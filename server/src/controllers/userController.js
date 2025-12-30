@@ -85,7 +85,7 @@ const Login = async (req, res) => {
       
             // SUCCESS: Generate JWT and return response
             // Assuming 'User' model is imported and used for authentication
-            const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '6h' });
+            const token = jwt.sign({ id: user._id, role: "user" }, process.env.JWT_SECRET, { expiresIn: '6h' });
             console.log(token)
             // You should return the user role here for frontend routing
             res.status(200).json({ message: "Login successful", token, data: user }); 
@@ -274,6 +274,7 @@ const convertTo24Hour = (hour, meridiem) => {
 
 const getwalletBalance = async(req, res) =>{
   const userId = req.user.id;
+ 
   const result = await User.findById(userId);
   if(result){
     res.send({balance: result.walletBalance})

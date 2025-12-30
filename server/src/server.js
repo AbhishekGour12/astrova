@@ -25,6 +25,9 @@ import paymentRoutes from "./routes/paymentRoutes.js";
 import remedyRoutes from "./routes/remedyRoutes.js";
 import astrologerRoutes from "./routes/astrologerRoutes.js";
 
+
+
+
 /* =======================
    INITIAL SETUP
 ======================= */
@@ -36,9 +39,10 @@ const server = http.createServer(app);
    SOCKET.IO INIT
 ======================= */
 const io = initSocket(server);
-
-// 🔥 Make io available everywhere
+// Attach io to app for access in controllers
 app.set("io", io);
+
+
 
 /* =======================
    ES MODULE DIR FIX
@@ -59,11 +63,6 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// 🔥 attach io to every request
-app.use((req, res, next) => {
-  req.io = io;
-  next();
-});
 
 /* =======================
    STATIC FILES

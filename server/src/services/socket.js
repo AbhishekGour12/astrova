@@ -1,154 +1,158 @@
-// socket.js
 import { Server } from "socket.io";
-import Chat from "../models/Chat.js";
-import User from "../models/User.js";
-import { Message } from "../models/Message.js";
-import AstrologerEarning from "../models/AstrologerEarning.js";
-import Astrologer from "../models/Astrologer.js";
+import { startBillingInterval, stopBillingInterval } from "./chatBilling.js";
+import { Message } from "../models/Message.js"; // Add this import
+
+let io;
 
 export const initSocket = (server) => {
-  const io = new Server(server, {
-    cors: { origin: "*" },
+  io = new Server(server, {
+    cors: {
+      origin: "*",
+      methods: ["GET", "POST"],
+      credentials: true
+    },
+    transports: ["websocket", "polling"]
   });
 
   io.on("connection", (socket) => {
     console.log("🟢 Socket connected:", socket.id);
 
-    /* ================= JOIN CHAT ================= */
+    // User joins
+    socket.on("joinUser", ({ userId }) => {
+      socket.join(`user_${userId}`);
+      console.log(`User ${userId} joined`);
+    });
+
+    // Astrologer joins
+    socket.on("joinAstrologer", ({ astrologerId }) => {
+      socket.join(`astrologer_${astrologerId}`);
+      console.log(`Astrologer ${astrologerId} joined`);
+    });
+
+    // Join chat room
     socket.on("joinChat", ({ chatId }) => {
-      if (!chatId) return;
-      socket.join(chatId);
+      socket.join(`chat_${chatId}`);
+      console.log(`Socket joined chat ${chatId}`);
     });
 
-    /* ================= SEND MESSAGE (SINGLE HANDLER) ================= */
-    socket.on("sendMessage", async ({ chatId, senderType, senderId, content }) => {
+    // Send message (Remove the temporary message creation here)
+    socket.on("sendMessage", async (data) => {
       try {
-        if (!chatId || !content?.trim()) return;
-
-        const chat = await Chat.findById(chatId);
-        if (!chat) return;
-
-        // 🔒 Duplicate protection (1 sec window)
-        const exists = await Message.findOne({
-          chat: chatId,
-          senderId,
-          content,
-          createdAt: { $gte: new Date(Date.now() - 1000) },
-        });
-
-        if (exists) return;
-
-        const message = await Message.create({
-          chat: chatId,
-          senderType,
-          senderId,
-          content,
-          seen: false,
-        });
-
-        chat.lastMessage = content;
-        chat.lastMessageTime = new Date();
-        await chat.save();
-
-        io.to(chatId).emit("newMessage", message);
+        const { chatId, senderType, senderId, content } = data;
+        
+        // DON'T create temporary message here - let the API handle it
+        // The API will save to DB and then emit the actual message
+        
+        // Just forward the request to the appropriate recipient
+        const recipientRoom = senderType === "user" 
+          ? `astrologer_${data.astrologerId}`
+          : `user_${data.userId}`;
+        
+        if (recipientRoom) {
+          io.to(recipientRoom).emit("newMessageNotification", {
+            chatId,
+            message: content,
+            senderType
+          });
+        }
       } catch (err) {
-        console.error("❌ sendMessage error:", err.message);
+        console.error("Socket send message error:", err);
       }
     });
 
-    /* ================= MARK SEEN ================= */
-    socket.on("markSeen", async ({ chatId, viewerType }) => {
-      try {
-        if (!chatId || !viewerType) return;
-
-        await Message.updateMany(
-          {
-            chat: chatId,
-            senderType: viewerType === "user" ? "astrologer" : "user",
-            seen: false,
-          },
-          { seen: true }
-        );
-
-        io.to(chatId).emit("messagesSeen");
-      } catch (err) {
-        console.error("❌ markSeen error:", err.message);
-      }
-    });
-
-    /* ================= PER-MINUTE BILLING (SERVER SIDE ONLY) ================= */
- socket.on("billMinute", async ({ chatId }) => {
-  if (!chatId) return;
-
-  const chat = await Chat.findById(chatId);
-  if (!chat || chat.status !== "ACTIVE") return;
-
-  const user = await User.findById(chat.user);
-  if (!user) return;
-
-  // 💸 Wallet empty → grace
-  if (user.walletBalance < chat.ratePerMinute) {
-    if (!chat.graceUntil) {
-      chat.graceUntil = new Date(Date.now() + 5 * 60 * 1000);
-      await chat.save();
-
-      io.to(chatId).emit("walletEmpty", { graceSeconds: 300 });
-    }
-    return;
-  }
-
-  // ⏱ Grace expired
-  if (chat.graceUntil && Date.now() > chat.graceUntil.getTime()) {
-    chat.status = "ENDED";
-    chat.endedAt = new Date();
-    chat.graceUntil = null;
-    await chat.save();
-
-    io.to(chatId).emit("chatEnded");
-    return;
-  }
-
-  // 💰 Deduct wallet
-  user.walletBalance -= chat.ratePerMinute;
-  await user.save();
-
-  chat.graceUntil = null;
-  await chat.save();
-
-  await AstrologerEarning.create({
-    astrologer: chat.astrologer,
-    user: chat.user,
-    chat: chat._id,
-    serviceType: "CHAT",
-    minutes: 1,
-    ratePerMinute: chat.ratePerMinute,
-    amount: chat.ratePerMinute,
+    // Typing indicator
+   socket.on("typing", ({ chatId, senderId, senderRole, isTyping }) => {
+  socket.to(`chat_${chatId}`).emit("typingUpdate", {
+    senderId,
+    senderRole, // "user" | "astrologer"
+    isTyping
   });
-
-  io.to(chatId).emit("walletUpdate", user.walletBalance);
 });
 
 
-    /* ================= END CHAT ================= */
-    socket.on("endChat", async ({ chatId }) => {
-      try {
-        if (!chatId) return;
-
-       await Chat.findByIdAndUpdate(chatId, {
-  status: "ENDED",
-  endedAt: new Date(),
-  graceUntil: null,
-});
-
-
-        io.to(chatId).emit("chatEnded");
-      } catch (err) {
-        console.error("❌ endChat error:", err.message);
-      }
+    // Message seen
+    socket.on("messageSeen", ({ chatId, messageId }) => {
+      // Update in database
+      Message.findByIdAndUpdate(messageId, { seen: true }, { new: true })
+        .then(updatedMessage => {
+          // Emit to both participants
+          io.to(`chat_${chatId}`).emit("messageSeenUpdate", {
+            messageId: updatedMessage._id,
+            seen: true,
+            updatedAt: updatedMessage.updatedAt
+          });
+        })
+        .catch(err => console.error("Error marking message as seen:", err));
     });
 
+    // Chat started - start billing
+    socket.on("chatStarted", ({ chatId }) => {
+      startBillingInterval(chatId);
+    });
+
+    // Chat ended - stop billing
+    socket.on("chatEnded", ({ chatId }) => {
+      stopBillingInterval(chatId);
+    });
+
+    // Disconnect
     socket.on("disconnect", () => {
       console.log("🔴 Socket disconnected:", socket.id);
     });
   });
+
+  return io;
+};
+
+export const getIO = () => {
+  if (!io) {
+    throw new Error("Socket.io not initialized");
+  }
+  return io;
+};
+
+// Helper functions for real-time updates
+export const notifyAstrologerStatus = (astrologerId, isBusy) => {
+  if (io) {
+    io.emit("astrologerStatusUpdate", {
+      astrologerId,
+      isBusy
+    });
+  }
+};
+
+export const notifyNewChat = (astrologerId, chat) => {
+  if (io) {
+    io.to(`astrologer_${astrologerId}`).emit("newChat", chat);
+  }
+};
+
+export const notifyChatActivated = (chatId, chat) => {
+  if (io) {
+    io.to(`chat_${chatId}`).emit("chatActivated", chat);
+    if (chat.user) {
+      io.to(`user_${chat.user}`).emit("chatActivated", chat);
+    }
+  }
+};
+
+// New function to emit messages after they're saved to DB
+export const emitNewMessage = (message) => {
+  if (io) {
+    io.to(`chat_${message.chat}`).emit("newMessage", message);
+    
+    // Also notify the recipient if they're not in the chat room
+    const recipientRoom = message.senderType === "user" 
+      ? `astrologer_${message.astrologerId}`
+      : `user_${message.userId}`;
+    
+    if (recipientRoom) {
+      io.to(recipientRoom).emit("newMessageNotification", {
+        chatId: message.chat,
+        messageId: message._id,
+        content: message.content,
+        senderType: message.senderType
+      });
+    }
+  }
 };

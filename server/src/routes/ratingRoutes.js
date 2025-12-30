@@ -4,16 +4,16 @@ import {
   getProductRatings, 
   getUserRating 
 } from '../controllers/ratingController.js';
-import { authMiddleware } from '../middleware/authMiddleware.js';
+import { authMiddleware, onlyUser } from '../middleware/authMiddleware.js';
 
 
 const router = express.Router();
 
 router.route('/product/:productId')
   .get(getProductRatings)
-  .post(authMiddleware, submitRating);
+  .post(authMiddleware, onlyUser, submitRating);
 
 router.route('/user/:productId')
-  .get(authMiddleware, getUserRating);
+  .get(authMiddleware, onlyUser, getUserRating);
 
 export default router;

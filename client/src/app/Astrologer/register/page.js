@@ -8,6 +8,7 @@ export default function AstrologerRegister() {
   const [loading, setLoading] = useState(false);
   const [imagePreview, setImagePreview] = useState(null);
   const [image, setImage] = useState(null);
+  const [certFile, setCertFile] = useState(null);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -19,6 +20,12 @@ export default function AstrologerRegister() {
     expertise: "",
     languages: "",
 
+    experienceYears: "",
+    education: "",
+    achievements: "",
+
+    certificationTitle: "",
+
     availability: "CHAT",
     chatPerMinute: "",
     callPerMinute: "",
@@ -28,7 +35,6 @@ export default function AstrologerRegister() {
     ifsc: "",
   });
 
-  /* ================= CLEANUP ================= */
   useEffect(() => {
     return () => {
       if (imagePreview) URL.revokeObjectURL(imagePreview);
@@ -47,7 +53,12 @@ export default function AstrologerRegister() {
     setImagePreview(URL.createObjectURL(file));
   };
 
-  /* ================= VALIDATION ================= */
+  const handleCertFile = (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCertFile(file);
+  };
+
   const validate = () => {
     if (!form.fullName.trim()) return "Full name required";
     if (!form.email.trim()) return "Email required";
@@ -71,7 +82,6 @@ export default function AstrologerRegister() {
     return null;
   };
 
-  /* ================= SUBMIT ================= */
   const submit = async () => {
     const error = validate();
     if (error) return toast.error(error);
@@ -82,27 +92,43 @@ export default function AstrologerRegister() {
       fullName: form.fullName,
       email: form.email,
       phone: form.phone,
-      age: Number(form.age),
+      age: Number(form.age || 0),
       gender: form.gender,
       bio: form.bio,
+
+      experienceYears: Number(form.experienceYears || 0),
+      education: form.education,
+
       availability: form.availability,
       chatPerMinute: Number(form.chatPerMinute || 0),
       callPerMinute: Number(form.callPerMinute || 0),
+
       bankName: form.bankName,
       bankAccountNumber: form.bankAccountNumber,
       ifsc: form.ifsc,
+
+      certificationTitle: form.certificationTitle,
     }).forEach(([k, v]) => fd.append(k, v));
 
     fd.append(
       "expertise",
       JSON.stringify(form.expertise.split(",").map((e) => e.trim()))
     );
+
     fd.append(
       "languages",
       JSON.stringify(form.languages.split(",").map((l) => l.trim()))
     );
 
+    if (form.achievements.trim()) {
+      fd.append(
+        "achievements",
+        JSON.stringify(form.achievements.split(",").map((a) => a.trim()))
+      );
+    }
+
     if (image) fd.append("profileImage", image);
+    if (certFile) fd.append("certificationFile", certFile);
 
     try {
       setLoading(true);
@@ -115,7 +141,6 @@ export default function AstrologerRegister() {
     }
   };
 
-  /* ================= UI ================= */
   return (
     <div className="min-h-screen bg-[#F7F3E9] flex items-center justify-center px-4">
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 border">
@@ -123,23 +148,17 @@ export default function AstrologerRegister() {
         <h2 className="text-2xl font-bold text-center text-[#003D33]">
           Astrologer Registration
         </h2>
-        <p className="text-center text-sm text-[#00695C] mt-1">
-          Apply to join our astrology platform
-        </p>
 
-        {/* IMAGE */}
+        {/* PROFILE IMAGE */}
         <div className="mt-4">
           <label className="text-sm font-medium">Profile Image</label>
           <input type="file" accept="image/*" onChange={handleImage} />
           {imagePreview && (
-            <img
-              src={imagePreview}
-              className="mt-2 w-24 h-24 object-cover rounded-lg"
-            />
+            <img src={imagePreview} className="mt-2 w-24 h-24 rounded-lg object-cover" />
           )}
         </div>
 
-        {/* BASIC */}
+        {/* BASIC INFO */}
         <div className="grid md:grid-cols-2 gap-3 mt-4">
           {["fullName", "email", "phone", "age"].map((f) => (
             <input
@@ -153,86 +172,72 @@ export default function AstrologerRegister() {
           ))}
         </div>
 
-        <select
-          name="gender"
-          value={form.gender}
-          onChange={handleChange}
-          className="border rounded px-3 py-2 w-full mt-3"
-        >
+        <select name="gender" value={form.gender} onChange={handleChange}
+          className="border rounded px-3 py-2 w-full mt-3">
           <option value="">Select Gender</option>
           <option>Male</option>
           <option>Female</option>
           <option>Other</option>
         </select>
 
-        <textarea
-          name="bio"
-          placeholder="Short bio"
-          value={form.bio}
-          onChange={handleChange}
-          className="border rounded px-3 py-2 w-full mt-3"
-          rows={3}
-        />
+        <textarea name="bio" placeholder="Short bio"
+          value={form.bio} onChange={handleChange}
+          className="border rounded px-3 py-2 w-full mt-3" rows={3} />
 
-        <input
-          name="expertise"
-          placeholder="Expertise (Vedic, Tarot)"
-          value={form.expertise}
-          onChange={handleChange}
-          className="border rounded px-3 py-2 w-full mt-3"
-        />
+        <input name="expertise" placeholder="Expertise (Vedic, Tarot)"
+          value={form.expertise} onChange={handleChange}
+          className="border rounded px-3 py-2 w-full mt-3" />
 
-        <input
-          name="languages"
-          placeholder="Languages (English, Hindi)"
-          value={form.languages}
-          onChange={handleChange}
-          className="border rounded px-3 py-2 w-full mt-3"
-        />
+        <input name="languages" placeholder="Languages (English, Hindi)"
+          value={form.languages} onChange={handleChange}
+          className="border rounded px-3 py-2 w-full mt-3" />
+
+        {/* OPTIONAL PROFESSIONAL INFO */}
+        <input name="experienceYears" placeholder="Years of Experience (Optional)"
+          onChange={handleChange} className="border rounded px-3 py-2 w-full mt-3" />
+
+        <input name="education" placeholder="Education / Certification Authority (Optional)"
+          onChange={handleChange} className="border rounded px-3 py-2 w-full mt-3" />
+
+        <input name="achievements" placeholder="Achievements (comma separated)"
+          onChange={handleChange} className="border rounded px-3 py-2 w-full mt-3" />
+
+        {/* CERTIFICATION */}
+        <input name="certificationTitle" placeholder="Certification Title (Optional)"
+          onChange={handleChange} className="border rounded px-3 py-2 w-full mt-3" />
+
+        <input type="file" accept="image/*,.pdf"
+          onChange={handleCertFile} className="mt-2" />
 
         {/* AVAILABILITY */}
-        <select
-          name="availability"
-          value={form.availability}
+        <select name="availability" value={form.availability}
           onChange={handleChange}
-          className="border rounded px-3 py-2 w-full mt-3"
-        >
+          className="border rounded px-3 py-2 w-full mt-3">
           <option value="CHAT">Chat Only</option>
           <option value="CALL">Call Only</option>
           <option value="BOTH">Chat + Call</option>
         </select>
 
-        {/* PRICING */}
-        {(form.availability === "CHAT" || form.availability === "BOTH") && (
-          <input
-            name="chatPerMinute"
-            placeholder="Chat ₹ per minute"
-            value={form.chatPerMinute}
-            onChange={handleChange}
-            className="border rounded px-3 py-2 w-full mt-3"
-          />
+        {(form.availability !== "CALL") && (
+          <input name="chatPerMinute" placeholder="Chat ₹ per minute"
+            onChange={handleChange} className="border rounded px-3 py-2 w-full mt-3" />
         )}
 
-        {(form.availability === "CALL" || form.availability === "BOTH") && (
-          <input
-            name="callPerMinute"
-            placeholder="Call ₹ per minute"
-            value={form.callPerMinute}
-            onChange={handleChange}
-            className="border rounded px-3 py-2 w-full mt-3"
-          />
+        {(form.availability !== "CHAT") && (
+          <input name="callPerMinute" placeholder="Call ₹ per minute"
+            onChange={handleChange} className="border rounded px-3 py-2 w-full mt-3" />
         )}
 
         {/* BANK */}
-        <input name="bankName" placeholder="Bank Name" onChange={handleChange} className="border rounded px-3 py-2 w-full mt-3"/>
-        <input name="bankAccountNumber" placeholder="Account Number" onChange={handleChange} className="border rounded px-3 py-2 w-full mt-3"/>
-        <input name="ifsc" placeholder="IFSC Code" onChange={handleChange} className="border rounded px-3 py-2 w-full mt-3"/>
+        <input name="bankName" placeholder="Bank Name" onChange={handleChange}
+          className="border rounded px-3 py-2 w-full mt-3" />
+        <input name="bankAccountNumber" placeholder="Account Number" onChange={handleChange}
+          className="border rounded px-3 py-2 w-full mt-3" />
+        <input name="ifsc" placeholder="IFSC Code" onChange={handleChange}
+          className="border rounded px-3 py-2 w-full mt-3" />
 
-        <button
-          onClick={submit}
-          disabled={loading}
-          className="mt-6 w-full bg-[#003D33] text-white py-2 rounded-lg"
-        >
+        <button onClick={submit} disabled={loading}
+          className="mt-6 w-full bg-[#003D33] text-white py-2 rounded-lg">
           {loading ? "Submitting..." : "Submit for Approval"}
         </button>
 

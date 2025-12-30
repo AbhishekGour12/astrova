@@ -1,29 +1,75 @@
-import jwt from 'jsonwebtoken';
-import dotenv from 'dotenv';
+import jwt from "jsonwebtoken";
 
-
-
-
+/* ===============================
+   COMMON AUTH (USER / ASTROLOGER / ADMIN)
+================================ */
 export const authMiddleware = (req, res, next) => {
   try {
-    // Extract token from header
     const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({ message: 'No token provided' });
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      return res.status(401).json({
+        success: false,
+        message: "Authorization token missing",
+      });
     }
 
-    const token = authHeader.split(' ')[1];
+    const token = authHeader.split(" ")[1];
 
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET ) ;
-
-    // Attach decoded user data to request
-    req.user  = decoded 
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     
+
+    /*
+      decoded = {
+        id: "...",
+        role: "user" | "astrologer" | "admin",
+        iat,
+        exp
+      }
+    */
+
+    req.user= decoded;
+    console.log(req.user) // 👈 single source of truth
     next();
   } catch (err) {
-    console.error('JWT Error:', err);
-    res.status(401).json({ message: 'Invalid or expired token' });
+    console.error("JWT Error:", err.message);
+
+    return res.status(401).json({
+      success: false,
+      message: "Invalid or expired token",
+    });
   }
+};
+
+/* ===============================
+   ROLE BASED GUARDS
+================================ */
+export const onlyUser = (req, res, next) => {
+  if (req.user?.role !== "user") {
+    return res.status(403).json({
+      success: false,
+      message: "User access only",
+    });
+  }
+  next();
+};
+
+export const onlyAstrologer = (req, res, next) => {
+  if (req.user?.role !== "astrologer") {
+    return res.status(403).json({
+      success: false,
+      message: "Astrologer access only",
+    });
+  }
+  next();
+};
+
+export const onlyAdmin = (req, res, next) => {
+  if (req.user?.role !== "admin") {
+    return res.status(403).json({
+      success: false,
+      message: "Admin access only",
+    });
+  }
+  next();
 };

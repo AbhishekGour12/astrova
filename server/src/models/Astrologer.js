@@ -83,7 +83,10 @@ paidEarnings: {
   type: Number,
   default: 0, // already paid
 },
-
+isAvailable:{
+  type: Boolean,
+  default: false
+}
 
   },
   { timestamps: true }

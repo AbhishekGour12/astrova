@@ -8,31 +8,53 @@ const socket = io(process.env.NEXT_PUBLIC_API, {
 });
 
 export default function ChatPanel() {
-  
+  const astrologerId = localStorage.getItem("astrologer_id");
 
   const [chats, setChats] = useState([]);
   const [activeChat, setActiveChat] = useState(null);
   const [messages, setMessages] = useState([]);
   const [text, setText] = useState("");
 
-  const messagesEndRef = useRef(null);
+  const bottomRef = useRef(null);
 
-  /* ================= LOAD CHATS ================= */
   useEffect(() => {
-    loadChats();
-  }, []);
+    if (!astrologerId) return;
 
-  const loadChats = async () => {
-    try {
-      const astrologerId = localStorage.getItem("astrologer_id");
-      const res = await api.get(`/chat/astrologer/my/${astrologerId}`);
-      setChats(res.data);
-    } catch (err) {
-      console.error(err.message);
-    }
+    socket.emit("joinAstrologer", { astrologerId });
+
+    api
+      .get(`/chat/astrologer/my/${astrologerId}`)
+      .then((r) => setChats(r.data));
+
+    socket.on("newChat", (chat) =>
+      setChats((p) => [chat, ...p])
+    );
+
+    socket.on("chatActivated", (chat) =>
+      setChats((p) =>
+        p.map((c) => (c._id === chat._id ? chat : c))
+      )
+    );
+
+    socket.on("newMessage", (msg) => {
+      if (msg.chat === activeChat?._id) {
+        setMessages((p) =>
+          p.some((m) => m._id === msg._id) ? p : [...p, msg]
+        );
+      }
+    });
+
+    return () => {
+      socket.off("newChat");
+      socket.off("chatActivated");
+      socket.off("newMessage");
+    };
+  }, [activeChat, astrologerId]);
+
+  const acceptChat = async (chatId) => {
+    await api.post(`/chat/accept/${chatId}`);
   };
 
-  /* ================= OPEN CHAT ================= */
   const openChat = async (chat) => {
     if (chat.status !== "ACTIVE") return;
 
@@ -43,26 +65,8 @@ export default function ChatPanel() {
     setMessages(res.data);
   };
 
-  /* ================= ACCEPT CHAT ================= */
-  const acceptChat = async (chatId) => {
-  try {
-    await api.post(`/chat/accept/${chatId}`);
-
-    // optimistic UI update
-    setChats((prev) =>
-      prev.map((c) =>
-        c._id === chatId ? { ...c, status: "ACTIVE" } : c
-      )
-    );
-  } catch (err) {
-    console.error(err.message);
-  }
-};
-
-
-  /* ================= SEND MESSAGE ================= */
   const sendMessage = () => {
-    if (!text.trim() || !activeChat) return;
+    if (!text) return;
 
     socket.emit("sendMessage", {
       chatId: activeChat._id,
@@ -74,128 +78,54 @@ export default function ChatPanel() {
     setText("");
   };
 
-  /* ================= SOCKET LISTENER ================= */
- useEffect(() => {
-  if (!socket) return;
-
-  const onMessage = (msg) => {
-    if (msg.chat === activeChat?._id) {
-      setMessages((prev) =>
-        prev.some((m) => m._id === msg._id) ? prev : [...prev, msg]
-      );
-    }
-  };
-
-  const onChatActivated = ({ chatId }) => {
-    setChats((prev) =>
-      prev.map((c) =>
-        c._id === chatId ? { ...c, status: "ACTIVE" } : c
-      )
-    );
-  };
-
-  socket.on("newMessage", onMessage);
-  socket.on("chatActivated", onChatActivated);
-
-  return () => {
-    socket.off("newMessage", onMessage);
-    socket.off("chatActivated", onChatActivated);
-  };
-}, [activeChat]);
-
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
-  useEffect(() => {
-  const onChatActivated = ({ chatId }) => {
-    setChats((prev) =>
-      prev.map((c) =>
-        c._id === chatId
-          ? { ...c, status: "ACTIVE" }
-          : c
-      )
-    );
-  };
-
-  socket.on("chatActivated", onChatActivated);
-
-  return () => {
-    socket.off("chatActivated", onChatActivated);
-  };
-}, []);
-
 
   return (
     <div className="grid grid-cols-4 h-full">
-
-      {/* LEFT – CHAT LIST */}
-      <div className="border-r bg-white p-4 overflow-y-auto">
-        <h2 className="font-bold mb-3">Chat Requests</h2>
+      <div className="border-r p-4 bg-white">
+        <h2 className="font-bold mb-3">Chats</h2>
 
         {chats.map((c) => (
           <div
             key={c._id}
-            className={`p-3 mb-3 rounded border cursor-pointer ${
-              c.status === "ACTIVE"
-                ? "bg-green-50"
-                : c.status === "WAITING"
-                ? "bg-yellow-50"
-                : "bg-gray-100"
-            }`}
+            className="p-3 mb-2 border rounded cursor-pointer"
             onClick={() => openChat(c)}
           >
-            <p className="font-semibold">
-              User ID: {c.user?._id}
-            </p>
-
-            <p className="text-xs mt-1">
-              Status: <b>{c.status}</b>
-            </p>
-
+            Status: {c.status}
             {c.status === "WAITING" && (
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   acceptChat(c._id);
                 }}
-                className="mt-2 text-sm bg-green-600 text-white px-3 py-1 rounded"
+                className="block mt-2 bg-green-600 text-white px-2 py-1 rounded"
               >
-                Accept Chat
+                Accept
               </button>
             )}
           </div>
         ))}
       </div>
 
-      {/* RIGHT – CHAT WINDOW */}
-      <div className="col-span-3 flex flex-col bg-[#F7F3E9]">
-
-        {/* MESSAGES */}
+      <div className="col-span-3 flex flex-col">
         <div className="flex-1 p-4 overflow-y-auto">
-          {!activeChat && (
-            <p className="text-center text-gray-500 mt-20">
-              Select an active chat
-            </p>
-          )}
-
           {messages.map((m) => (
             <div key={m._id} className="mb-2">
               <b>{m.senderType === "astrologer" ? "You" : "User"}:</b>{" "}
               {m.content}
             </div>
           ))}
-
-          <div ref={messagesEndRef} />
+          <div ref={bottomRef} />
         </div>
 
-        {/* INPUT */}
         {activeChat && (
-          <div className="p-4 border-t flex gap-2 bg-white">
+          <div className="p-3 border-t flex gap-2">
             <input
               value={text}
               onChange={(e) => setText(e.target.value)}
-              className="flex-1 border rounded px-3 py-2"
-              placeholder="Reply…"
+              className="flex-1 border px-3 py-2 rounded"
             />
             <button
               onClick={sendMessage}
