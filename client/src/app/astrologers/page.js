@@ -407,7 +407,7 @@ export default function AstrologerList() {
               <div className="text-center">
                 <div className="relative inline-block">
                   <img
-                    src={`${process.env.NEXT_PUBLIC_API}${astrologer.profileImageUrl}`}
+                    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${astrologer.profileImageUrl}`}
                     alt={astrologer.fullName}
                     className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
                   />

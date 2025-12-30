@@ -248,6 +248,7 @@ console.log("RAW RESPONSE:", text);
 
 
     const geo = await getLatLngFromCity(data.birthCity);
+    console.log(geo)
 
    const hour24 = convertTo24Hour(
       data.birthHour,
