@@ -28,7 +28,7 @@ export default function MiniAdStrip({ slides = [] }) {
               {/* Image Container */}
               <div className="relative h-[38px] w-full rounded-md overflow-hidden">
                 <img
-                  src={`${process.env.NEXT_PUBLIC_API}${slide.image}`}
+                  src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${slide.image}`}
                   alt={slide.title}
                   className="h-full w-full object-fill"
                 />

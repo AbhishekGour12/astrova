@@ -1,6 +1,6 @@
 'use client';
 
-import { Provider, useDispatch } from 'react-redux';
+import { Provider, useDispatch, useSelector } from 'react-redux';
 import toast, { Toaster } from 'react-hot-toast';
 import { store } from './store/store';
 import { productsType } from './store/features/productTypeSlice';
@@ -14,8 +14,9 @@ import AstroProfileModal from "./components/AstroprofileModal";
 
 // ✅ Safe and silent user auth initialization
  function Product({setShowProfileForm}){
-  const dispatch = useDispatch()
-  
+ 
+  const dispatch = useDispatch();
+  const user = useSelector((state) => state.auth.user)
 
   useEffect(() =>{
     const fetchProductType = async () =>{
@@ -30,7 +31,7 @@ import AstroProfileModal from "./components/AstroprofileModal";
     const fetchUser = async () => {
       try {
         const res = await authAPI.getProfile(token);
-      console.log(res)
+     
 
        if (res?.data) {
   dispatch(loginSuccess(res.data));
@@ -74,10 +75,16 @@ import AstroProfileModal from "./components/AstroprofileModal";
    fetchProductType()
     
   },[dispatch])
- 
+ useEffect(() => {
+  if (user && !user.isProfileComplete) {
+    setShowProfileForm(true);
+  }
+}, [user]);
+
   return null
 
 }
+
 
 export function Providers({ children }) {
   const [showProfileForm, setShowProfileForm] = useState(false);
