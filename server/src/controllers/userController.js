@@ -214,15 +214,29 @@ const convertTo24Hour = (hour, meridiem) => {
  const getLatLngFromCity = async (city) => {
   if (!city) return null;
 
-  const res = await fetch(
-    `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-      city
-    )}&format=json&limit=1`
-  );
+  const url = `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
+    city
+  )}&format=json&limit=1`;
 
-  const data = await res.json();
+  const response = await fetch(url, {
+    headers: {
+      "User-Agent": "myastrova/1.0 (contact@myastrova.com)",
+      "Accept": "application/json",
+    },
+  });
 
-  if (!data.length) {
+  const text = await response.text();
+console.log("RAW RESPONSE:", text);
+
+  let data;
+  try {
+    data = JSON.parse(text);
+  } catch (err) {
+    console.error("🌐 Nominatim raw response:", text);
+    throw new Error("Location service error");
+  }
+
+  if (!Array.isArray(data) || !data.length) {
     throw new Error("Location not found");
   }
 
@@ -231,6 +245,7 @@ const convertTo24Hour = (hour, meridiem) => {
     lon: parseFloat(data[0].lon),
   };
 };
+
 
     const geo = await getLatLngFromCity(data.birthCity);
 
