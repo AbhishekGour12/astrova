@@ -8,7 +8,7 @@ import Chat from "../models/Chat.js";
 import sendEmail from "../utils/sendEmail.js";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
-import razorpayX from "../utils/razorpayX.js"
+import {razorpayX} from "../utils/razorpayX.js"
 
 // ===================== //
 // 🔐 ADMIN DASHBOARD OPS //

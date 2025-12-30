@@ -20,7 +20,7 @@ const storage = multer.diskStorage({
 
 // ✅ Image-only filter
 const imageFileFilter = (req, file, cb) => {
-  const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/avif", "image/svg+xml", "image/gif", "image/tiff","image/bmp", "image/heic", ""];
+  const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/avif", "image/svg+xml", "image/gif", "image/tiff","image/bmp", "image/heic", "application/pdf"];
   if (allowed.includes(file.mimetype)) cb(null, true);
   else cb(new Error("Invalid image file type"), false);
 };
@@ -34,7 +34,7 @@ const excelAndImageFileFilter = (req, file, cb) => {
     "image/jpg",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/vnd.ms-excel",
-    "text/csv",
+    "text/csv"
     
   ];
   if (allowed.includes(file.mimetype)) cb(null, true);
@@ -49,4 +49,9 @@ export const uploadImages = multer({
 export const uploadExcelAndImages = multer({
   storage,
   fileFilter: excelAndImageFileFilter,
+});
+
+export const uploadAstrologerFiles = multer({
+  storage,
+  fileFilter: imageFileFilter,
 });

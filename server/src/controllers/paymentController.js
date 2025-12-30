@@ -2,7 +2,7 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import Payment from "../models/Payment.js";
 import { console } from "inspector";
-console.log(process.env.RAZORPAY_KEY)
+
 
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY || "rzp_test_RwXcLi65KXy3eV",

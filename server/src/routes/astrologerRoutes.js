@@ -2,14 +2,17 @@
 import express from "express";
 import { astrologerLogin, getAllAstrologers, getAstrologerProfile, getAstrologerStats, registerAstrologer, toggleAstrologerAvailability } from "../controllers/astrologerController.js";
 
-import { uploadImages } from "../utils/multer.js";
+import { uploadAstrologerFiles} from "../utils/multer.js";
 import {  authMiddleware, onlyAstrologer } from "../middleware/authMiddleware.js";
 import Chat from "../models/Chat.js";
 
 
 const router = express.Router();
 
-router.post("/register", uploadImages.single("profileImage"), uploadImages.single("certificationFile"), registerAstrologer);
+router.post("/register",  uploadAstrologerFiles.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "certificationFile", maxCount: 1 },
+  ]), registerAstrologer);
 router.post("/login", astrologerLogin);
 router.get("/", getAllAstrologers)
 // 🔥 NEW ROUTES (Dashboard)
