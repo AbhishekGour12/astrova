@@ -233,7 +233,7 @@ ${
                 <ul className="py-6 px-6 space-y-4 text-[16px] font-medium">
                   <li className="border-b pb-3"><Link href="/">Home</Link></li>
                   <li className="border-b pb-3"><Link href="/ProductsPage">Products</Link></li>
-                  <li className="border-b pb-3"><Link href="/Chats">Chats</Link></li>
+                  <li className="border-b pb-3"><Link href="/astrologers">Chats</Link></li>
                   <li className={`border-b pb-3 ${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}><Link href="/Orders" className={`${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}>MyOrders</Link></li>
                   <li className="border-b pb-3"><Link href="/">Who are we</Link></li>
                   <li className="border-b pb-3"><Link href="/Remedy">Remedies</Link></li>
