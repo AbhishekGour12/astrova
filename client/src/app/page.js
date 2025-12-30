@@ -19,6 +19,7 @@ import { useDispatch, useSelector } from "react-redux";
 import MiniAdStrip from './components/Home/MiniAdStrip'
 import { productType } from "./store/features/productTypeSlice";
 import axios from "axios";
+import { productAPI } from "./lib/product";
 
 
 const HeroSection = () => {
@@ -26,6 +27,7 @@ const HeroSection = () => {
   const router = useRouter()
 
 
+  
   
 
   const serviceCards = [
@@ -348,8 +350,67 @@ const HeroSection = () => {
 };
 
 export default function AstroHeroPage() {
+  const [products, setProducts] = useState();
+  const [productType, setProductType] = useState()
+   
+    const [filters, setFilters] = useState({
+    page: 1,
+    limit: 10,
+    search: '',
+    type: '',
+    minPrice: '',
+    maxPrice: '',
+    isFeatured: '',
+    sortBy: "price",
+    order: "asc",
+  });
+    
+  useEffect(() =>{
+    console.log(process.env.NEXT_PUBLIC_API)
+    const fetchProducts = async () =>{
+      try{
+        const {products, totalPages} = await productAPI.getProducts(filters);
+        setProducts(products);
+        console.log(products)
+      }catch(err){
+        console.log(err.message);
+      }
+    }
+    fetchProducts();
+  
+  },[productType]);
+  const handleCategoryClick = (cat) => {
+    setProductType(cat);
+    console.log(cat)
+    setFilters((prev) => ({
+      ...prev,
+      page: 1,        // Reset to first page
+      limit: 10,      // Ensure 10 products per page
+      type: cat === prev.type ? "" : cat, // Toggle off if clicked again
+    }));
+    
+  };
+  const fetchProducts = async () =>{
+    try{
+      const {products, totalPages} = await productAPI.getProducts({
+    page: 1,
+    limit: 10,
+    search: '',
+    type: '',
+    minPrice: '',
+    maxPrice: '',
+    isFeatured: '',
+    sortBy: "price",
+    order: "asc",
+  });
  
-  const productType = useSelector((state) => state.productType.value);
+      setProducts(products);
+    }catch(err){
+      console.log(err.message);
+    }
+  }
+ 
+  const productType1 = useSelector((state) => state.productType.value);
   
   return (
     <div className="relative min-h-screen overflow-hidden">
@@ -357,7 +418,7 @@ export default function AstroHeroPage() {
       <HeroSection />
       <About/>
       <Product />
-      <BestProducts categories={productType}/>
+      <BestProducts categories={productType1} products={products} handleCategoryClick={handleCategoryClick} filters={filters} setFilters={setFilters} setProductType={setProductType} fetchProducts={fetchProducts} />
       <BookConsultant/>
       <AstrologerSection/>
       <PremiumProductSection/>

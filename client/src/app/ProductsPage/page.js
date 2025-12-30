@@ -258,7 +258,7 @@ useEffect(() =>{
             <div className="relative h-[70vh]  w-full overflow-hidden">
               {/* Background Image */}
               <img
-                src={`https://astrova-1.onrender.com${slide.image}`}
+                src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${slide.image}`}
                 alt={slide.title}
                 className="w-full h-full object-cover scale-100 transition-transform duration-700 hover:scale-[1.02] rounded-none"
               />

@@ -11,70 +11,11 @@ import "swiper/css";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css/pagination";
 
-export default function BestProducts({categories}) {
+export default function BestProducts({categories, products, productType, setProductType, fetchProducts, filters, setFilters, handleCategoryClick}) {
   
   const router = useRouter()
   
-  const [products, setProducts] = useState();
-  const [productType, setProductType] = useState()
- 
-  const [filters, setFilters] = useState({
-  page: 1,
-  limit: 10,
-  search: '',
-  type: '',
-  minPrice: '',
-  maxPrice: '',
-  isFeatured: '',
-  sortBy: "price",
-  order: "asc",
-});
   
-useEffect(() =>{
-  console.log(process.env.NEXT_PUBLIC_API)
-  const fetchProducts = async () =>{
-    try{
-      const {products, totalPages} = await productAPI.getProducts(filters);
-      setProducts(products);
-      console.log(products)
-    }catch(err){
-      console.log(err.message);
-    }
-  }
-  fetchProducts();
-
-},[productType]);
-const handleCategoryClick = (cat) => {
-  setProductType(cat);
-  console.log(cat)
-  setFilters((prev) => ({
-    ...prev,
-    page: 1,        // Reset to first page
-    limit: 10,      // Ensure 10 products per page
-    type: cat === prev.type ? "" : cat, // Toggle off if clicked again
-  }));
-  
-};
-const fetchProducts = async () =>{
-  try{
-    const {products, totalPages} = await productAPI.getProducts({
-  page: 1,
-  limit: 10,
-  search: '',
-  type: '',
-  minPrice: '',
-  maxPrice: '',
-  isFeatured: '',
-  sortBy: "price",
-  order: "asc",
-});
-console.log(products)
-    setProducts(products);
-  }catch(err){
-    console.log(err.message);
-  }
-}
-
 
 
 
