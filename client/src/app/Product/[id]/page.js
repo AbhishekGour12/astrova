@@ -108,8 +108,10 @@ const ProductShowcasePage = ({ params }) => {
         productAPI.getProductRatings(productId),
         
       ]);
+      if(user){
       const likesRes = await productAPI.getProductLikesCount(productId);
 setLikesCount(likesRes.count || 0);
+      }
 
 
       setSelectedProduct(product);
@@ -137,6 +139,7 @@ setLikesCount(likesRes.count || 0);
 
       // Wishlist state (only if logged in)
       if (user) {
+       
         const liked = await productAPI.checkUserInterest(productId);
         setIsLiked(!!liked?.isLiked);
       } else {
@@ -184,6 +187,7 @@ const decrementQty = () => {
   // ------------------------------------------------------------------
   const handleToggleLike = async () => {
   if (!checkLogin()) return;
+  if(!user) return;
 
   try {
     if (isLiked) {
