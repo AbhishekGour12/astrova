@@ -1,13 +1,52 @@
 "use client";
 import Image from "next/image";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { Quote } from "lucide-react";
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+const REVIEWS_PER_SLIDE = 3
 
 export default function Testimonial() {
+  const [reviews, setReviews] = useState([]);
+  const [index, setIndex] = useState(0);
+
+  // 🔹 Fetch reviews (already filtered 4–5 stars from backend)
+  useEffect(() => {
+    const loadReviews = async () => {
+      try {
+        const res = await axios.get(
+          `${process.env.NEXT_PUBLIC_API}/api/ratings/reviews`
+        );
+        console.log(res.data)
+        setReviews(res.data.reviews || []);
+      } catch (err) {
+        console.error("Failed to load reviews", err);
+      }
+    };
+    loadReviews();
+  }, []);
+
+  // 🔹 Auto slide carousel
+  useEffect(() => {
+    if (reviews.length <= REVIEWS_PER_SLIDE) return;
+
+    const interval = setInterval(() => {
+      setIndex((prev) =>
+        prev + REVIEWS_PER_SLIDE >= reviews.length ? 0 : prev + REVIEWS_PER_SLIDE
+      );
+    }, 4000);
+
+    return () => clearInterval(interval);
+  }, [reviews]);
+
+  const visibleReviews = reviews.slice(index, index + REVIEWS_PER_SLIDE);
+  
   return (
-    <div className="relative overflow-visible  ">
-      {/* ===================== TOP TESTIMONIAL SECTION ===================== */}
-      <section className="relative bg-white py-16   sm:py-20 md:py-28 lg:py-32 overflow-visible ">
+    <div className="relative overflow-visible">
+      {/* ===================== TOP TESTIMONIAL SECTION (CAROUSEL) ===================== */}
+
+       <section className="relative bg-white py-16   sm:py-20 md:py-28 lg:py-32 overflow-visible ">
         {/* Background decorations */}
         <div className="absolute left-[-50px]  bottom-[-80px] w-[250px] sm:w-[300px] md:w-[400px] opacity-60 z-0">
           <Image
@@ -43,9 +82,9 @@ export default function Testimonial() {
 
       {/* Testimonial Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {[1, 2, 3].map((_, i) => (
+        {visibleReviews.map((i) => (
           <motion.div
-            key={i}
+            key={i._id}
             whileHover={{ scale: 1.03 }}
             transition={{ duration: 0.3 }}
             className="relative bg-white border border-gray-200 rounded-lg shadow-md p-6 overflow-hidden"
@@ -65,13 +104,14 @@ export default function Testimonial() {
 
             {/* Name */}
             <h3 className="text-[#7E5833] font-semibold italic text-lg sm:text-xl mt-8 mb-4 text-left ml-6">
-              Sumona
+              {i.userId.username}
             </h3>
 
             {/* Review */}
             <p className="text-[#4A3A28] text-sm sm:text-[15px] leading-relaxed mb-6">
-              The reading was incredibly accurate. I finally understand the
-              patterns in my life! Truly clarifying and empowering.
+              {i.review.length > 150
+                ? i.review.slice(0, 150) + "..."
+                : i.review}
             </p>
 
             {/* Profile Section */}
@@ -79,20 +119,20 @@ export default function Testimonial() {
               <div className="flex items-center space-x-3">
                 {/* Profile Circle */}
                 <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#E5DECED6] flex items-center justify-center text-[#7E5833] font-semibold text-base sm:text-lg">
-                  SS
+                  {i.userId.username.charAt(0).toUpperCase()}
                 </div>
                 <div>
                   <p className="font-semibold text-[#7E5833] text-sm sm:text-base">
-                    Sumona S
+                    {i.userId.username}
                   </p>
                   <p className="text-xs sm:text-sm text-gray-500">
-                    23 November 2025
+                    {i.createdAt.slice(0, 10)}
                   </p>
                 </div>
               </div>
               {/* Stars */}
               <div className="text-yellow-500 text-sm sm:text-base mt-2 sm:mt-0">
-                ★★★★★
+               {"★".repeat(i.rating) + "☆".repeat(5 - i.rating)}
               </div>
             </div>
           </motion.div>
@@ -100,6 +140,7 @@ export default function Testimonial() {
       </div>
     </div>
       </section>
+
 
       {/* ===================== BOTTOM BLOG SECTION ===================== */}
       <section className="relative py-16 sm:py-20 md:py-28 overflow-hidden">

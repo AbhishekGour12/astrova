@@ -24,7 +24,7 @@ import shippingRoutes from "./routes/shippingRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";
 import remedyRoutes from "./routes/remedyRoutes.js";
 import astrologerRoutes from "./routes/astrologerRoutes.js";
-
+import callRoutes from "./routes/callRoutes.js"
 
 
 
@@ -87,6 +87,7 @@ app.use("/api/shipping", shippingRoutes);
 app.use("/api/payment", paymentRoutes);
 app.use("/api/remedy", remedyRoutes);
 app.use("/api/astrologer", astrologerRoutes);
+app.use("/api/call", callRoutes);
 
 /* =======================
    HEALTH CHECK

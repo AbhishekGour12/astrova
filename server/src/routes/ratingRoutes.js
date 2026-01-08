@@ -2,7 +2,8 @@ import express from 'express';
 import { 
   submitRating, 
   getProductRatings, 
-  getUserRating 
+  getUserRating, 
+  getProductReviews
 } from '../controllers/ratingController.js';
 import { authMiddleware, onlyUser } from '../middleware/authMiddleware.js';
 
@@ -15,5 +16,5 @@ router.route('/product/:productId')
 
 router.route('/user/:productId')
   .get(authMiddleware, onlyUser, getUserRating);
-
+router.route("/reviews").get(getProductReviews)
 export default router;

@@ -19,7 +19,10 @@ const astrologerEarningSchema = new mongoose.Schema(
       type: mongoose.Schema.Types.ObjectId,
       ref: "Chat",
     },
-
+    call:{
+      type : mongoose.Schema.Types.ObjectId,
+      ref : "Call"
+    },
     // CHAT / CALL
     serviceType: {
       type: String,
@@ -36,7 +39,7 @@ const astrologerEarningSchema = new mongoose.Schema(
       type: Number,
       required: true,
     },
-
+   
     amount: {
       type: Number,
       required: true,
@@ -55,6 +58,9 @@ const astrologerEarningSchema = new mongoose.Schema(
     payoutDate: {
       type: Date,
     },
+    notes:{
+      type: String
+    }
   },
   { timestamps: true }
 );

@@ -17,7 +17,7 @@ export default function MiniAdStrip({ slides = [] }) {
         }}
         loop
         slidesPerView={1}
-        className="h-[50px] rounded-lg bg-[#FFF7ED] border border-[#E6D8C3]"
+        className="h-[100px] rounded-lg bg-[#FFF7ED] border border-[#E6D8C3]"
       >
         {slides.map((slide) => (
           <SwiperSlide key={slide._id}>
@@ -26,7 +26,7 @@ export default function MiniAdStrip({ slides = [] }) {
               className="relative flex items-center h-full px-2"
             >
               {/* Image Container */}
-              <div className="relative h-[38px] w-full rounded-md overflow-hidden">
+              <div className="relative h-full w-full rounded-md overflow-hidden">
                 <img
                   src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${slide.image}`}
                   alt={slide.title}

@@ -97,3 +97,32 @@ export const getUserRating = async (req, res) => {
     res.status(500).json({ message: 'Error fetching user rating', error: error.message });
   }
 };
+
+
+
+export const getProductReviews = async (req, res) => {
+  try {
+   
+
+    const reviews = await Rating.find({
+     
+      rating: { $gte: 4 }   // ✅ only 4 & 5 star reviews
+    })
+      .populate({
+        path: "userId",
+        select: "username"
+      })
+      .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      count: reviews.length,
+      reviews
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: "Failed to fetch reviews"
+    });
+  }
+};

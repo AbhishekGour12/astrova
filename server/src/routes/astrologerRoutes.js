@@ -1,9 +1,8 @@
 // routes/astrologer.routes.js
 import express from "express";
-import { astrologerLogin, getAllAstrologers, getAstrologerProfile, getAstrologerStats, registerAstrologer, toggleAstrologerAvailability } from "../controllers/astrologerController.js";
+import { astrologerLogin, getAllAstrologers, getAstrologerProfile, getAstrologerStats, registerAstrologer, sendOTP, toggleAstrologerAvailability, verifyOTP } from "../controllers/astrologerController.js";
 
 import { uploadAstrologerFiles} from "../utils/multer.js";
-import {  authMiddleware, onlyAstrologer } from "../middleware/authMiddleware.js";
 import Chat from "../models/Chat.js";
 
 
@@ -12,6 +11,7 @@ const router = express.Router();
 router.post("/register",  uploadAstrologerFiles.fields([
     { name: "profileImage", maxCount: 1 },
     { name: "certificationFile", maxCount: 1 },
+    {name: "verificationDocuments", maxCount: 5}
   ]), registerAstrologer);
 router.post("/login", astrologerLogin);
 router.get("/", getAllAstrologers)
@@ -47,4 +47,6 @@ router.get('/:id/stats', async (req, res) => {
     });
   }
 });
+router.post("/send-otp", sendOTP);
+router.post("/verify-otp", verifyOTP)
 export default router;

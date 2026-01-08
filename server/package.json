@@ -11,7 +11,8 @@
     "start": "node src/server.js"
   },
   "dependencies": {
-    "axios": "^1.13.1",
+    "@100mslive/server-sdk": "^0.3.0",
+    "axios": "^1.13.2",
     "bcryptjs": "^3.0.2",
     "body-parser": "^2.2.0",
     "cors": "^2.8.5",
@@ -26,7 +27,7 @@
     "nodemon": "^3.1.10",
     "razorpay": "^2.9.6",
     "socket.io": "^4.8.3",
-    "twilio": "^5.10.4",
+    "twilio": "^5.11.1",
     "xlsx": "^0.18.5"
   }
 }

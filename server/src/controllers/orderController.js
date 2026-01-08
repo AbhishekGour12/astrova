@@ -9,7 +9,8 @@ import {
   getAWBFromOrder,
   trackShipment,
 } from "../services/shipRocketServices.js";
-import { getValidToken } from "../utils/shipRocketToken.js";
+import { payoutToFundAccount } from "../services/razorpayXPayoutServices.js";
+
 export const createOrder = async (req, res) => {
   
   const session = await mongoose.startSession();
@@ -81,11 +82,15 @@ export const createOrder = async (req, res) => {
     // CREATE ORDER IN SHIPROCKET FIRST
     // -----------------------------------
     try{
+      
     const shipOrder = await createShiprocketOrder(plainOrder, {
       weight: calculatedWeight,
       isCOD: isCODEnabled
     });
-
+  
+    if(!shipOrder.order_id){
+      res.status(400).send(shipOrder.errors)
+    }
     if (!shipOrder || !shipOrder.order_id) throw new Error("Shiprocket order failed");
 
     const awbRes = await assignAWB(shipOrder.shipment_id);
@@ -119,6 +124,21 @@ export const createOrder = async (req, res) => {
 // -----------------------------------
 // SAVE PAYMENT INFO (CASH / COD / OFFLINE)
 // -----------------------------------
+
+if (paymentMethod === "online") {
+  // Example: seller fixed payout
+  const payoutAmount = Math.round(totalAmount * 0.7); // 70%
+
+  await payoutToFundAccount({
+    fundAccountId: "fa_RweeY0Tr8ugGMp", // 🔒 stored fund account id
+    amount: payoutAmount,
+    referenceId: newOrder._id.toString(),
+    narration: "Seller payout for order",
+  });
+
+  newOrder.payoutstatus = "SUCCESS";
+  
+}
 
 if (paymentMethod !== "online") {
   await Payment.create(
@@ -174,7 +194,7 @@ if (paymentMethod !== "online") {
   }
 
   } catch (error) {
-    console.log("❌ ORDER CREATE ERROR:", error);
+    console.log("❌ ORDER CREATE ERROR:", error.message);
 
     await session.abortTransaction();
     session.endSession();

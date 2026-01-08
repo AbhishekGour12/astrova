@@ -35,7 +35,7 @@ const CANCELED_STATUSES = [
 // MAIN CRON JOB
 // ==============================
 export const shiprocketCron = () => {
-  cron.schedule("* */30 * * *", async () => {
+  cron.schedule("*/30 * * * *", async () => {
     console.log("⏳ Shiprocket Cron Started");
 
     try {

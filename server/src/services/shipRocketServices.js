@@ -43,7 +43,7 @@ export const createShiprocketOrder = async (order, extra = {}) => {
     weight: Number(extra.weight || order.weight || 0.5)
   };
 
-  console.log("🚀 SHIPROCKET PAYLOAD SENT:", payload);
+ 
 
   try {
     const res = await axios.post(
@@ -53,14 +53,14 @@ export const createShiprocketOrder = async (order, extra = {}) => {
         headers: { Authorization: `Bearer ${token}` }
       }
     );
-    console.log(res)
-
+   
     return res.data;
 
   } catch (err) {
-    console.log("🚨 SHIPROCKET RESPONSE ERROR RAW:", err.response?.data);
-    console.log("🚨 SHIPROCKET STATUS:", err.response?.status);
+   console.log("🚨 SHIPROCKET RESPONSE ERROR RAW:", err.response?.data);
+   console.log("🚨 SHIPROCKET STATUS:", err.response?.status);
     console.log("🚨 SHIPROCKET FULL ERROR:", err);
+    return err.response?.data
     throw new Error(err.response?.data?.message || "Shiprocket error");
   }
 };

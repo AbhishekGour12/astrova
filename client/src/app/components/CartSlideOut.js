@@ -74,6 +74,8 @@ const platformFee = 11;
   // ================================
   // CHECKOUT STATE
   // ================================
+  const [errors, setErrors] = useState({});
+
   const [checkoutStep, setCheckoutStep] = useState("cart");
   const [loading, setLoading] = useState(false);
 
@@ -181,6 +183,50 @@ const roundOff =
 
     setLoading(false);
   };
+const isValidIndianPhone = (phone) => {
+  return /^[6-9]\d{9}$/.test(phone);
+};
+
+const validateAddress = () => {
+  const newErrors = {};
+
+  if (!address.fullName.trim())
+    newErrors.fullName = "Full name is required";
+
+  if (!address.email.trim())
+    newErrors.email = "Email is required";
+  else if (!/^\S+@\S+\.\S+$/.test(address.email))
+    newErrors.email = "Invalid email address";
+
+  if (!address.phone.trim())
+    newErrors.phone = "Phone number is required";
+  else if (!isValidIndianPhone(address.phone))
+    newErrors.phone = "Phone number must be 10 digits";
+
+  if (!address.addressLine1.trim())
+    newErrors.addressLine1 = "Address is required";
+
+  if (!address.city.trim())
+    newErrors.city = "City is required";
+
+  if (!address.state.trim())
+    newErrors.state = "State is required";
+
+  if (!address.pincode.trim())
+    newErrors.pincode = "Pincode is required";
+  else if (!/^\d{6}$/.test(address.pincode))
+    newErrors.pincode = "Pincode must be 6 digits";
+
+  setErrors(newErrors);
+
+  // ❌ validation failed
+  if (Object.keys(newErrors).length > 0) {
+    toast.error(Object.values(newErrors)[0]);
+    return false;
+  }
+
+  return true;
+};
 
   // OFFER LOGIC (Example)
 // ================================
@@ -197,7 +243,7 @@ useEffect(() => {
   // SHIPPING – now checks login BEFORE API call
   // ================================
   const calculateShipping = async () => {
-    
+    if(!validateAddress()) return;
 
     if (!address.pincode || address.pincode.length !== 6)
       return toast.error("Enter a valid pincode");
@@ -258,6 +304,7 @@ setCheckoutStep("coupon");
         order_id: rpOrder.id,
         handler: async (response) => {
           const verify = await paymentAPI.verifyPayment(response);
+          console.log(verify)
 
           if (verify.success) {
             await placeOrder("online", response);
@@ -278,33 +325,56 @@ setCheckoutStep("coupon");
   // ================================
   // CREATE ORDER
   // ================================
-  const placeOrder = async (paymentMethod, paymentDetails = null) => {
-    if (!user) return toast.error("Please login to place order.");
+ const placeOrder = async (paymentMethod, paymentDetails = null) => {
+  if (!user) return toast.error("Please login to place order.");
 
-    setLoading(true);
+  setLoading(true);
 
-    try {
-      await orderAPI.createOrder({
-  shippingAddress: address,
-  paymentMethod,
-  paymentDetails,
-  discount,
-  offerDiscount,
-  roundOff,
-  isCODEnabled: isCOD,
-  totalWeight,
-  finalAmount,
-});
+  try {
+    await orderAPI.createOrder({
+      shippingAddress: address,
+      paymentMethod,
+      paymentDetails,
+      discount,
+      offerDiscount,
+      roundOff,
+      isCODEnabled: isCOD,
+      totalWeight,
+      finalAmount,
+    });
 
-      toast.success("Order placed successfully!");
-     await clearCart()
-      setIsCartOpen(false);
-    } catch (err) {
-      toast.error(err.message);
+    toast.success("Order placed successfully!");
+    await clearCart();
+    setIsCartOpen(false);
+
+  } catch (err) {
+    let errorMessage = "Something went wrong";
+
+    // ✅ FIELD VALIDATION ERROR (400)
+    if (err?.response?.data && typeof err.response.data === "object") {
+      const errors = err.response.data;
+
+      // take first field error
+      const firstKey = Object.keys(errors)[0];
+      if (firstKey && Array.isArray(errors[firstKey])) {
+        errorMessage = errors[firstKey][0];
+      }
+    }
+    // ✅ NORMAL BACKEND MESSAGE
+    else if (err?.response?.data?.message) {
+      errorMessage = err.response.data.message;
+    }
+    // ✅ AXIOS MESSAGE
+    else if (err?.message) {
+      errorMessage = err.message;
     }
 
+    toast.error(errorMessage);
+  } finally {
     setLoading(false);
-  };
+  }
+};
+
 
   // ================================
   // BACK BUTTON
@@ -440,16 +510,24 @@ useEffect(() => {
 
                   <div className="space-y-3">
                     {Object.keys(address).map((key) => (
-                      <input
-                        key={key}
-                        value={address[key]}
-                        placeholder={key}
-                        className="w-full border px-3 py-2 rounded-lg"
-                        onChange={(e) =>
-                          setAddress({ ...address, [key]: e.target.value })
-                        }
-                      />
-                    ))}
+  <div key={key}>
+    <input
+      value={address[key]}
+      placeholder={key}
+      className={`w-full border px-3 py-2 rounded-lg ${
+        errors[key] ? "border-red-500" : ""
+      }`}
+      onChange={(e) => {
+        setAddress({ ...address, [key]: e.target.value });
+        setErrors({ ...errors, [key]: "" });
+      }}
+    />
+    {errors[key] && (
+      <p className="text-red-500 text-sm mt-1">{errors[key]}</p>
+    )}
+  </div>
+))}
+
                   </div>
 
                   <div className="mt-4 flex items-center gap-3">
@@ -625,7 +703,7 @@ useEffect(() => {
 )}
 
 
-          <div className="flex justify-between text-[#C06014] font-semibold">
+          <div className="flex justify-between font-light">
             <span>Platform Fee</span>
             <span>₹{platformFee}</span>
           </div>

@@ -10,6 +10,8 @@ import ClientLayout from './ClientLayout'
 import PathLayout from './PathLayout'
 
 
+
+
 const geistSans = Geist({
   variable: "--font-geist-sans",
   subsets: ["latin"],
@@ -32,6 +34,7 @@ export default function RootLayout({ children }) {
     <html lang="en">
 
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
+      
         <PathLayout> 
         <Providers className="pt-[120px]">
           <CartProvider>
@@ -44,9 +47,12 @@ export default function RootLayout({ children }) {
         </PathLayout>
 
        
+       
+
+       
         <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
          
-
+        
       </body>
     </html>
   );

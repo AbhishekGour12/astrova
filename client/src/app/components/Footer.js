@@ -8,8 +8,12 @@ import {
 import { MdEmail, MdLocationOn } from "react-icons/md";
 import { FiPhone } from "react-icons/fi";
 import Link from "next/link";
+import { useSelector } from "react-redux";
 
 export default function Footer() {
+  // You can pass user as a prop or get it from context
+  const user = useSelector((state) => state.auth.user); // Replace with your actual user state
+
   return (
     <footer className="w-full bg-[#B49A77] text-white font-poppins">
       
@@ -25,45 +29,73 @@ export default function Footer() {
             <p className="text-sm leading-relaxed text-white/90">
               Personalized astrology readings, celestial products, and expert consultation services tailored to your life journey.
             </p>
+            <div className="mt-4">
+              <Link 
+                href="/Astrologer/register" 
+                className="text-sm hover:underline font-medium"
+              >
+                Register as Astrologer
+              </Link>
+            </div>
           </div>
 
           {/* Quick Links */}
           <div>
             <h3 className="font-semibold mb-4 text-[15px] uppercase tracking-wide">Quick Links</h3>
             <ul className="space-y-2 text-sm">
-              {[
-                "Home",
-                "Products",
-                "Horoscope",
-                "Talk to Astrologer",
-                "Book Consultation",
-              ].map((item, index) => (
-                <li key={index}>
-                  <Link href="#" className="hover:underline">
-                    {item}
-                  </Link>
-                </li>
-              ))}
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/" className="hover:underline">Home</Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/ProductsPage" className="hover:underline">Products</Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/astrologers" className="hover:underline">Chats</Link>
+              </li>
+              <li className={`border-b pb-3 border-white/30 ${user ? "hover:cursor-pointer" : "hover:cursor-not-allowed"}`}>
+                <Link 
+                  href="/Orders" 
+                  className={`hover:underline ${user ? "" : "pointer-events-none opacity-70"}`}
+                >
+                  MyOrders
+                </Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/calls" className="hover:underline">Calls</Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/Remedy" className="hover:underline">Remedies</Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/meet" className="hover:underline">Meet</Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/About" className="hover:underline">About</Link>
+              </li>
             </ul>
           </div>
 
-          {/* Astrology Services */}
+          {/* Policies & Legal */}
           <div>
             <h3 className="font-semibold mb-4 text-[15px] uppercase tracking-wide">
-              Services
+              Policies & Legal
             </h3>
             <ul className="space-y-2 text-sm">
-              {[
-                "Kundli Matching",
-                "Gemstone Recommendation",
-                "Numerology Report",
-                "Vastu Consultation",
-                "Daily Zodiac Predictions",
-              ].map((item, index) => (
-                <li key={index} className="hover:underline cursor-pointer">
-                  {item}
-                </li>
-              ))}
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/contact" className="hover:underline">Contact Us</Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/privacy-policy" className="hover:underline">Privacy Policy</Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/terms-conditions" className="hover:underline">Terms & Conditions</Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/refund-policy" className="hover:underline">Refund Policy</Link>
+              </li>
+              <li className="border-b pb-3 border-white/30">
+                <Link href="/shipping-policy" className="hover:underline">Shipping Policy</Link>
+              </li>
             </ul>
           </div>
 

@@ -3,6 +3,7 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken'
 import axios from 'axios'
 import crypto from "crypto";
+import sendEmail from "../utils/sendEmail.js";
 
 
 
@@ -12,7 +13,7 @@ const otpStore = new Map();
 
     const Signup = async (req, res) =>{
     const { name, phone } = req.body;
-    console.log(phone)
+    
 
     try {
         const existingUser = await User.findOne( { phone: phone});
@@ -104,7 +105,7 @@ const userProfile = async (req, res) =>{
         let user = jwt.decode(token);
        
         const result = await User.findById(user.id);
-        console.log(result)
+      
         if (!result) {
             return res.status(404).json({ message: "User not found" });
         }
@@ -133,10 +134,9 @@ const deleteUser = async(req, res) =>{
 
 const user  = async(req, res) =>{
     const phone = req.params.phone;
-    console.log(phone)
    
    const formattedPhone = phone.startsWith("+") ? phone : `+91${phone}`;
-   console.log(formattedPhone)
+   
    
     try{
         const existingUser = await User.findOne({phone: formattedPhone});
@@ -157,9 +157,7 @@ const user  = async(req, res) =>{
 }
 const requestotp = async( req, res) =>{
     const phone = req.params.phone;
-    console.log(phone)
    
-   console.log(process.env.CPAAS_API_KEY)
   
    
     try{
@@ -171,7 +169,7 @@ const requestotp = async( req, res) =>{
 
     // 2️⃣ Store OTP temporarily (5 mins expiry)
     otpStore.set(phone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
-    console.log(otpStore)
+    
      // Country code (91)
 const countryCode = phone.substring(1, 3);
 
@@ -179,8 +177,7 @@ const countryCode = phone.substring(1, 3);
 const mobile = phone.substring(3);
     // 3️⃣ Send SMS via CPaaS API
     const response = await axios.get (`https://cpaas.socialteaser.com/restapi/request.php?authkey=6aa45940ce7d45f2&mobile=${mobile}&country_code=${countryCode}&sid=29289&name=Twinkle&otp=${otp}` );
-       console.log(response.data)
-   
+      
        // const result = await User.findOneAndUpdate({phone: phone.email}, {otp: otp});
        // console.log(result)
        return res.status(200).json({ 
@@ -226,7 +223,6 @@ const convertTo24Hour = (hour, meridiem) => {
   });
 
   const text = await response.text();
-console.log("RAW RESPONSE:", text);
 
   let data;
   try {
@@ -248,7 +244,7 @@ console.log("RAW RESPONSE:", text);
 
 
     const geo = await getLatLngFromCity(data.birthCity);
-    console.log(geo)
+   
 
    const hour24 = convertTo24Hour(
       data.birthHour,
@@ -341,6 +337,198 @@ const getwalletBalance = async(req, res) =>{
   }
 };
 
+const meetRequest = async (req, res) => {
+  try {
+    const {
+      astrologerId,
+      astrologerEmail,
+      astrologerName,
+      userName,
+      userEmail,
+      userPhone,
+      message,
+      service
+    } = req.body;
 
+    // Validate required fields
+    if (!astrologerEmail || !userName || !userEmail || !userPhone) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
 
-export { Signup, Login, userProfile,  deleteUser, user, requestotp, updateAstroProfile, getwalletBalance, addMoneyToWallet };
+    // Create email template
+    const emailSubject = `New Meeting Request from ${userName}`;
+    
+    const emailHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #C06014, #003D33); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .detail-item { margin-bottom: 10px; }
+          .label { font-weight: bold; color: #003D33; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+          .btn { display: inline-block; padding: 12px 24px; background: #C06014; color: white; text-decoration: none; border-radius: 5px; }
+          .user-profile { background: #F7F3E9; padding: 15px; border-radius: 8px; margin: 15px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>🔮 New Meeting Request</h1>
+            <p>MyAstrova</p>
+          </div>
+          <div class="content">
+            <h2>Dear ${astrologerName},</h2>
+            <p>You have received a new meeting request from a client:</p>
+            
+            <div class="user-profile">
+              <h3>👤 Client Details:</h3>
+              <div class="details">
+                <div class="detail-item">
+                  <span class="label">Name:</span> ${userName}
+                </div>
+                <div class="detail-item">
+                  <span class="label">Email:</span> ${userEmail}
+                </div>
+                <div class="detail-item">
+                  <span class="label">Phone:</span> ${userPhone}
+                </div>
+                <div class="detail-item">
+                  <span class="label">Service:</span> ${service || 'Personal Meeting'}
+                </div>
+                ${message ? `
+                <div class="detail-item">
+                  <span class="label">Message:</span> ${message}
+                </div>
+                ` : ''}
+                <div class="detail-item">
+                  <span class="label">Request Time:</span> ${new Date().toLocaleString('en-IN', {
+                    timeZone: 'Asia/Kolkata',
+                    dateStyle: 'full',
+                    timeStyle: 'long'
+                  })}
+                </div>
+              </div>
+            </div>
+            
+            <p><strong>Please contact the client within 24 hours to schedule the meeting.</strong></p>
+            
+            <div style="margin-top: 30px; text-align: center;">
+              <a href="mailto:${userEmail}" class="btn">
+                📧 Contact Client
+              </a>
+            </div>
+            
+            <p style="margin-top: 30px;">
+              <strong>Note:</strong> This is an automated message. Please do not reply to this email.
+            </p>
+          </div>
+          
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} MyAstrova. All rights reserved.</p>
+            <p>This email was sent from the MyAstrova platform.</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    // Send email to astrologer
+    await sendEmail({
+      to: astrologerEmail,
+      subject: emailSubject,
+      html: emailHtml
+    });
+
+    // Also send confirmation email to user
+    const userConfirmationHtml = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <style>
+          body { font-family: Arial, sans-serif; line-height: 1.6; color: #333; }
+          .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+          .header { background: linear-gradient(135deg, #00695C, #003D33); color: white; padding: 20px; text-align: center; border-radius: 10px 10px 0 0; }
+          .content { background: #f9f9f9; padding: 30px; border-radius: 0 0 10px 10px; }
+          .details { background: white; padding: 20px; border-radius: 8px; margin: 20px 0; }
+          .footer { text-align: center; margin-top: 30px; color: #666; font-size: 12px; }
+          .success-icon { color: #4CAF50; font-size: 48px; text-align: center; margin: 20px 0; }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <h1>✅ Meeting Request Confirmation</h1>
+          </div>
+          <div class="content">
+            <div class="success-icon">✓</div>
+            <h2>Dear ${userName},</h2>
+            <p>Your meeting request has been successfully sent to <strong>${astrologerName}</strong>.</p>
+            
+            <div class="details">
+              <p><strong>What happens next?</strong></p>
+              <ol>
+                <li>The astrologer will review your request</li>
+                <li>They will contact you within 24 hours via email or phone</li>
+                <li>You'll discuss and finalize the meeting details</li>
+                <li>The meeting can be scheduled at your mutual convenience</li>
+              </ol>
+              
+              <p><strong>Astrologer Contact:</strong> ${astrologerEmail}</p>
+              ${message ? `<p><strong>Your Message:</strong> ${message}</p>` : ''}
+            </div>
+            
+            <p>If you don't hear back within 24 hours, please contact our support team.</p>
+            
+            <p>Best regards,<br>
+            MyAstrova Team</p>
+          </div>
+          
+          <div class="footer">
+            <p>© ${new Date().getFullYear()} MyAstrova</p>
+            <p>Thank you for choosing our services!</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+
+    await sendEmail({
+      to: userEmail,
+      subject: `Meeting Request Confirmation - ${astrologerName}`,
+      html: userConfirmationHtml
+    });
+
+    // Optionally, save the meeting request to database
+    // You can create a MeetingRequest model if needed
+    // const meetingRequest = await MeetingRequest.create({ ... });
+
+    res.status(200).json({
+      success: true,
+      message: 'Meeting request sent successfully',
+      data: {
+        astrologerName,
+        astrologerEmail,
+        userEmail,
+        sentAt: new Date()
+      }
+    });
+
+  } catch (error) {
+    console.error('Meeting request error:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Failed to send meeting request',
+      error: error.message
+    });
+  }
+}
+
+export { Signup, Login, userProfile,  deleteUser, user, requestotp, updateAstroProfile, getwalletBalance, addMoneyToWallet, meetRequest };

@@ -4,8 +4,12 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken"
 import Chat from "../models/Chat.js";
 import AstrologerEarning from "../models/AstrologerEarning.js";
+import Call from "../models/Call.js";
+import axios from "axios";
 
 
+
+const otpStore = new Map();
 export const registerAstrologer = async (req, res) => {
   try {
     const {
@@ -25,13 +29,49 @@ export const registerAstrologer = async (req, res) => {
       bankName,
       bankAccountNumber,
       ifsc
-
     } = req.body;
 
-    const certifications = [{
-        title: certificationTitle,
+    /* ================= BASIC VALIDATION ================= */
+    if (!fullName || !email || !phone || !bio)
+      return res.status(400).json({ message: "Missing required fields" });
+
+    if (!/^[6-9]\d{9}$/.test(phone))
+      return res.status(400).json({ message: "Invalid phone number" });
+
+    const exists = await Astrologer.findOne({
+      $or: [{ email }, { phone }]
+    });
+    if (exists)
+      return res.status(400).json({ message: "Astrologer already registered" });
+
+    /* ================= SERVICE-BASED VALIDATION ================= */
+    if (["CHAT", "BOTH", "ALL"].includes(availability) && !chatPerMinute)
+      return res.status(400).json({ message: "Chat rate required" });
+
+    if (["CALL", "BOTH", "ALL"].includes(availability) && !callPerMinute)
+      return res.status(400).json({ message: "Call rate required" });
+
+    /* ================= FILE HANDLING ================= */
+    const profileImage =
+      req.files?.profileImage?.[0]?.filename;
+
+    if (!profileImage)
+      return res.status(400).json({ message: "Profile image required" });
+
+    const certifications = [];
+    if (req.files?.certificationFile?.[0]) {
+      certifications.push({
+        title: certificationTitle || "Certification",
         fileUrl: `/uploads/products/${req.files.certificationFile[0].filename}`
-      }];
+      });
+    }
+
+    const verificationDocuments =
+      req.files?.verificationDocuments?.map(
+        (f) => `/uploads/products/${f.filename}`
+      ) || [];
+
+    /* ================= CREATE ASTROLOGER ================= */
     const astrologer = new Astrologer({
       fullName,
       email,
@@ -41,30 +81,35 @@ export const registerAstrologer = async (req, res) => {
       age,
       availability,
       pricing: {
-        chatPerMinute,
-        callPerMinute
+        chatPerMinute: Number(chatPerMinute || 0),
+        callPerMinute: Number(callPerMinute || 0)
       },
       experienceYears,
       education,
       expertise: JSON.parse(req.body.expertise),
       languages: JSON.parse(req.body.languages),
-      achievements: req.body.achievements
-        ? JSON.parse(req.body.achievements)
-        : [],
+      achievements: achievements ? JSON.parse(achievements) : [],
       bankName,
       bankAccountNumber,
       ifsc,
-      profileImageUrl: `/uploads/products/${req.files.profileImage[0].filename}`,
-      certifications
+      profileImageUrl: `/uploads/products/${profileImage}`,
+      certifications,
+      verificationDocuments
     });
 
-    
-
     await astrologer.save();
-    res.json({ success: true });
+
+    res.json({
+      success: true,
+      message: "Registration submitted for admin approval"
+    });
+
   } catch (err) {
-    console.log(err.message);
-    res.status(500).json({ success: false, message: "Registration failed" });
+    console.error(err);
+    res.status(500).json({
+      success: false,
+      message: "Registration failed"
+    });
   }
 };
 
@@ -98,33 +143,92 @@ export const astrologerLogin = async (req, res) => {
       role: "astrologer"
     }
   });
-};
-
-
-export const getAllAstrologers = async (req, res) => {
+};export const getAllAstrologers = async (req, res) => {
   try {
-    const astrologers = await Astrologer.find({ isApproved: true })
-      .select("-password");
+    const { service = "ALL" } = req.query;
 
-    
-    // 🔥 Find all busy astrologers
-    const activeChats = await Chat.find(
-      { status: "ACTIVE" },
-      "astrologer"
-    );
+    /* ===============================
+       BASE FILTER (Availability)
+    =============================== */
+    let filter = { isApproved: true };
 
-    const busyAstrologerIds = new Set(
-      activeChats.map((c) => c.astrologer.toString())
-    );
+    if (service === "CHAT") {
+      filter.availability = { $in: ["CHAT", "BOTH", "ALL"] };
+    }
 
-    const finalList = astrologers.map((a) => ({
-      ...a.toObject(),
-      isBusy: busyAstrologerIds.has(a._id.toString()),
-    }));
-   
+    if (service === "CALL") {
+      filter.availability = { $in: ["CALL", "BOTH", "ALL"] };
+    }
+
+    if (service === "MEET") {
+      filter.availability = { $in: ["MEET", "ALL"] };
+    }
+
+    // service === "ALL" → no availability filter
+
+    const astrologers = await Astrologer.find(filter).select("-password");
+
+    /* ===============================
+       BUSY LOGIC
+    =============================== */
+
+    let busyChatAstrologerIds = new Set();
+    let busyCallAstrologerIds = new Set();
+
+    // CHAT busy (skip for MEET-only page)
+    if (service !== "MEET") {
+      const activeChats = await Chat.find(
+        { status: "ACTIVE" },
+        "astrologer"
+      );
+      activeChats.forEach(c =>
+        busyChatAstrologerIds.add(c.astrologer.toString())
+      );
+    }
+
+    // CALL busy (skip for MEET-only page)
+    if (service !== "MEET") {
+      const activeCalls = await Call.find(
+        { status: "ACTIVE" },
+        "astrologer"
+      );
+      activeCalls.forEach(c =>
+        busyCallAstrologerIds.add(c.astrologer.toString())
+      );
+    }
+
+    /* ===============================
+       FINAL RESPONSE
+    =============================== */
+    const finalList = astrologers.map(a => {
+      const id = a._id.toString();
+
+      return {
+        ...a.toObject(),
+
+        // Chat busy only if astrologer supports chat
+        isBusyChat:
+          ["CHAT", "BOTH", "ALL"].includes(a.availability) &&
+          busyChatAstrologerIds.has(id),
+
+        // Call busy only if astrologer supports call
+        isBusyCall:
+          ["CALL", "BOTH", "ALL"].includes(a.availability) &&
+          busyCallAstrologerIds.has(id),
+
+        // Unified busy flag (frontend friendly)
+        isBusy:
+          service === "MEET"
+            ? false
+            : busyChatAstrologerIds.has(id) ||
+              busyCallAstrologerIds.has(id),
+      };
+    });
+
     res.json(finalList);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    console.error("getAllAstrologers error:", err);
+    res.status(500).json({ message: "Failed to fetch astrologers" });
   }
 };
 
@@ -210,4 +314,55 @@ export const toggleAstrologerAvailability = async (req, res) => {
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
   }
+};
+
+
+
+export const sendOTP = async (req, res) => {
+  const { phone } = req.body;
+
+  if (!phone) {
+    return res.status(400).json({ success: false, message: "Phone required" });
+  }
+
+  const otp = Math.floor(100000 + Math.random() * 900000);
+
+  otpStore.set(phone, {
+    otp,
+    expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
+  });
+
+  
+     // Country code (91)
+const countryCode = phone.substring(1, 3);
+
+// Mobile number
+const mobile = phone.substring(3);
+
+    // 3️⃣ Send SMS via CPaaS API
+const response = await axios.get (`https://cpaas.socialteaser.com/restapi/request.php?authkey=6aa45940ce7d45f2&mobile=${mobile}&country_code=${countryCode}&sid=29289&name=Twinkle&otp=${otp}` );
+      
+
+  res.json({ success: true, message: "OTP sent successfully" });
+};
+
+export const verifyOTP = async (req, res) => {
+  const { phone, otp } = req.body;
+
+  const record = otpStore.get(phone);
+  if (!record) {
+    return res.status(400).json({ success: false, message: "OTP expired or not found" });
+  }
+
+  if (Date.now() > record.expiresAt) {
+    otpStore.delete(phone);
+    return res.status(400).json({ success: false, message: "OTP expired" });
+  }
+
+  if (record.otp.toString() !== otp.toString()) {
+    return res.status(400).json({ success: false, message: "Invalid OTP" });
+  }
+
+  otpStore.delete(phone);
+  res.json({ success: true, message: "Phone verified" });
 };

@@ -50,7 +50,21 @@ useEffect(() => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-
+let chats = () =>{
+  
+  localStorage.setItem("service", "CHAT");
+  router.push("/astrologers")
+}
+let calls = () =>{
+  
+  localStorage.setItem("service", "CALL");
+  router.push("/astrologers")
+}
+let meet = () =>{
+  
+  localStorage.setItem("service", "MEET");
+  router.push("/astrologers")
+}
   return (
    <div
    id="navbar"
@@ -58,17 +72,17 @@ useEffect(() => {
 transition-all duration-300
 ${
   isScrolled || isMobileMenuOpen
-    ? "bg-[#ECE5D3]/90 backdrop-blur-lg shadow-lg"
+    ? "bg-[#4d331e]/90 backdrop-blur-lg shadow-lg"
     : "bg-transparent"
 }`}
 
 >
 
 
-     <div className="flex max-w-7xl mx-auto justify-between items-center
+     <div className="flex  mx-auto justify-between items-center
   px-4 sm:px-6 lg:px-12
   h-[72px] lg:h-[88px]
-  text-[#725E43] font-semibold  ">
+  text-[#E9C164] font-semibold  ">
 
 
         
@@ -78,13 +92,13 @@ ${
   onClick={() => router.push("/")} 
   className="cursor-pointer flex items-center"
 >
- <div className="relative w-[56px] h-[56px] lg:w-[64px] lg:h-[64px]">
+ <div className="relative w-[56px] h-[56px] lg:w-[100px] lg:h-[100px]">
 
     <Image
-      src="/logo.png"
+      src="/logo2.png"
       alt="MyAstrova Logo"
       fill
-      className=" object-cover"
+      className=" object-cover "
       priority
     />
   </div>
@@ -104,10 +118,10 @@ ${
 
     max-w-[640px]
     flex-shrink-0
-    mr-16 xl:mr-24
+    mr-32 xl:mr-40
     
     
-    pr-4
+    pr-4 
   "
   style={{ fontFamily: "Noto Sans" }}
   id="navbar-menu"
@@ -118,23 +132,29 @@ ${
   <li className="hover:text-[#B49A77] transition">
     <Link href="/ProductsPage">Products</Link>
   </li>
-  <li className="hover:text-[#B49A77] transition">
-    <Link href="/astrologers">Chats</Link>
-  </li>
+ 
   <li className="hover:text-[#B49A77] transition">
     <Link href="/Orders">MyOrders</Link>
+
+  </li>
+   <li className="hover:text-[#B49A77] transition">
+    <div className="hover:cursor-pointer"  onClick={chats}>Chats</div>
   </li>
   <li className="hover:text-[#B49A77] transition">
-    <Link href="/">Calls</Link>
+   <div className="hover:cursor-pointer"  onClick={calls}>Calls</div>
   </li>
   <li className="hover:text-[#B49A77] transition">
     <Link href="/Remedy">Remedies</Link>
   </li>
+  <li className="hover:text-[#B49A77] transition">
+   <div className="hover:cursor-pointer"  onClick={meet}>Meet</div>
+  </li>
+
 </ul>
 
         {/* MOBILE MENU BUTTON */}
         <div className="hidden" id="menu-button">
-          <button className="text-[#725E43]" onClick={toggleMobileMenu}>
+          <button className="text-[#E9C164]" onClick={toggleMobileMenu}>
             <svg className="w-6 h-6" fill="none" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16"/>
             </svg>
@@ -162,15 +182,15 @@ ${
 
     {/* USER ICON + FIRST LETTER FOR SM & MD */}
     <div className="flex items-center justify-center bg-[#F6F3E4] w-9 h-9 rounded-full shadow lg:hidden">
-      <span className="text-[#725E43] font-bold">
+      <span className="text-[#E9C164] font-bold">
         {user.username?.charAt(0).toUpperCase()}
       </span>
     </div>
 
     {/* USERNAME BADGE FOR LG + SCREENS */}
     <div className="hidden lg:flex items-center space-x-2 bg-[#F6F3E4] px-3 py-1.5 rounded-lg shadow">
-      <FaUser className="text-sm text-[#725E43]" />
-      <span className="text-[#725E43] font-medium">
+      <FaUser className="text-sm text-[#E9C164]" />
+      <span className="text-[#E9C164] font-medium">
         {user.username}
       </span>
     </div>
@@ -186,7 +206,7 @@ ${
   </div>
 ) : (
   <Link href="/Login">
-    <button className="px-3 py-1.5 lg:px-5 lg:py-2 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow hover:bg-[#E8E3CF] transition flex items-center space-x-2">
+    <button className="px-3 py-1.5 lg:px-5 lg:py-2 bg-[#F6F3E4] text-[#E9C164] rounded-lg shadow hover:bg-[#E8E3CF] transition flex items-center space-x-2">
       <FaUser />
       <span className="hidden sm:inline">Login</span>
     </button>
@@ -223,7 +243,7 @@ ${
                   </div>
                   <button 
                     onClick={() => setIsMobileMenuOpen(false)}
-                    className="text-[#725E43] p-2"
+                    className="text-[#E9C164] p-2"
                   >
                     <FaTimes className="w-5 h-5" />
                   </button>
@@ -235,9 +255,9 @@ ${
                   <li className="border-b pb-3"><Link href="/ProductsPage">Products</Link></li>
                   <li className="border-b pb-3"><Link href="/astrologers">Chats</Link></li>
                   <li className={`border-b pb-3 ${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}><Link href="/Orders" className={`${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}>MyOrders</Link></li>
-                  <li className="border-b pb-3"><Link href="/">Who are we</Link></li>
+                   <li className="border-b pb-3"><Link href="/">Calls</Link></li>
                   <li className="border-b pb-3"><Link href="/Remedy">Remedies</Link></li>
-                  <li className="border-b pb-3"><Link href="/">Calls</Link></li>
+                  <li className="border-b pb-3"><Link href="/">Meet</Link></li>
                   <li className="border-b pb-3"><Link href="/About">About</Link></li>
                 </ul>
 
@@ -246,8 +266,8 @@ ${
                   {user ? (
                     <>
                       <div className="mb-3 flex items-center space-x-2 px-3 py-2 bg-[#F6F3E4] rounded-lg shadow">
-                        <FaUser className="text-[#725E43]" />
-                        <span className="text-[#725E43]">{user.username}</span>
+                        <FaUser className="text-[#E9C164]" />
+                        <span className="text-[#E9C164]">{user.username}</span>
                       </div>
 
                       <button
@@ -259,7 +279,7 @@ ${
                     </>
                   ) : (
                     <Link href="/Login">
-                      <button className="w-full px-4 py-3 bg-[#725E43] text-white rounded-lg shadow hover:bg-[#5A3E25]">
+                      <button className="w-full px-4 py-3 bg-[#E9C164] text-white rounded-lg shadow hover:bg-[#5A3E25]">
                         Login / Sign Up
                       </button>
                     </Link>

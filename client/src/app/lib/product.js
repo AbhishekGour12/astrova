@@ -143,11 +143,9 @@ submitRating: async(data) => {
 getShippingCharges: async (data) =>{
   const response = await api.post("/shipping/charge", data);
   return response.data;
-}
+},
 
-
-
-
+ 
   
 
    

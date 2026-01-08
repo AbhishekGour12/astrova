@@ -22,7 +22,7 @@ export const createOrder = async (req, res) => {
     // -----------------------------------
 // SAVE PAYMENT INFO (COMMON FOR ALL)
 // -----------------------------------
-console.log(order)
+
  await Payment.create({
       user: req.user.id,
       razorpayOrderId: order.id,

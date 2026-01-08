@@ -72,7 +72,7 @@ const HeroSection = () => {
   
 
   return (
-  <section className=" relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 ">
+  <section className="  relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 ">
 
       {/* Background split */}
       <div className="absolute inset-0 flex flex-col lg:flex-row">
@@ -104,7 +104,7 @@ const HeroSection = () => {
       {/* Content Section */}
       <div className="relative z-10 flex flex-col lg:flex-row w-full h-full">
         {/* Left Content */}
-        <div className="w-full lg:w-[50%] mx-auto flex flex-col justify-center px-4 sm:px-6 md:px-8 lg:pl-12 xl:pl-16 lg:pr-0 mt-8 sm:mt-10 md:mt-12 lg:mt-0 lg:py-20 ">
+        <div className="w-full  lg:w-[50%] mx-auto flex flex-col justify-center px-4 sm:px-6 md:px-8 lg:pl-12 xl:pl-16 lg:pr-0 mt-8 sm:mt-10 md:mt-12 lg:mt-0 lg:py-20 ">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
             animate={{ opacity: 1, y: 0 }}
@@ -254,7 +254,7 @@ const HeroSection = () => {
     </Link>
   ))}
 </div>
-<div className="ad"><MiniAdStrip slides={carousel || []}/></div>
+<div className="ad  h-[100px] pt-[40px] max-md:pt-[20px] max-sm:pt-[0px]"><MiniAdStrip slides={carousel || []}/></div>
 
 
           </motion.div>

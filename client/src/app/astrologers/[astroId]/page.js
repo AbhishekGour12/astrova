@@ -19,7 +19,10 @@ import {
   FaLanguage,
   FaAward,
   FaTimes,
-  FaChevronLeft
+  FaChevronLeft,
+  FaUserCheck,
+  FaEnvelope,
+  FaPhoneAlt
 } from "react-icons/fa";
 import { IoMdChatbubbles } from "react-icons/io";
 import { GiSkills } from "react-icons/gi";
@@ -28,18 +31,44 @@ import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 import { useSelector } from "react-redux";
 import Image from "next/image";
+import { useCall } from "../../hooks/useCall";
 
 export default function AstrologerProfile() {
   const { astroId } = useParams();
   const router = useRouter();
+  const [showMeetModal, setShowMeetModal] = useState(false);
+  const [selectedAstrologer, setSelectedAstrologer] = useState(null);
+  const [meetForm, setMeetForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    message: "",
+  });
+  const [meetLoading, setMeetLoading] = useState(false);
   const user = useSelector((state) => state.auth.user);
-
+const { startCall, isConnecting: callConnecting } = useCall(null, user ? `user_${user._id}` : null);
   const [astrologer, setAstrologer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [wallet, setWallet] = useState(0);
   const [socket, setSocket] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
-  const [isBusy, setIsBusy] = useState(false);
+
+ const availability = astrologer?.availability;
+
+const canChat = availability === "CHAT" || availability === "BOTH" || availability === "ALL";
+const canCall = availability === "CALL" || availability === "BOTH" || availability === "ALL";
+const canMeet = availability === "MEET" || availability === "ALL";
+
+const isBusyChat = astrologer?.isBusyChat;
+const isBusyCall = astrologer?.isBusyCall;
+
+// Overall busy only if enabled service is busy
+const isBusyNow =
+  (canChat && isBusyChat) ||
+  (canCall && isBusyCall);
+
+
+
   const [isMobile, setIsMobile] = useState(false);
 
   // Check for mobile screen
@@ -80,7 +109,7 @@ export default function AstrologerProfile() {
       
       if (astroRes.data.success) {
         setAstrologer(astroRes.data.astrologer);
-        setIsBusy(astroRes.data.astrologer?.isBusy || false);
+        
       } else {
         setAstrologer(null);
       }
@@ -115,12 +144,16 @@ export default function AstrologerProfile() {
   useEffect(() => {
     if (!socket) return;
 
-    socket.on("astrologerStatusUpdate", ({ astrologerId, isBusy: busyStatus }) => {
-      if (astrologerId === astroId) {
-        setIsBusy(busyStatus);
-        setAstrologer(prev => prev ? { ...prev, isBusy: busyStatus } : null);
-      }
-    });
+   socket.on("astrologerStatusUpdate", ({ astrologerId, isBusyChat, isBusyCall }) => {
+  if (astrologerId === astroId) {
+    setAstrologer(prev =>
+      prev
+        ? { ...prev, isBusyChat, isBusyCall }
+        : prev
+    );
+  }
+});
+
 
     socket.on("chatStarted", ({ chatId, astrologerId }) => {
       if (astrologerId === astroId) {
@@ -243,35 +276,28 @@ export default function AstrologerProfile() {
     }
   };
 
-  const handleStartCall = async (type = "voice") => {
-    if (!user) {
-      toast.error("Please login to start a call");
-      router.push("/login");
-      return;
+  const handleStartCall = async () => {
+  if (!user) {
+    toast.error("Please login to start a call");
+    router.push("/login");
+    return;
+  }
+
+  if (astrologer.isBusyCall) {
+    toast.error("Astrologer is busy on another call");
+    return;
+  }
+
+  try {
+    const callData = await startCall(astroId);
+    if (callData) {
+      toast.success("Call request sent!");
     }
-
-    try {
-      toast.loading(`Starting ${type} call...`, { id: "start-call" });
-      
-      const response = await api.post("/call/user/start", {
-        astrologerId: astroId,
-        type: type
-      });
-
-      toast.dismiss("start-call");
-      
-      if (response.data.success) {
-        toast.success(`${type === "voice" ? "Voice" : "Video"} call started!`);
-        // Redirect to call page
-        router.push(`/call/${response.data.call._id}`);
-      }
-    } catch (error) {
-      toast.dismiss("start-call");
-      console.error("Start call error:", error);
-      toast.error(error.response?.data?.message || "Failed to start call");
-    }
-  };
-
+  } catch (error) {
+    console.error("Start call error:", error);
+    // Error is already shown in the hook
+  }
+};
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F7F3E9] flex items-center justify-center px-4">
@@ -282,6 +308,8 @@ export default function AstrologerProfile() {
       </div>
     );
   }
+
+
 
   if (!astrologer) {
     return (
@@ -306,6 +334,86 @@ export default function AstrologerProfile() {
       </div>
     );
   }
+  // Meet Modal Functions
+  const openMeetModal = (astrologer) => {
+    if (!user) {
+      toast.error("Please login first");
+      router.push("/");
+      return;
+    }
+    
+    setSelectedAstrologer(astrologer);
+    // Pre-fill form with user data if available
+    if (user) {
+      setMeetForm(prev => ({
+        ...prev,
+        name: user.name || "",
+        email: user.email || "",
+        phone: user.phone || ""
+      }));
+    }
+    setShowMeetModal(true);
+  };
+
+  const closeMeetModal = () => {
+    setShowMeetModal(false);
+    setSelectedAstrologer(null);
+    setMeetForm({
+      name: "",
+      email: "",
+      phone: "",
+      message: "",
+    });
+  };
+
+  const handleMeetFormChange = (e) => {
+    const { name, value } = e.target;
+    setMeetForm(prev => ({
+      ...prev,
+      [name]: value
+    }));
+  };
+
+  const handleMeetSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!selectedAstrologer) return;
+    
+    // Validate form
+    if (!meetForm.name.trim() || !meetForm.email.trim() || !meetForm.phone.trim()) {
+      toast.error("Please fill all required fields");
+      return;
+    }
+    
+    setMeetLoading(true);
+    
+    try {
+      const response = await api.post('/auth/meet-request', {
+        astrologerId: selectedAstrologer._id,
+        astrologerEmail: selectedAstrologer.email,
+        astrologerName: selectedAstrologer.fullName,
+        userName: meetForm.name,
+        userEmail: meetForm.email,
+        userPhone: meetForm.phone,
+        message: meetForm.message,
+        service: "MEET"
+      });
+      
+      if (response.data.success) {
+        toast.success("Meeting request sent successfully! The astrologer will contact you soon.");
+        closeMeetModal();
+      } else {
+        toast.error(response.data.message || "Failed to send request");
+      }
+    } catch (error) {
+      console.error("Meet request error:", error);
+      toast.error(error.response?.data?.message || "Failed to send meeting request");
+    } finally {
+      setMeetLoading(false);
+    }
+  };
+
+
 
   return (
     <div className="min-h-screen pt-[100px] bg-[#F7F3E9]">
@@ -333,7 +441,7 @@ export default function AstrologerProfile() {
             
             {user && (
               <div className="flex items-center gap-2 sm:gap-4">
-                <div className="hidden sm:flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-[#F7F3E9] rounded-full">
+                <div className=" sm:flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-[#F7F3E9] rounded-full">
                   <FaWallet className="text-xs sm:text-sm text-[#C06014]" />
                   <span className="font-medium text-[#003D33] text-xs sm:text-sm">₹{wallet}</span>
                 </div>
@@ -341,7 +449,7 @@ export default function AstrologerProfile() {
                   onClick={handleWalletRecharge}
                   className="px-2 sm:px-3 py-1 sm:py-1.5 bg-gradient-to-r from-[#003D33] to-[#00695C] text-white rounded-full text-xs sm:text-sm font-medium hover:from-[#00695C] hover:to-[#003D33] transition-all flex-shrink-0"
                 >
-                  ₹{wallet}{isMobile ? "+" : "Recharge"}
+                  Recharge
                 </button>
               </div>
             )}
@@ -357,13 +465,17 @@ export default function AstrologerProfile() {
             <div className="bg-white rounded-xl sm:rounded-2xl border border-[#B2C5B2]/60 shadow-md sm:shadow-lg lg:sticky lg:top-24">
               {/* Status Badge */}
               <div className=" flex justify-end top-3 right-3 sm:top-4 sm:right-4 z-10">
-                <span className={`px-2 py-0.5 sm:px-3 sm:py-1 rounded-full text-xs sm:text-sm font-semibold ${
-                  isBusy 
-                    ? "bg-red-100 text-red-700 border border-red-300" 
-                    : "bg-green-100 text-green-700 border border-green-300"
-                }`}>
-                  {isBusy ? "🔴 BUSY" : "🟢 AVAILABLE"}
-                </span>
+            <span
+  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+    isBusyNow
+      ? "bg-red-100 text-red-700"
+      : "bg-green-100 text-green-700"
+  }`}
+>
+  {isBusyNow ? "🔴 BUSY" : "🟢 AVAILABLE"}
+</span>
+
+
               </div>
 
               {/* Profile Image & Info */}
@@ -439,83 +551,105 @@ export default function AstrologerProfile() {
 
               {/* Connection Buttons */}
               <div className="p-3 sm:p-4 lg:p-6 border-t border-[#B2C5B2]/40 space-y-3 sm:space-y-4">
-                {activeChat ? (
-                  <button
-                    onClick={() => router.push(`/astrologers/chat/${activeChat._id}`)}
-                    className="w-full py-2.5 sm:py-3 lg:py-4 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base lg:text-lg flex items-center justify-center gap-2 sm:gap-3 hover:from-[#003D33] hover:to-[#00695C] transition-all shadow-md sm:shadow-lg hover:shadow-xl"
-                  >
-                    <FaHistory className="text-sm sm:text-base" />
-                    Resume Chat
-                  </button>
-                ) : (
-                  <>
-                    {["CHAT", "BOTH"].includes(astrologer.availability) && (
-                      <button
-                        onClick={handleStartChat}
-                        disabled={isBusy || !user}
-                        className={`w-full py-2.5 sm:py-3 lg:py-4 rounded-lg sm:rounded-xl font-semibold text-sm sm:text-base lg:text-lg flex items-center justify-center gap-2 sm:gap-3 transition-all shadow-md sm:shadow-lg ${
-                          isBusy || !user
-                            ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                            : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white hover:from-[#D47C3A] hover:to-[#C06014] hover:shadow-xl"
-                        }`}
-                      >
-                        <IoMdChatbubbles className="text-sm sm:text-base lg:text-xl" />
-                        {isBusy ? "Busy" : !user ? "Login to Chat" : "Start Chat"}
-                        <span className="text-xs sm:text-sm bg-white/20 px-2 py-0.5 sm:px-3 sm:py-1 rounded-full">
-                          ₹{astrologer.pricing?.chatPerMinute || astrologer.minuteRate || 50}/min
-                        </span>
-                      </button>
-                    )}
-                    
-                    {["CALL", "BOTH"].includes(astrologer.availability) && (
-                      <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                        <button
-                          onClick={() => handleStartCall("voice")}
-                          disabled={isBusy || !user}
-                          className={`py-2 sm:py-2.5 lg:py-3 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-2 transition-all ${
-                            isBusy || !user
-                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                              : "bg-gradient-to-r from-[#00695C] to-[#003D33] text-white hover:from-[#003D33] hover:to-[#00695C]"
-                          }`}
-                        >
-                          <FaPhone className="text-xs sm:text-sm" />
-                          {isMobile ? "Voice" : "Voice Call"}
-                          <span className="text-[10px] sm:text-xs bg-white/20 px-1.5 py-0.5 rounded-full">
-                            ₹{astrologer.pricing?.callPerMinute || 100}
-                          </span>
-                        </button>
-                        <button
-                          onClick={() => handleStartCall("video")}
-                          disabled={isBusy || !user}
-                          className={`py-2 sm:py-2.5 lg:py-3 rounded-lg sm:rounded-xl font-semibold text-xs sm:text-sm flex items-center justify-center gap-1 sm:gap-2 transition-all ${
-                            isBusy || !user
-                              ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-                              : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white hover:from-[#D47C3A] hover:to-[#C06014]"
-                          }`}
-                        >
-                          <FaVideo className="text-xs sm:text-sm" />
-                          {isMobile ? "Video" : "Video Call"}
-                          <span className="text-[10px] sm:text-xs bg-white/20 px-1.5 py-0.5 rounded-full">
-                            ₹{astrologer.pricing?.callPerMinute || 150}
-                          </span>
-                        </button>
-                      </div>
-                    )}
-                  </>
-                )}
-                
-                {!user && (
-                  <div className="text-center">
-                    <p className="text-xs sm:text-sm text-gray-500 mb-1 sm:mb-2">Login to connect with astrologer</p>
-                    <button
-                      onClick={() => router.push("/login")}
-                      className="px-3 sm:px-4 py-1.5 sm:py-2 bg-[#F7F3E9] border border-[#B2C5B2] text-[#003D33] rounded-full text-xs sm:text-sm font-medium hover:bg-[#E8E3CF] transition-colors"
-                    >
-                      Login / Sign Up
-                    </button>
-                  </div>
-                )}
-              </div>
+
+  {/* RESUME CHAT */}
+  {activeChat && canChat && (
+    <button
+      onClick={() => router.push(`/astrologers/chat/${activeChat._id}`)}
+      className="w-full py-3 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white rounded-xl flex items-center justify-center gap-2"
+    >
+      <FaHistory />
+      Resume Chat
+    </button>
+  )}
+
+  {/* CHAT */}
+ {!activeChat && canChat && (
+  <button
+    onClick={handleStartChat}
+    disabled={isBusyChat || !user}
+    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 ${
+      isBusyChat || !user
+        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+        : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white"
+    }`}
+  >
+    <IoMdChatbubbles />
+    {isBusyChat ? "Busy on Chat" : !user ? "Login to Chat" : "Start Chat"}
+    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+      ₹{astrologer.pricing?.chatPerMinute}/min
+    </span>
+  </button>
+)}
+
+
+  {/* CALL */}
+ {canCall && (
+  <button
+    onClick={handleStartCall}
+    disabled={isBusyCall || callConnecting || !user}
+    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 ${
+      isBusyCall || callConnecting || !user
+        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+        : "bg-gradient-to-r from-[#00695C] to-[#003D33] text-white hover:from-[#003D33] hover:to-[#00695C]"
+    }`}
+  >
+    {callConnecting ? (
+      <>
+        <FaSpinner className="animate-spin" />
+        Starting...
+      </>
+    ) : isBusyCall ? (
+      <>
+        <FaPhoneSlash />
+        Busy
+      </>
+    ) : !user ? (
+      <>
+        <FaPhone />
+        Login to Call
+      </>
+    ) : (
+      <>
+        <FaPhone />
+        Start Voice Call
+      </>
+    )}
+    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+      ₹{astrologer.pricing?.callPerMinute}/min
+    </span>
+  </button>
+)}
+
+
+  {/* MEET */}
+  {canMeet && (
+  <button
+    onClick={() => openMeetModal(astrologer)}
+    className="w-full py-3 rounded-xl bg-purple-600 text-white flex items-center justify-center gap-2"
+  >
+    <FaCalendarAlt />
+    Book Meet
+  </button>
+)}
+
+
+  {/* LOGIN CTA */}
+  {!user && (
+    <div className="text-center">
+      <p className="text-xs text-gray-500 mb-2">
+        Login to connect with astrologer
+      </p>
+      <button
+        onClick={() => router.push("/login")}
+        className="px-4 py-2 bg-[#F7F3E9] border border-[#B2C5B2] rounded-full text-sm"
+      >
+        Login / Sign Up
+      </button>
+    </div>
+  )}
+</div>
+
             </div>
           </div>
 
@@ -668,22 +802,166 @@ export default function AstrologerProfile() {
                 Availability
               </h2>
               <div className="flex items-center gap-4">
-                <div className={`px-4 py-2 rounded-lg font-medium ${
-                  isBusy 
-                    ? "bg-red-100 text-red-700" 
-                    : "bg-green-100 text-green-700"
-                }`}>
-                  {isBusy ? "Currently Busy" : "Available for Consultation"}
-                </div>
-                <div className="text-gray-600">
-                  {astrologer.availability === "BOTH" ? "Chat & Call Available" : 
-                   astrologer.availability === "CHAT" ? "Chat Only" : "Call Only"}
-                </div>
+         <div
+  className={`px-4 py-2 rounded-lg font-medium ${
+    isBusyNow
+      ? "bg-red-100 text-red-700"
+      : "bg-green-100 text-green-700"
+  }`}
+>
+  {isBusyNow
+    ? isBusyChat
+      ? "Busy on Chat"
+      : "Busy on Call"
+    : "Available for Consultation"}
+</div>
+
+<div className="text-gray-600 flex items-center gap-3 flex-wrap">
+  {canChat && (
+    <span className="flex items-center gap-1">
+      <FaComments className="text-[#C06014]" /> Chat
+    </span>
+  )}
+  {canCall && (
+    <span className="flex items-center gap-1">
+      <FaPhone className="text-[#00695C]" /> Call
+    </span>
+  )}
+  {canMeet && (
+    <span className="flex items-center gap-1">
+      <FaUserCheck className="text-purple-600" /> Meet
+    </span>
+  )}
+</div>
+
               </div>
             </div>
           </div>
         </div>
       </div>
+        {/* Meet Booking Modal */}
+            {showMeetModal && selectedAstrologer && (
+              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl w-full max-w-md p-6 animate-fadeIn">
+                  <div className="flex justify-between items-center mb-6">
+                    <h3 className="text-xl font-bold text-[#003D33] flex items-center gap-2">
+                      <FaUserCheck className="text-[#C06014]" />
+                      Book Meeting with {selectedAstrologer.fullName}
+                    </h3>
+                    <button
+                      onClick={closeMeetModal}
+                      className="text-gray-500 hover:text-gray-700 text-xl"
+                    >
+                      <FaTimes />
+                    </button>
+                  </div>
+                  
+                  <form onSubmit={handleMeetSubmit}>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium text-[#00695C] mb-1">
+                          Your Name *
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <FaUser className="text-gray-400" />
+                          </div>
+                          <input
+                            type="text"
+                            name="name"
+                            value={meetForm.name}
+                            onChange={handleMeetFormChange}
+                            required
+                            className="w-full pl-10 pr-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none"
+                            placeholder="Enter your full name"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-[#00695C] mb-1">
+                          Email Address *
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <FaEnvelope className="text-gray-400" />
+                          </div>
+                          <input
+                            type="email"
+                            name="email"
+                            value={meetForm.email}
+                            onChange={handleMeetFormChange}
+                            required
+                            className="w-full pl-10 pr-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none"
+                            placeholder="Enter your email"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-[#00695C] mb-1">
+                          Phone Number *
+                        </label>
+                        <div className="relative">
+                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <FaPhoneAlt className="text-gray-400" />
+                          </div>
+                          <input
+                            type="tel"
+                            name="phone"
+                            value={meetForm.phone}
+                            onChange={handleMeetFormChange}
+                            required
+                            className="w-full pl-10 pr-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none"
+                            placeholder="Enter your phone number"
+                          />
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-[#00695C] mb-1">
+                          Message (Optional)
+                        </label>
+                        <textarea
+                          name="message"
+                          value={meetForm.message}
+                          onChange={handleMeetFormChange}
+                          rows="3"
+                          className="w-full px-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none resize-none"
+                          placeholder="Any specific concerns or preferred time for meeting..."
+                        />
+                      </div>
+                    </div>
+                    
+                    <div className="mt-8 flex gap-3">
+                      <button
+                        type="button"
+                        onClick={closeMeetModal}
+                        className="flex-1 py-3 border border-[#B2C5B2] text-[#00695C] rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={meetLoading}
+                        className="flex-1 py-3 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                      >
+                        {meetLoading ? (
+                          <span className="flex items-center justify-center gap-2">
+                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            Sending...
+                          </span>
+                        ) : "Send Request"}
+                      </button>
+                    </div>
+                    
+                    <p className="text-xs text-gray-500 mt-4 text-center">
+                      The astrologer will receive your details and contact you to schedule the meeting
+                    </p>
+                  </form>
+                </div>
+              </div>
+            )}
     </div>
   );
 }
