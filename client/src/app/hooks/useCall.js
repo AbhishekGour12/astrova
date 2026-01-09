@@ -75,6 +75,7 @@ export const useCall = (callId, identity) => {
     
     // Update call status to CONNECTED
     setCallStatus("CONNECTED");
+    setIsConnecting(false)
     
     // IMPORTANT: Update call data with room ID if provided
     if (data.call) {
@@ -178,7 +179,7 @@ const fetchZegoTokenForRoom = async (roomId) => {
     }
 
     try {
-      setIsConnecting(true);
+      setIsConnecting(false);
       toast.loading('Starting call...');
 
       const response = await api.post('/call/user/start', {

@@ -1,210 +1,192 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
+import { useSelector } from "react-redux";
 import {
-  getZodiacHoroscope,
-  getLoveHoroscope,
-  getCareerHoroscope,
-  getHealthHoroscope,
-  clearHoroscopeCache,
+  getCurrentDasha,
+  getDailyNakshatra,
+  getNumerology,
+  getSadeSati,
 } from "../lib/astrology/horoscopeApis";
-
-/* ---------------- CONSTANTS ---------------- */
-
-const ZODIACS = [
-  "aries","taurus","gemini","cancer",
-  "leo","virgo","libra","scorpio",
-  "sagittarius","capricorn","aquarius","pisces"
-];
-
-const ZODIAC_ICONS = {
-  aries: "♈", taurus: "♉", gemini: "♊", cancer: "♋",
-  leo: "♌", virgo: "♍", libra: "♎", scorpio: "♏",
-  sagittarius: "♐", capricorn: "♑", aquarius: "♒", pisces: "♓",
-};
-
-const ZODIAC_NAMES_HI = {
-  aries: "मेष", taurus: "वृषभ", gemini: "मिथुन", cancer: "कर्क",
-  leo: "सिंह", virgo: "कन्या", libra: "तुला", scorpio: "वृश्चिक",
-  sagittarius: "धनु", capricorn: "मकर", aquarius: "कुंभ", pisces: "मीन",
-};
-
-const PERIODS = ["daily","weekly","monthly","yearly"];
-const SECTIONS = ["general","love","career","health"];
-
-const getZodiacName = (sign, lang) =>
-  lang === "hi"
-    ? ZODIAC_NAMES_HI[sign]
-    : sign.charAt(0).toUpperCase() + sign.slice(1);
-
-/* ---------------- COMPONENT ---------------- */
-
+import DashaTimeline from "../components/DashaTimeline";
 export default function HoroscopePage() {
-  const [period, setPeriod] = useState("daily");
-  const [section, setSection] = useState("general");
-  const [lang, setLang] = useState("en");
-  const [data, setData] = useState({});
-  const [loading, setLoading] = useState(false);
-  const [modal, setModal] = useState(null);
-
-  /* ---------------- FETCH ---------------- */
-
+  const user = useSelector((state) => state.auth.user);
+  const [nakshatra, setNakshatra] = useState(null);
+  const [numero, setNumero] = useState(null);
+  const [loading, setLoading] = useState(true);
+const [daily, setDaily] = useState(null);
+const [dasha, setDasha] = useState(null);
+const [sadeSati, setSadeSati] = useState(null);
   useEffect(() => {
-    fetchData();
-  }, [period]);
+    if (!user?.astroProfile) return;
 
-  const fetchData = async () => {
-    setLoading(true);
-    const res = {};
+    async function load() {
+      setLoading(true);
+      const naks = await getDailyNakshatra(user);
+      const num = await getNumerology(user);
+     const d = await getCurrentDasha(user);
+     const s = await getSadeSati(user)
 
-    await Promise.all(
-      ZODIACS.map(async (sign) => {
-        const general = await getZodiacHoroscope({ sign, period });
-        const love = await getLoveHoroscope(sign, period);
-        const career = await getCareerHoroscope(sign, period);
-        const health = await getHealthHoroscope(sign, period);
+   console.log(d, s)
 
-        res[sign] = { general, love, career, health };
-      })
-    );
+     
+      setDaily(naks)
+      setNumero(num);
+      setDasha(d);
+      setSadeSati(s)
+      setLoading(false);
+    }
 
-    setData(res);
-    setLoading(false);
-  };
+    load();
+  }, [user]);
 
-  const getText = (sign) => {
-    if (loading) return "Loading...";
-    const item = data[sign]?.[section];
-    return lang === "hi" ? item?.hi : item?.en;
-  };
-
-  /* ---------------- UI ---------------- */
+  if (!user) return null;
+  if (loading) return <p className="text-center mt-20">Loading...</p>;
 
   return (
-    <div className="min-h-screen bg-[#F7F3E9] text-[#003D33] pt-24 pb-16">
-
-      <h1 className="text-4xl font-bold text-center font-[Cagliostro] mb-3">
-        Horoscope
+    <div className="min-h-screen bg-[#F7F3E9] pt-24 px-4">
+      <h1 className="text-3xl font-bold text-center mb-8">
+        Your Personalized Horoscope ✨
       </h1>
 
-      <div className="text-center text-sm mb-4">
-        <button
-          onClick={() => {
-            clearHoroscopeCache();
-            location.reload();
-          }}
-          className="underline text-[#C06014]"
+      {/* NAKSHATRA */}
+    {daily && (
+  <div className="bg-white p-6 rounded mb-6">
+    {/* HEADER */}
+    <div className="mb-4">
+      <h2 className="text-xl font-bold">
+        🌙 Daily Nakshatra Horoscope
+      </h2>
+      <p className="text-sm text-gray-500">
+        {daily.prediction_date}
+      </p>
+      <p className="text-sm mt-1">
+        Moon Sign: <b>{daily.birth_moon_sign}</b> | 
+        Nakshatra: <b>{daily.birth_moon_nakshatra}</b>
+      </p>
+    </div>
+
+    {/* PREDICTIONS */}
+    <div className="space-y-3 text-sm text-[#00695C]">
+      <p><b>🧠 Emotions:</b> {daily.prediction.emotions}</p>
+      <p><b>💼 Career:</b> {daily.prediction.profession}</p>
+      <p><b>❤️ Personal Life:</b> {daily.prediction.personal_life}</p>
+      <p><b>🍀 Luck:</b> {daily.prediction.luck}</p>
+      <p><b>🧘 Health:</b> {daily.prediction.health}</p>
+      <p><b>✈️ Travel:</b> {daily.prediction.travel}</p>
+    </div>
+  </div>
+)}
+
+
+
+      {/* NUMEROLOGY */}
+      <motion.div className="bg-white p-6 rounded">
+        <h2 className="font-bold text-xl mb-2">
+          Numerology Insight
+        </h2>
+        {numero && (
+  <div className="bg-white p-6 rounded mb-6">
+    {/* HEADER */}
+    <div className="mb-3">
+      <h2 className="text-xl font-bold flex items-center gap-2">
+        🔢 Numerology Insight
+      </h2>
+      <p className="text-sm text-gray-500">
+        {numero.title}
+      </p>
+    </div>
+
+    {/* DESCRIPTION */}
+    <p className="text-sm leading-relaxed text-[#00695C] whitespace-pre-line">
+      {numero.description}
+    </p>
+  </div>
+)}
+
+      </motion.div>
+
+      {sadeSati && (
+  <div className="bg-white p-6 rounded mb-6">
+    <h2 className="text-xl font-bold">🪐 Sade Sati Status</h2>
+    <p>Status: <b>{sadeSati.sadhesati_status}</b></p>
+    <p>Phase: {sadeSati.phase}</p>
+    <p>{sadeSati.description}</p>
+  </div>
+)}
+
+{dasha && <DashaTimeline data={dasha} />}
+<div className="bg-white p-6 rounded mb-6 border border-[#E6E2D8]">
+      {/* HEADER */}
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-xl font-bold flex items-center gap-2">
+          🪐 Sade Sati Status
+        </h2>
+
+        <span
+          className={`text-xs px-3 py-1 rounded-full font-semibold ${
+            sadeSati.sadhesati_status
+              ? "bg-red-100 text-red-700"
+              : "bg-green-100 text-green-700"
+          }`}
         >
-          Clear Horoscope Cache
-        </button>
+          {sadeSati.sadhesati_status ? "Active" : "Not Active"}
+        </span>
       </div>
 
-      {/* LANGUAGE */}
-      <div className="flex justify-center gap-6 mb-5 font-semibold">
-        <button
-          onClick={() => setLang("en")}
-          className={lang === "en" ? "text-[#C06014] underline" : ""}
-        >
-          English
-        </button>
-        <button
-          onClick={() => setLang("hi")}
-          className={lang === "hi" ? "text-[#C06014] underline" : ""}
-        >
-          हिंदी
-        </button>
+      {/* STATUS MESSAGE */}
+      <p className="text-sm mb-3 text-[#00695C]">
+        {sadeSati.is_undergoing_sadhesati}
+      </p>
+
+      {/* PHASE */}
+      <div className="mb-4">
+        <p className="text-sm">
+          <b>Current Phase:</b>{" "}
+          <span className="text-[#C06014] font-semibold">
+            {sadeSati.sadhesati_phase}
+          </span>
+        </p>
       </div>
 
-      {/* PERIOD */}
-      <div className="flex justify-center gap-3 mb-4 flex-wrap">
-        {PERIODS.map(p => (
-          <button
-            key={p}
-            onClick={() => setPeriod(p)}
-            className={`px-5 py-2 rounded border font-medium ${
-              period === p
-                ? "bg-[#C06014] text-white"
-                : "border-[#B2C5B2]"
-            }`}
-          >
-            {p.charAt(0).toUpperCase() + p.slice(1)}
-          </button>
-        ))}
+      {/* SIGNS */}
+      <div className="grid grid-cols-2 gap-4 mb-4 text-sm">
+        <p>
+          🌙 <b>Moon Sign:</b> {sadeSati.moon_sign}
+        </p>
+        <p>
+          🪐 <b>Saturn Sign:</b> {sadeSati.saturn_sign}
+        </p>
       </div>
 
-      {/* SECTION */}
-      <div className="flex justify-center gap-3 mb-10 flex-wrap">
-        {SECTIONS.map(s => (
-          <button
-            key={s}
-            onClick={() => setSection(s)}
-            className={`px-4 py-2 rounded border font-medium ${
-              section === s
-                ? "bg-[#00695C] text-white"
-                : "border-[#B2C5B2]"
-            }`}
-          >
-            {s === "general" && "General"}
-            {s === "love" && "Love ❤️"}
-            {s === "career" && "Career 💼"}
-            {s === "health" && "Health 🧘"}
-          </button>
-        ))}
+      {/* TIMELINE */}
+      <div className="bg-[#F7F3E9] p-3 rounded mb-4 text-sm">
+        <p>
+          📅 <b>Start:</b> {sadeSati.start_date}
+        </p>
+        <p>
+          📅 <b>End:</b> {sadeSati.end_date}
+        </p>
       </div>
 
-      {/* CARDS */}
-      <div className="grid md:grid-cols-2 gap-8 max-w-6xl mx-auto px-4">
-        {ZODIACS.map(sign => (
-          <motion.div
-            key={sign}
-            className="bg-white rounded-lg border border-[#B2C5B2] p-6"
-          >
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-3xl text-[#6A1B9A]">
-                {ZODIAC_ICONS[sign]}
-              </span>
-              <h3 className="text-lg font-bold font-[Cagliostro]">
-                {getZodiacName(sign, lang)}
-              </h3>
-            </div>
-
-            <p className="text-[#00695C] text-sm leading-relaxed line-clamp-4">
-              {getText(sign)}
-            </p>
-
-            <button
-              onClick={() => setModal({ sign, text: getText(sign) })}
-              className="mt-3 text-sm text-[#C06014] font-semibold"
-            >
-              Read More
-            </button>
-          </motion.div>
-        ))}
+      {/* EXTRA INFO */}
+      <div className="text-xs text-gray-600 space-y-1">
+        <p>
+          🔄 <b>Saturn Retrograde:</b>{" "}
+          {sadeSati.is_saturn_retrograde ? "Yes" : "No"}
+        </p>
+        <p>
+          📆 <b>Consideration Date:</b> {sadeSati.consideration_date}
+        </p>
       </div>
 
-      {/* MODAL */}
-      <AnimatePresence>
-        {modal && (
-          <motion.div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4">
-            <motion.div className="bg-white max-w-xl w-full p-6 rounded">
-              <h3 className="text-xl font-bold mb-4 font-[Cagliostro] flex gap-2">
-                <span>{ZODIAC_ICONS[modal.sign]}</span>
-                {getZodiacName(modal.sign, lang)}
-              </h3>
-              <p className="text-[#00695C] whitespace-pre-line">
-                {modal.text}
-              </p>
-              <button
-                onClick={() => setModal(null)}
-                className="mt-4 text-[#C06014] font-semibold"
-              >
-                Close
-              </button>
-            </motion.div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* WHAT IS SADE SATI */}
+      <div className="mt-4 text-sm text-[#00695C] leading-relaxed">
+        <p className="font-semibold mb-1">What is Sade Sati?</p>
+        <p>{sadeSati.what_is_sadhesati}</p>
+      </div>
+    </div>
 
     </div>
   );

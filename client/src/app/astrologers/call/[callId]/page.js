@@ -372,7 +372,7 @@ useEffect(() => {
 
         {/* Zego Audio Interface */}
         {isClient && zegoRoomId && zegoEnabled && (
-          <div className="fixed inset-0 z-0">
+          <div className="fixed inset-0 z-40">
             <div ref={containerRef} className="w-full h-full" />
             
             {/* Loading overlay */}
@@ -390,7 +390,7 @@ useEffect(() => {
 
         {/* Call Controls */}
         {statusInfo.showControls && (
-          <div className="flex justify-center gap-4 sm:gap-8 mb-8 relative z-20">
+          <div className="flex justify-center gap-4 sm:gap-8 mb-8 relative z-50">
             {/* Mute Button */}
             <button
               onClick={toggleMute}

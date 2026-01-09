@@ -27,31 +27,8 @@ const HeroSection = () => {
   const router = useRouter()
 
 
-  
-  
 
-  const serviceCards = [
-    {
-      title: "Kundli Matching",
-      img: "/kundli.png",
-      link: "/Kundli-Matching"
-    },
-    {
-      title: "Horoscope",
-      img: "/horoscope.png",
-      link: "/Horoscope"
-    },
-    {
-      title: "MyAstrova Mall",
-      img: "/astromall.png",
-      link: "/ProductsPage"
-    },
-    {
-      title: "Talk To Astrologer",
-      img: "/talktoastrologer.png",
-      link: "/"
-    },
-  ];
+  
 
   const fetchCarousel = async () => {
     try {
@@ -70,6 +47,10 @@ const HeroSection = () => {
 
   },[])
   
+  const astrologerpage = () =>{
+    localStorage.setItem("service", "All");
+    router.push("/astrologers")
+  }
 
   return (
   <section className="  relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 ">
@@ -203,8 +184,8 @@ const HeroSection = () => {
   "
 >
 
-  {serviceCards.map((card, index) => (
-    <Link key={index} href={card.link || "#"}>
+  
+    <Link  href="/Kundli-Matching">
       <motion.div
         whileHover={{ scale: 1.05 }}
         className="
@@ -227,8 +208,8 @@ const HeroSection = () => {
         {/* Image Section */}
         <div className="relative w-full aspect-[3/4]">
           <Image
-            src={card.img}
-            alt={card.title}
+            src="/kundli.jpeg"
+            alt="Kundli Matching"
             fill
             className="object-cover"
           />
@@ -248,11 +229,155 @@ const HeroSection = () => {
           text-ellipsis
         "
         >
-          {card.title}
+         Kundli Matching
         </p>
       </motion.div>
     </Link>
-  ))}
+     <Link href="/Horoscope">
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        className="
+          bg-white 
+          shadow-md 
+          rounded-xl  
+          text-center 
+          cursor-pointer 
+           
+          -[#7E5833] 
+          hover:shadow-xl 
+          transition-all 
+          duration-300
+          overflow-hidden
+          flex flex-col
+           
+        "
+    
+      >
+        {/* Image Section */}
+        <div className="relative w-full aspect-[3/4]">
+          <Image
+            src="/horoscope.jpeg"
+            alt="Horoscope"
+            fill
+            className="object-cover"
+          />
+        </div>
+
+        {/* Title - Single Line Only */}
+        <p className="
+          py-2 
+          text-[#7E5833] 
+          text-[10px] 
+          xs:text-[11px]
+          sm:text-[12px] 
+          md:text-sm 
+          font-bold 
+          whitespace-nowrap 
+          overflow-hidden 
+          text-ellipsis
+        "
+        >
+         Horoscope
+        </p>
+      </motion.div>
+    </Link>
+     <Link href="/ProductsPage">
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        className="
+          bg-white 
+          shadow-md 
+          rounded-xl  
+          text-center 
+          cursor-pointer 
+           
+          -[#7E5833] 
+          hover:shadow-xl 
+          transition-all 
+          duration-300
+          overflow-hidden
+          flex flex-col
+           
+        "
+    
+      >
+        {/* Image Section */}
+        <div className="relative w-full aspect-[3/4]">
+          <Image
+            src="/myastrovastore.jpeg"
+            alt="My Astrova Store"
+            fill
+            className="object-cover"
+          />
+        </div>
+
+        {/* Title - Single Line Only */}
+        <p className="
+          py-2 
+          text-[#7E5833] 
+          text-[10px] 
+          xs:text-[11px]
+          sm:text-[12px] 
+          md:text-sm 
+          font-bold 
+          whitespace-nowrap 
+          overflow-hidden 
+          text-ellipsis
+        "
+        >
+          MyAstrova Mall
+        </p>
+      </motion.div>
+    </Link>
+     <div>
+      <motion.div
+        whileHover={{ scale: 1.05 }}
+        className="
+          bg-white 
+          shadow-md 
+          rounded-xl  
+          text-center 
+          cursor-pointer 
+           
+          -[#7E5833] 
+          hover:shadow-xl 
+          transition-all 
+          duration-300
+          overflow-hidden
+          flex flex-col
+           
+        "
+    
+      >
+        {/* Image Section */}
+        <div className="relative w-full aspect-[3/4]" onClick={astrologerpage}>
+          <Image
+            src="/talktoastrologer.jpeg"
+            alt="Talk to Astrologer"
+            fill
+            className="object-cover"
+          />
+        </div>
+
+        {/* Title - Single Line Only */}
+        <p className="
+          py-2 
+          text-[#7E5833] 
+          text-[10px] 
+          xs:text-[11px]
+          sm:text-[12px] 
+          md:text-sm 
+          font-bold 
+          whitespace-nowrap 
+          overflow-hidden 
+          text-ellipsis
+        "
+        >
+          Talk To Astrologer
+        </p>
+      </motion.div>
+    </div>
+  
 </div>
 <div className="ad  h-[100px] pt-[40px] max-md:pt-[20px] max-sm:pt-[0px]"><MiniAdStrip slides={carousel || []}/></div>
 

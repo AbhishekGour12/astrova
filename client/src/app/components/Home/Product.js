@@ -8,22 +8,22 @@ const products = [
   {
     title: "Gemstone Consultation",
     desc: "Starts at INR 79 Only",
-    img: "./p1.png",
+    img: "./p1.jpeg",
   },
   {
     title: "Rudraksh Consultation",
     desc: "Starts at INR 79 Only",
-    img: "./p2.png",
+    img: "./p2.jpeg",
   },
   {
     title: "Palmistry Products",
     desc: "Starts at INR 79 Only",
-    img: "./p3.png",
+    img: "./p3.jpeg",
   },
   {
     title: "Kundli Matching",
     desc: "Starts at INR 199 Only",
-    img: "./p2.png",
+    img: "./p4.jpeg",
   },
 ];
 

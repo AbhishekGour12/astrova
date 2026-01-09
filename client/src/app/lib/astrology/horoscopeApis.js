@@ -1,7 +1,5 @@
 const CACHE_HOURS = 24;
 
-/* ---------------- CACHE ---------------- */
-
 function getCache(key) {
   const raw = localStorage.getItem(key);
   if (!raw) return null;
@@ -21,70 +19,102 @@ function setCache(key, data) {
   );
 }
 
-/* ---------------- API WRAPPER ---------------- */
+/* ---------------- DAILY NAKSHATRA ---------------- */
 
-async function fetchHoroscope({ sign, period, section }) {
-  const key = `horoscope-${sign}-${period}-${section}`;
+export async function getDailyNakshatra(user) {
+  const key = `daily-nakshatra-${user._id}`;
   const cached = getCache(key);
   if (cached) return cached;
 
-  const res = await fetch(
-    `/api/prokerala/horoscope?sign=${sign}&period=${period}&section=${section}`
-  );
+  const b = user.astroProfile.birthDetails;
+  const p = user.astroProfile.birthPlace;
 
-  const json = await res.json();
-  const text = json.text || "";
-
-  setCache(key, text);
-  return text;
-}
-
-/* ---------------- EXPORTED FUNCTIONS ---------------- */
-
-export async function getZodiacHoroscope({ sign, period }) {
-  const text = await fetchHoroscope({
-    sign,
-    period,
-    section: "general",
+  const res = await fetch("/api/astrology/daily", {
+    method: "POST",
+    body: JSON.stringify({
+      day: b.day,
+      month: b.month,
+      year: b.year,
+      hour: b.hour,
+      min: b.minute,
+      lat: p.latitude,
+      lon: p.longitude,
+      tzone: p.timezone,
+    }),
   });
 
-  return { en: text, hi: text }; // (Hindi later if needed)
+  const data = await res.json();
+  console.log(data)
+  setCache(key, data);
+  return data;
 }
 
-export async function getLoveHoroscope(sign, period) {
-  const text = await fetchHoroscope({
-    sign,
-    period,
-    section: "love",
+/* ---------------- NUMEROLOGY ---------------- */
+
+export async function getNumerology(user) {
+  const key = `numerology-${user._id}`;
+  const cached = getCache(key);
+  if (cached) return cached;
+
+  const b = user.astroProfile.birthDetails;
+
+  const res = await fetch("/api/astrology/numerology", {
+    method: "POST",
+    body: JSON.stringify({
+      day: b.day,
+      month: b.month,
+      year: b.year,
+      name: user.astroProfile.fullName,
+    }),
   });
 
-  return { en: text, hi: text };
+  const data = await res.json();
+
+  setCache(key, data);
+  return data;
 }
 
-export async function getCareerHoroscope(sign, period) {
-  const text = await fetchHoroscope({
-    sign,
-    period,
-    section: "career",
+
+export async function getSadeSati(user) {
+  const b = user.astroProfile.birthDetails;
+  const p = user.astroProfile.birthPlace;
+
+  const res = await fetch("/api/astrology/sadhesati", {
+    method: "POST",
+    body: JSON.stringify({
+      day: b.day,
+      month: b.month,
+      year: b.year,
+      hour: b.hour,
+      min: b.minute,
+      lat: p.latitude,
+      lon: p.longitude,
+      tzone: p.timezone,
+    }),
   });
 
-  return { en: text, hi: text };
+  return res.json();
 }
 
-export async function getHealthHoroscope(sign, period) {
-  const text = await fetchHoroscope({
-    sign,
-    period,
-    section: "health",
+
+export async function getCurrentDasha(user) {
+  const b = user.astroProfile.birthDetails;
+  const p = user.astroProfile.birthPlace;
+
+  const res = await fetch("/api/astrology/dasha", {
+    method: "POST",
+    body: JSON.stringify({
+      day: b.day,
+      month: b.month,
+      year: b.year,
+      hour: b.hour,
+      min: b.minute,
+      lat: p.latitude,
+      lon: p.longitude,
+      tzone: p.timezone,
+    }),
   });
 
-  return { en: text, hi: text };
+  return res.json();
 }
 
-export function clearHoroscopeCache() {
-  Object.keys(localStorage).forEach((k) => {
-    if (k.startsWith("horoscope-")) {
-      localStorage.removeItem(k);
-    }
-  });
-}
