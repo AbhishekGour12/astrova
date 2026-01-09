@@ -17,7 +17,7 @@ import {
   FaPhoneSlash,
   FaSpinner
 } from "react-icons/fa";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import api from "../lib/api"
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
@@ -42,16 +42,13 @@ export default function AstrologerList() {
   const [meetLoading, setMeetLoading] = useState(false);
   const router = useRouter();
   const user = useSelector((state) => state.auth.user);
-const [serviceFilter, setServiceFilter] = useState("ALL");
-const service = localStorage.getItem("service") || "ALL";
+
+
+const searchParams = useSearchParams();
+const service = searchParams.get("service") || "ALL";
 
  // Use the call hook
   
-useEffect(() => {
-  const service = localStorage.getItem("service");
-  setServiceFilter(service || "ALL");
-}, [service]);
-
 // ✅ UPDATED: Use the new useCall hook for Zego
   const { 
     startCall, 
@@ -181,13 +178,13 @@ useEffect(() => {
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
-      const service = localStorage.getItem("service");
+     
 
 
 
       const [astroRes, walletRes] = await Promise.all([
         api.get('/astrologer', {
-          params: service? {service}: {}
+          params: service != "ALL" ? { service } : {}
         }),
         api.get('/auth/wallet')
       ]);
@@ -205,11 +202,11 @@ useEffect(() => {
     } finally {
       setLoading(false);
     }
-  }, [user, fetchActiveChats]);
+  }, [service,user, fetchActiveChats]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData, service]);
+    fetchData()
+  }, [fetchData]);
 
   const handleWalletRecharge = async () => {
     const amount = prompt("Enter recharge amount (₹)");
@@ -390,13 +387,13 @@ const canMeet = (a) =>
 /* ================= SERVICE PAGE FILTER ================= */
 
 const showChatBtn = (a) =>
-  (serviceFilter === "CHAT" || serviceFilter === "ALL") && canChat(a);
+  (service === "CHAT" || service === "ALL") && canChat(a);
 
 const showCallBtn = (a) =>
-  (serviceFilter === "CALL" || serviceFilter === "ALL") && canCall(a);
+  (service === "CALL" || service === "ALL") && canCall(a);
 
 const showMeetBtn = (a) =>
-  (serviceFilter === "MEET" || serviceFilter === "ALL") && canMeet(a);
+  (service === "MEET" || service === "ALL") && canMeet(a);
 // Meet Modal Functions
   const openMeetModal = (astrologer) => {
     if (!user) {
@@ -614,13 +611,13 @@ const testToken = async () => {
                 </div>
               <span
   className={`px-3 py-1 rounded-full text-xs font-semibold ${
-    serviceFilter === "MEET"
+   service === "MEET"
       ? "bg-green-100 text-green-700"
-      : serviceFilter === "CHAT"
+      :service === "CHAT"
       ? astrologer.isBusyChat
         ? "bg-red-100 text-red-700"
         : "bg-green-100 text-green-700"
-      : serviceFilter === "CALL"
+      :service === "CALL"
       ? astrologer.isBusyCall
         ? "bg-red-100 text-red-700"
         : "bg-green-100 text-green-700"
@@ -629,13 +626,13 @@ const testToken = async () => {
       : "bg-green-100 text-green-700"
   }`}
 >
-  {serviceFilter === "MEET"
+  {service === "MEET"
     ? "🟢 AVAILABLE"
-    : serviceFilter === "CHAT"
+    :service === "CHAT"
     ? astrologer.isBusyChat
       ? "🔴 BUSY"
       : "🟢 AVAILABLE"
-    : serviceFilter === "CALL"
+    :service === "CALL"
     ? astrologer.isBusyCall
       ? "🔴 BUSY"
       : "🟢 AVAILABLE"
@@ -775,7 +772,7 @@ const testToken = async () => {
                <div className="mt-6 space-y-2">
 
   {/* RESUME CHAT */}
-  {resumeChat && serviceFilter !== "MEET" && (
+  {resumeChat &&service !== "MEET" && (
     <button
       onClick={() => handleResumeChat(resumeChat.chatId)}
       className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"

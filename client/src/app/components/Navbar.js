@@ -50,21 +50,21 @@ useEffect(() => {
     window.addEventListener("scroll", handleScroll);
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
-let chats = () =>{
-  
-  localStorage.setItem("service", "CHAT");
-  router.push("/astrologers")
-}
-let calls = () =>{
-  
-  localStorage.setItem("service", "CALL");
-  router.push("/astrologers")
-}
-let meet = () =>{
-  
-  localStorage.setItem("service", "MEET");
-  router.push("/astrologers")
-}
+const chats = () => {
+  router.push("/astrologers?service=CHAT");
+  setIsMobileMenuOpen(false);
+};
+
+const calls = () => {
+  router.push("/astrologers?service=CALL");
+  setIsMobileMenuOpen(false);
+};
+
+const meet = () => {
+  router.push("/astrologers?service=MEET");
+  setIsMobileMenuOpen(false);
+};
+
   return (
    <div
    id="navbar"
@@ -253,11 +253,11 @@ ${
                 <ul className="py-6 px-6 space-y-4 text-[16px] font-medium">
                   <li className="border-b pb-3"><Link href="/">Home</Link></li>
                   <li className="border-b pb-3"><Link href="/ProductsPage">Products</Link></li>
-                  <li className="border-b pb-3"><Link href="/astrologers">Chats</Link></li>
+                  <li className="border-b pb-3"><Link href="/astrologers?service=CHAT">Chats</Link></li>
                   <li className={`border-b pb-3 ${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}><Link href="/Orders" className={`${user?"hover:cursor-pointer":"hover:cursor-not-allowed"}`}>MyOrders</Link></li>
-                   <li className="border-b pb-3"><Link href="/">Calls</Link></li>
+                   <li className="border-b pb-3"><Link href="/astrologers?service=CALL">Calls</Link></li>
                   <li className="border-b pb-3"><Link href="/Remedy">Remedies</Link></li>
-                  <li className="border-b pb-3"><Link href="/">Meet</Link></li>
+                  <li className="border-b pb-3"><Link href="/astrologers?service=MEET">Meet</Link></li>
                   <li className="border-b pb-3"><Link href="/About">About</Link></li>
                 </ul>
 
