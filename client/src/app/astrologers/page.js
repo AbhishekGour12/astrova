@@ -43,8 +43,8 @@ export default function AstrologerList() {
   const router = useRouter();
   const user = useSelector((state) => state.auth.user);
 const [serviceFilter, setServiceFilter] = useState("ALL");
-const service = localStorage.getItem("service");
-const [callTypeFilter, setCallTypeFilter] = useState("ALL"); // ALL, AUDIO, VIDEO
+const service = localStorage.getItem("service") || "ALL";
+
  // Use the call hook
   
 useEffect(() => {

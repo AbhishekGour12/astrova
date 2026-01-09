@@ -1,74 +1,44 @@
-const CACHE_HOURS = 24;
+import axios from "axios";
 
-function getCache(key) {
-  const raw = localStorage.getItem(key);
-  if (!raw) return null;
+const apiAstrologer = axios.create({
+  baseURL: `${process.env.NEXT_PUBLIC_API}/api`,
+});
 
-  const parsed = JSON.parse(raw);
-  if (Date.now() - parsed.time > CACHE_HOURS * 3600000) {
-    localStorage.removeItem(key);
-    return null;
+// Attach token in every request
+apiAstrologer.interceptors.request.use((config) => {
+  const token = localStorage.getItem("astrologer_token");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+// MAIN PART — CHECK TOKEN EXPIRY
+apiAstrologer.interceptors.response.use(
+  (response) => response,
+  
+  (error) => {
+    // If token expired
+    if (error.response && error.response.status === 401) {
+      const message = error.response.data?.message || "";
+
+      if (
+        message.includes("expired") ||
+        message.includes("invalid token") ||
+        message.includes("jwt") ||
+        message.includes("Token") ||
+        error.response.status === 401
+      ) {
+        //toast.error("Session expired. Please login again.");
+
+        // CLEAR USER + TOKEN
+        localStorage.removeItem("astrologer_token");
+        localStorage.removeItem("astrologer");
+
+        // Redirect to login pagewindow.location.href = "/Login";
+      }
+    }
+
+    return Promise.reject(error);
   }
-  return parsed.data;
-}
+);
 
-function setCache(key, data) {
-  localStorage.setItem(
-    key,
-    JSON.stringify({ data, time: Date.now() })
-  );
-}
-
-/* ---------------- DAILY NAKSHATRA ---------------- */
-
-export async function getDailyNakshatra(user) {
-  const key = `daily-nakshatra-${user._id}`;
-  const cached = getCache(key);
-  if (cached) return cached;
-
-  const b = user.astroProfile.birthDetails;
-  const p = user.astroProfile.birthPlace;
-
-  const res = await fetch("src/app/api/astrology/daily", {
-    method: "POST",
-    body: JSON.stringify({
-      day: b.day,
-      month: b.month,
-      year: b.year,
-      hour: b.hour,
-      min: b.minute,
-      lat: p.latitude,
-      lon: p.longitude,
-      tzone: p.timezone,
-    }),
-  });
-
-  const data = await res.json();
-  console.log(data)
-  setCache(key, data);
-  return data;
-}
-
-/* ---------------- NUMEROLOGY ---------------- */
-
-export async function getNumerology(user) {
-  const key = `numerology-${user._id}`;
-  const cached = getCache(key);
-  if (cached) return cached;
-
-  const b = user.astroProfile.birthDetails;
-
-  const res = await fetch("/api/astrology/numerology", {
-    method: "POST",
-    body: JSON.stringify({
-      day: b.day,
-      month: b.month,
-      year: b.year,
-      name: user.astroProfile.fullName,
-    }),
-  });
-
-  const data = await res.json();
-  setCache(key, data);
-  return data;
-}
+export default apiAstrologer;
