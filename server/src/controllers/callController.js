@@ -177,6 +177,18 @@ export const acceptCallByAstrologer = async (req, res) => {
     call.status = "ACTIVE";
     call.startedAt = new Date();
     await call.save();
+    // CREATE earning record only once when call becomes ACTIVE
+await AstrologerEarning.create({
+  astrologer: call.astrologer._id,
+  user: call.user._id,
+  call: call._id,
+  serviceType: "CALL",
+  minutes: 0,
+  ratePerMinute: call.ratePerMinute,
+  amount: 0,
+  isPaid: false
+});
+
 
     // Start billing interval
     startCallBillingInterval(callId);
@@ -348,16 +360,14 @@ export const endCallByUser = async (req, res) => {
 
     // Create earning record
     if (totalAmount > 0) {
-      await AstrologerEarning.create({
-        astrologer: call.astrologer,
-        user: call.user,
-        call: call._id,
-        serviceType: "CALL",
-        minutes: minutes,
-        ratePerMinute: call.ratePerMinute,
-        amount: totalAmount,
-        isPaid: false
-      });
+      await AstrologerEarning.findOneAndUpdate(
+  { call: call._id },
+  {
+    minutes: minutes,
+    amount: totalAmount
+  }
+);
+
     }
 
     // Free astrologer
@@ -451,16 +461,14 @@ export const endCallByAstrologer = async (req, res) => {
 
     // Create earning record
     if (totalAmount > 0) {
-      await AstrologerEarning.create({
-        astrologer: call.astrologer,
-        user: call.user,
-        call: call._id,
-        serviceType: "CALL",
-        minutes: minutes,
-        ratePerMinute: call.ratePerMinute,
-        amount: totalAmount,
-        isPaid: false
-      });
+      await AstrologerEarning.findOneAndUpdate(
+  { call: call._id },
+  {
+    minutes: minutes,
+    amount: totalAmount
+  }
+);
+
     }
 
     // Free astrologer
@@ -808,6 +816,66 @@ export const getAstrologerCallHistory = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Failed to fetch call history",
+    });
+  }
+};
+
+
+// In callController.js, add these functions:
+
+/* ======================================================
+   GET WAITING CALLS FOR ASTROLOGER
+====================================================== */
+export const getAstrologerWaitingCalls = async (req, res) => {
+  try {
+    const { astrologerId } = req.params;
+    
+    const waitingCalls = await Call.find({
+      astrologer: astrologerId,
+      status: "WAITING"
+    })
+    .populate('user', 'name profileImageUrl')
+    .populate('astrologer', 'fullName profileImageUrl pricing')
+    .sort({ createdAt: -1 })
+    .limit(10); // Limit to 10 most recent waiting calls
+
+    res.json({
+      success: true,
+      calls: waitingCalls || []
+    });
+  } catch (err) {
+    console.error("Get astrologer waiting calls error:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to get waiting calls" 
+    });
+  }
+};
+
+/* ======================================================
+   GET ALL ACTIVE/WAITING CALLS FOR ASTROLOGER
+====================================================== */
+export const getAstrologerAllPendingCalls = async (req, res) => {
+  try {
+    const { astrologerId } = req.params;
+    
+    const pendingCalls = await Call.find({
+      astrologer: astrologerId,
+      status: { $in: ["WAITING", "ACTIVE"] }
+    })
+    .populate('user', 'name profileImageUrl')
+    .populate('astrologer', 'fullName profileImageUrl pricing')
+    .sort({ createdAt: -1 });
+
+    res.json({
+      success: true,
+      calls: pendingCalls || []
+    });
+  } catch (err) {
+    console.error("Get astrologer pending calls error:", err);
+    res.status(500).json({ 
+      success: false,
+      message: "Failed to get pending calls" 
     });
   }
 };

@@ -8,7 +8,18 @@ import Footer from "./components/Footer";
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
 
-  const hideNavbar = ["/demo/user-call", "/demo/astrologer-call", "/Login", "/Signup", "/Astrologer/login", "/Astrologer/register", "/Astrologer", "Astrologer/call-dashboard"].includes(pathname);
+ const hideNavbar =
+  pathname.startsWith("/astrologers/call/", "/astrologers/chat/") ||
+  [
+    "/demo/user-call",
+    "/demo/astrologer-call",
+    "/Login",
+    "/Signup",
+    "/Astrologer/login",
+    "/Astrologer/register",
+    "/Astrologer",
+    "/Astrologer/call-dashboard"
+  ].includes(pathname);
 
   return (
     <>

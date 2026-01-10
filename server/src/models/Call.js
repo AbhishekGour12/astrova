@@ -20,7 +20,7 @@ const callSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ["WAITING", "ACTIVE", "ENDED", "MISSED", "REJECTED"],
+      enum: ["WAITING", "ACTIVE", "ENDED", "MISSED", "REJECTED", "CONNECTING"],
       default: "WAITING",
       index: true,
     },

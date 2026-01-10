@@ -52,6 +52,7 @@ const AstrologerProfileSchema = new mongoose.Schema({
   isApproved: { type: Boolean, default: false },
   isAdmin: { type: Boolean, default: false },
   isAvailable: { type: Boolean, default: false },
+  totalConsultations: { type: Number, default: 0 },
 
   /* ================= BANK ================= */
   bankName: String,

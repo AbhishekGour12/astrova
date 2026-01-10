@@ -11,7 +11,9 @@ import {
   getZegoToken,
   getCallDetailsWithToken,
   endCall,
-  getAstrologerCallHistory
+  getAstrologerCallHistory,
+  getAstrologerWaitingCalls,
+  getAstrologerAllPendingCalls
 } from "../controllers/callController.js";
 
 import { authMiddleware, onlyUser } from "../middleware/authMiddleware.js";
@@ -26,6 +28,8 @@ router.get("/user/active", authMiddleware, onlyUser, getUserActiveCall);
 router.post("/user/end/:callId", authMiddleware, onlyUser, endCallByUser);
 
 /* ================= ASTROLOGER ROUTES ================= */
+router.get("/astrologer/waiting/:astrologerId", getAstrologerWaitingCalls);
+router.get("/astrologer/pending/:astrologerId", getAstrologerAllPendingCalls);
 router.post("/astrologer/accept/:callId/:astrologerId", acceptCallByAstrologer);
 router.post("/astrologer/reject/:callId/:astrologerId", rejectCallByAstrologer);
 router.get("/astrologer/active/:astrologerId", getAstrologerActiveCall);

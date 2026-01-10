@@ -1,3 +1,4 @@
+
 import Call from "../models/Call.js";
 import User from "../models/User.js";
 import AstrologerEarning from "../models/AstrologerEarning.js";
@@ -12,55 +13,38 @@ const activeCallBillingIntervals = new Map();
 export const startCallBilling = async (callId) => {
   try {
     const call = await Call.findById(callId)
-      .populate('user', 'walletBalance')
-      .populate('astrologer', '_id');
+      .populate("user", "walletBalance")
+      .populate("astrologer", "_id");
 
-    if (!call || call.status !== "ACTIVE") {
-      return;
-    }
+    if (!call || call.status !== "ACTIVE") return;
 
-    // Calculate minutes elapsed
-    const startedAt = call.startedAt || new Date();
-    const now = new Date();
-    const minutesElapsed = Math.max(
-      1,
-      Math.floor((now - startedAt) / (1000 * 60))
-    );
+    // find earning record
+    const earning = await AstrologerEarning.findOne({ call: callId });
+    if (!earning) return;
 
-    // Calculate amount to deduct
-    const amountToDeduct = minutesElapsed * call.ratePerMinute;
-
-    // Check user balance
     const user = await User.findById(call.user._id);
-    
-    if (user.walletBalance < amountToDeduct) {
-      // Insufficient balance - end call immediately
+
+    // check balance for 1 minute only
+    if (user.walletBalance < call.ratePerMinute) {
       await endCallDueToInsufficientBalance(callId);
       return;
     }
 
-    // Deduct from user wallet
-    user.walletBalance -= amountToDeduct;
+    // Deduct wallet for 1 minute
+    user.walletBalance -= call.ratePerMinute;
     await user.save();
 
-    // Create earning record
-    await AstrologerEarning.create({
-      astrologer: call.astrologer._id,
-      user: call.user._id,
-      call: call._id,
-      serviceType: "CALL",
-      minutes: minutesElapsed,
-      ratePerMinute: call.ratePerMinute,
-      amount: amountToDeduct,
-      isPaid: false
-    });
+    // Update earning
+    earning.minutes += 1;
+    earning.amount += call.ratePerMinute;
+    await earning.save();
 
-    // Emit real-time updates
     const io = getIO();
+
     io.to(`call_${callId}`).emit("walletUpdated", {
       walletBalance: user.walletBalance,
-      amountDeducted: amountToDeduct,
-      minutesBilled: minutesElapsed
+      minutes: earning.minutes,
+      totalAmount: earning.amount
     });
 
     io.to(`user_${call.user._id}`).emit("walletUpdated", {
@@ -68,9 +52,10 @@ export const startCallBilling = async (callId) => {
     });
 
   } catch (err) {
-    console.error("Call billing error for call", callId, ":", err.message);
+    console.error("Call billing error:", err.message);
   }
 };
+
 
 /* ======================================================
    END CALL DUE TO INSUFFICIENT BALANCE

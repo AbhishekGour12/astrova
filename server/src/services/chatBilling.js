@@ -18,7 +18,9 @@ export const startChatBilling = async (chatId) => {
     if (!chat || chat.status !== "ACTIVE") {
       return;
     }
-
+   const earning = await AstrologerEarning.findOne({ chat: chatId });
+    if (!earning) return;
+    
     // Calculate minutes elapsed
     const startedAt = chat.startedAt || new Date();
     const now = new Date();
@@ -28,8 +30,7 @@ export const startChatBilling = async (chatId) => {
     );
 
     // Calculate amount to deduct
-    const amountToDeduct = minutesElapsed * chat.ratePerMinute;
-
+    const amountToDeduct = chat.ratePerMinute
     // Check user balance
     const user = await User.findById(chat.user._id);
     
@@ -71,17 +72,10 @@ export const startChatBilling = async (chatId) => {
     user.walletBalance -= amountToDeduct;
     await user.save();
 
-    // Create earning record
-    await AstrologerEarning.create({
-      astrologer: chat.astrologer._id,
-      user: chat.user._id,
-      chat: chat._id,
-      serviceType: "CHAT",
-      minutes: minutesElapsed,
-      ratePerMinute: chat.ratePerMinute,
-      amount: amountToDeduct,
-      isPaid: false
-    });
+    // Update earning
+    earning.minutes += 1;
+    earning.amount += chat.ratePerMinute;
+    await earning.save();
 
     // Emit real-time updates
     const io = getIO();

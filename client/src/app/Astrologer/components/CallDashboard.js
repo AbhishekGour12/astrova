@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "react-hot-toast";
 import { io } from "socket.io-client";
@@ -48,14 +48,14 @@ export default function AstrologerCallDashboard() {
   const [isMuted, setIsMuted] = useState(false);
   const [isSpeakerOn, setIsSpeakerOn] = useState(true);
   const [callDuration, setCallDuration] = useState(0);
-  const [callTimer, setCallTimer] = useState(null);
+  
   const [isOnline, setIsOnline] = useState(true);
   const [totalCalls, setTotalCalls] = useState(0);
   const [avgDuration, setAvgDuration] = useState("00:00");
   const [loading, setLoading] = useState(true);
   const [astrologerId, setAstrologerId] = useState(null);
   const [isCallConnected, setIsCallConnected] = useState(false);
-
+  const timerRef = useRef(null);
   // Initialize Zego
   const { 
     containerRef, 
@@ -71,9 +71,84 @@ export default function AstrologerCallDashboard() {
     enabled: zegoEnabled && !!zegoRoomId && !!astrologerId
   });
 
-  // Initialize socket
+  // Fetch pending and active calls from API
+  const fetchPendingAndActiveCalls = useCallback(async () => {
+    if (!astrologerId) return;
+
+    try {
+      // Fetch active call
+      const activeCallRes = await api.get(`/call/astrologer/active/${astrologerId}`);
+      if (activeCallRes.data.success && activeCallRes.data.call) {
+        const callData = activeCallRes.data.call;
+        setActiveCall(callData);
+        
+        if (callData.status === "ACTIVE") {
+          setIsCallConnected(true);
+          
+          // Calculate duration if call is active
+          if (callData.startedAt) {
+            const startedAt = new Date(callData.startedAt);
+            const now = new Date();
+            const seconds = Math.floor((now - startedAt) / 1000);
+            setCallDuration(Math.max(0, seconds));
+            startCallTimer(callData.startedAt);
+          }
+          
+          // Set Zego room ID if available
+          if (callData.zegoRoomId) {
+            setZegoRoomId(callData.zegoRoomId);
+            setZegoEnabled(true);
+          }
+        } else if (callData.status === "WAITING") {
+          // Add to incoming calls if waiting
+          setIncomingCalls(prev => {
+            const existingCall = prev.find(call => call._id === callData._id);
+            if (existingCall) return prev;
+            
+            return [...prev, { 
+              ...callData, 
+              receivedAt: new Date(callData.createdAt),
+              status: "WAITING"
+            }];
+          });
+        }
+      }
+
+      // Fetch all waiting calls for this astrologer
+      const waitingCallsRes = await api.get(`/call/astrologer/waiting/${astrologerId}`);
+      if (waitingCallsRes.data.success && waitingCallsRes.data.calls) {
+        const waitingCalls = waitingCallsRes.data.calls;
+        
+        setIncomingCalls(prev => {
+          // Create a map to avoid duplicates
+          const callMap = new Map();
+          
+          // Add existing calls to map
+          prev.forEach(call => {
+            callMap.set(call._id, call);
+          });
+          
+          // Add waiting calls to map
+          waitingCalls.forEach(call => {
+            if (!callMap.has(call._id)) {
+              callMap.set(call._id, {
+                ...call,
+                receivedAt: new Date(call.createdAt),
+                status: "WAITING"
+              });
+            }
+          });
+          
+          return Array.from(callMap.values());
+        });
+      }
+    } catch (error) {
+      console.error("Error fetching calls:", error);
+    }
+  }, [astrologerId]);
+
+  // Initialize socket and fetch calls
   useEffect(() => {
-  
     const id = localStorage.getItem("astrologer_id");
     if (!id) {
       router.push("/astrologer/login");
@@ -88,7 +163,11 @@ export default function AstrologerCallDashboard() {
     setSocket(newSocket);
     newSocket.emit("joinAstrologer", { astrologerId: id });
 
+    // Fetch existing calls when component mounts
+    fetchPendingAndActiveCalls();
+
     // Socket event listeners
+  // Socket event listeners
     newSocket.on("incomingCall", (data) => {
       console.log("📞 Incoming call:", data);
       const callData = data.call || data;
@@ -106,9 +185,12 @@ export default function AstrologerCallDashboard() {
         }];
       });
       
+      // 1. Create a unique ID for this toast
+      const toastId = `incoming-${callId}`;
+
       // Show toast notification
       toast.custom((t) => (
-        <div className="bg-white rounded-xl shadow-2xl p-4 max-w-sm animate-pulse border-l-4 border-blue-500">
+        <div className="bg-white rounded-xl shadow-2xl p-4 max-w-sm animate-pulse border-l-4 border-blue-500 pointer-events-auto">
           <div className="flex items-center gap-3 mb-3">
             <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-blue-600 rounded-full flex items-center justify-center">
               <FaPhone className="text-white text-lg" />
@@ -125,18 +207,20 @@ export default function AstrologerCallDashboard() {
           </div>
           <div className="flex gap-2">
             <button
-              onClick={async () => {
-                await acceptCall(callId);
-                toast.dismiss(t.id);
+              onClick={() => {
+                // 2. Dismiss IMMEDIATELY when clicked
+                toast.dismiss(toastId);
+                acceptCall(callId);
               }}
               className="flex-1 bg-gradient-to-r from-green-500 to-green-600 text-white py-2 rounded-lg font-medium hover:from-green-600 hover:to-green-700 transition-all"
             >
               Accept
             </button>
             <button
-              onClick={async () => {
-                await rejectCall(callId);
-                toast.dismiss(t.id);
+              onClick={() => {
+                // 2. Dismiss IMMEDIATELY when clicked
+                toast.dismiss(toastId);
+                rejectCall(callId);
               }}
               className="flex-1 bg-gradient-to-r from-red-500 to-red-600 text-white py-2 rounded-lg font-medium hover:from-red-600 hover:to-red-700 transition-all"
             >
@@ -145,6 +229,7 @@ export default function AstrologerCallDashboard() {
           </div>
         </div>
       ), {
+        id: toastId, // 3. Assign the ID here
         duration: 30000,
         position: "top-right"
       });
@@ -156,58 +241,83 @@ export default function AstrologerCallDashboard() {
       handleCallEnd();
       toast.success(`Call ended. Earnings: ₹${data.totalAmount || 0}`);
     });
-// Listen for user ending call
-newSocket.on("callEndedByUser", (data) => {
-  console.log("User ended call:", data);
-  if (activeCall && activeCall._id === data.callId) {
-    handleCallEnd();
-    toast.info("User ended the call");
-  }
-});
 
-// Listen for billing updates
-newSocket.on("walletUpdated", (data) => {
-  console.log("Wallet updated:", data);
-  // You can show a notification or update UI if needed
-});
-    // Load initial data
-   
-    return () => {
-      newSocket.disconnect();
-      if (callTimer) {
-        clearInterval(callTimer);
+    // Listen for user ending call
+    newSocket.on("callEndedByUser", (data) => {
+      console.log("User ended call:", data);
+      if (activeCall && activeCall._id === data.callId) {
+        handleCallEnd();
+        toast.info("User ended the call");
+      }
+    });
+    
+    // Listen for wallet updates
+    newSocket.on("walletUpdated", (data) => {
+      console.log("Wallet updated:", data);
+    });
+    
+    // Add this new listener for user ending call specifically
+    newSocket.on("userEndedCall", (data) => {
+      console.log("User ended call (direct event):", data);
+      if (activeCall && activeCall._id === data.callId) {
+        handleCallEnd();
+        toast.info("User ended the call");
+      }
+    });
+
+    // Listen for call activation (in case astrologer refreshes during active call)
+    newSocket.on("callActivated", (data) => {
+      console.log("Call activated:", data);
+      if (data.astrologerId === id) {
+        // Update active call state
+        fetchPendingAndActiveCalls();
+      }
+    });
+
+    // Add event listener for page visibility
+    const handleVisibilityChange = () => {
+      if (!document.hidden && astrologerId) {
+        // Page became visible, refresh calls
+        fetchPendingAndActiveCalls();
       }
     };
-  }, []);
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      newSocket.disconnect();
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, [astrologerId, router, fetchPendingAndActiveCalls]);
+
   useEffect(() =>{
     loadDashboardData()
-
-  },[])
+  }, [])
 
   // Load dashboard data
   const loadDashboardData = async () => {
     try {
       setLoading(true);
       const astrologerId = localStorage.getItem("astrologer_id");
-       const history = await api.get(`call/astrologer/history`, {params: {
-    astrologerId,
-    limit: 5,
-    page: 1
-  }})
-   if(history){
-    setCallHistory(history.data.calls || [])
-   }
-      const [earningsRes, statsRes, historyRes] = await Promise.all([
+      const history = await api.get(`call/astrologer/history`, {
+        params: {
+          astrologerId,
+          limit: 5,
+          page: 1
+        }
+      });
+      
+      if(history){
+        setCallHistory(history.data.calls || []);
+      }
+      
+      const [earningsRes, statsRes] = await Promise.all([
         api.get(`/astrologer/earnings/summary`),
-        api.get(`/astrologer/stats/calls`),
-        api.get(`call/astrologer/history`, {params: {
-    astrologerId,
-    limit: 5,
-    page: 1
-  }})
+        api.get(`/astrologer/stats/calls`)
       ]);
-     
-     
 
       // Earnings
       if (earningsRes.data.success) {
@@ -223,11 +333,6 @@ newSocket.on("walletUpdated", (data) => {
         setTotalCalls(statsRes.data.totalCalls || 0);
         setAvgDuration(statsRes.data.averageDuration || "00:00");
       }
-
-      // History
-      if (historyRes.data.success) {
-        setCallHistory(historyRes.data.calls || []);
-      }
     } catch (error) {
       console.error("Error loading dashboard:", error);
       toast.error("Failed to load dashboard data");
@@ -236,62 +341,61 @@ newSocket.on("walletUpdated", (data) => {
     }
   };
 
- 
-  // Update the acceptCall function in Astrologer Dashboard:
-
-const acceptCall = async (callId) => {
-  try {
-    toast.loading("Accepting call...", { id: "accept-call" });
-    
-    const response = await api.post(`/call/astrologer/accept/${callId}/${astrologerId}`);
-    
-    toast.dismiss("accept-call");
-    
-    if (response.data.success) {
-      const callData = response.data.call;
-      setActiveCall(callData);
+  // Update the acceptCall function
+  const acceptCall = async (callId) => {
+    try {
+      toast.dismiss(`incoming-${callId}`);
+      toast.loading("Accepting call...", { id: "accept-call" });
       
-      // Set Zego room ID
-      const roomId = response.data.zegoRoomId || callData.zegoRoomId;
-      if (roomId) {
-        setZegoRoomId(roomId);
-        setZegoEnabled(true);
+      const response = await api.post(`/call/astrologer/accept/${callId}/${astrologerId}`);
+      
+      toast.dismiss("accept-call");
+      
+      if (response.data.success) {
+        const callData = response.data.call;
+        setActiveCall(callData);
+        
+        // Set Zego room ID
+        const roomId = response.data.zegoRoomId || callData.zegoRoomId;
+        if (roomId) {
+          setZegoRoomId(roomId);
+          setZegoEnabled(true);
+        }
+        
+        // Remove from incoming calls
+        setIncomingCalls(prev => prev.filter(call => call._id !== callId));
+        
+        // Join the call room via socket
+        if (socket) {
+          socket.emit("astrologerJoinCallRoom", {
+            callId: callId,
+            astrologerId: astrologerId
+          });
+        }
+        
+        setIsCallConnected(true)
+        startCallTimer(callData.startedAt || new Date());
+        
+        toast.success("Call accepted!");
       }
+    } catch (error) {
+      toast.dismiss("accept-call");
+      console.error("Accept call error:", error);
       
-      // Remove from incoming calls
-      setIncomingCalls(prev => prev.filter(call => call._id !== callId));
-      
-      // Join the call room via socket
-      if (socket) {
-        socket.emit("astrologerJoinCallRoom", {
-          callId: callId,
-          astrologerId: astrologerId
-        });
+      if (error.response?.status === 403) {
+        toast.error("Unauthorized. Please login again.");
+      } else if (error.response?.status === 400) {
+        toast.error(error.response.data.message || "Failed to accept call");
+      } else {
+        toast.error("Failed to accept call");
       }
-      
-      // Start call
-      setIsCallConnected(true);
-      startCallTimer();
-      
-      toast.success("Call accepted!");
     }
-  } catch (error) {
-    toast.dismiss("accept-call");
-    console.error("Accept call error:", error);
-    
-    if (error.response?.status === 403) {
-      toast.error("Unauthorized. Please login again.");
-    } else if (error.response?.status === 400) {
-      toast.error(error.response.data.message || "Failed to accept call");
-    } else {
-      toast.error("Failed to accept call");
-    }
-  }
-};
+  };
 
   // Reject call
   const rejectCall = async (callId) => {
     try {
+      toast.dismiss(`incoming-${callId}`);
       const response = await api.post(`/call/astrologer/reject/${callId}/${astrologerId}`, {
         reason: "Busy with another call"
       });
@@ -311,19 +415,21 @@ const acceptCall = async (callId) => {
     if (!activeCall) return;
 
     try {
-      await api.post(`/call/astrologer/end/${activeCall._id}/${astrologerId}`);
-     if (response.data.success) {
-      // Emit socket event
-      if (socket) {
-        socket.emit("astrologerEndedCall", {
-          callId: activeCall._id,
-          astrologerId: astrologerId
-        });
-      }
+      const response = await api.post(`/call/astrologer/end/${activeCall._id}/${astrologerId}`);
+      console.log(response);
       
-      handleCallEnd();
-      toast.success("Call ended successfully");
-    }
+      if (response.data.success) {
+        // Emit socket event to notify user
+        if (socket) {
+          socket.emit("astrologerEndedCall", {
+            callId: activeCall._id,
+            astrologerId: astrologerId,
+            userId: activeCall.user?._id
+          });
+        }
+        handleCallEnd();
+        toast.success("Call ended successfully");
+      }
     } catch (error) {
       console.error("End call error:", error);
       toast.error("Failed to end call");
@@ -338,26 +444,35 @@ const acceptCall = async (callId) => {
     setZegoRoomId(null);
     setZegoToken(null);
     
-    if (callTimer) {
-      clearInterval(callTimer);
-      setCallTimer(null);
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
     }
     
     setCallDuration(0);
     loadDashboardData();
+    fetchPendingAndActiveCalls(); // Refresh calls after ending
   };
 
   // Start call timer
-  const startCallTimer = () => {
-    if (callTimer) {
-      clearInterval(callTimer);
-    }
-    
-    const timer = setInterval(() => {
-      setCallDuration(prev => prev + 1);
-    }, 1000);
-    
-    setCallTimer(timer);
+  const startCallTimer = (startTimeString) => {
+    // 1. Clear any existing timer immediately (synchronous)
+  if (timerRef.current) {
+    clearInterval(timerRef.current);
+  }
+
+  // 2. Determine start time
+  // If a time is passed, use it. Otherwise use now.
+  const startTime = startTimeString ? new Date(startTimeString).getTime() : Date.now();
+
+  // 3. Set the interval
+  timerRef.current = setInterval(() => {
+    const now = Date.now();
+    // Calculate difference in seconds
+    const diffInSeconds = Math.floor((now - startTime) / 1000);
+    // Ensure we don't show negative numbers
+    setCallDuration(Math.max(0, diffInSeconds));
+  }, 1000);
   };
 
   // Format duration
@@ -367,7 +482,7 @@ const acceptCall = async (callId) => {
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
-  // Toggle mute (simplified - no Zego toggle needed)
+  // Toggle mute
   const toggleMute = () => {
     setIsMuted(!isMuted);
     toast.success(isMuted ? "Unmuted" : "Muted");
@@ -400,6 +515,7 @@ const acceptCall = async (callId) => {
   // Refresh dashboard
   const refreshDashboard = () => {
     loadDashboardData();
+    fetchPendingAndActiveCalls(); // Also refresh calls
     toast.success("Dashboard refreshed");
   };
 
@@ -414,6 +530,12 @@ const acceptCall = async (callId) => {
     } catch (error) {
       console.error("Cleanup error:", error);
     }
+  };
+
+  // Add a refresh button for calls specifically
+  const refreshCalls = () => {
+    fetchPendingAndActiveCalls();
+    toast.success("Calls refreshed");
   };
 
   if (!astrologerId) {
@@ -449,7 +571,7 @@ const acceptCall = async (callId) => {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-8">
-      {/* Header */}
+      {/**  Header 
       <div className="bg-white shadow-lg border-b sticky top-0 z-10">
         <div className="container mx-auto px-4 py-4">
           <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
@@ -467,7 +589,7 @@ const acceptCall = async (callId) => {
             </div>
             
             <div className="flex flex-wrap items-center gap-4">
-              {/* Online Status Toggle */}
+              {/* Online Status Toggle 
               <div className="flex items-center gap-2">
                 <span className="text-sm font-medium text-gray-600">Status:</span>
                 <button
@@ -483,7 +605,7 @@ const acceptCall = async (callId) => {
                 </button>
               </div>
               
-              {/* Active Call Indicator */}
+               Active Call Indicator 
               {isCallConnected && activeCall && (
                 <div className="flex items-center gap-2 bg-gradient-to-r from-green-100 to-emerald-100 px-3 py-1.5 rounded-full border border-green-300">
                   <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
@@ -494,17 +616,26 @@ const acceptCall = async (callId) => {
                 </div>
               )}
               
-              {/* Earnings Display */}
+              /* Earnings Display */
               <div className="flex items-center gap-2 bg-gradient-to-r from-green-50 to-emerald-50 px-4 py-2 rounded-full border border-green-200">
                 <FaWallet className="text-green-600" />
                 <span className="font-bold text-green-700">₹{earnings.today}</span>
                 <span className="text-xs text-green-600">Today</span>
               </div>
+
+              /* Refresh Calls Button 
+              <button
+                onClick={refreshCalls}
+                className="px-3 py-1.5 bg-blue-100 text-blue-700 rounded-full font-medium hover:bg-blue-200 flex items-center gap-2"
+              >
+                <FaBell className="text-sm" />
+                Refresh Calls
+              </button>
             </div>
           </div>
         </div>
       </div>
-
+      */}
       <div className="container mx-auto px-4 py-8">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Active Call & Incoming Calls */}
@@ -515,6 +646,12 @@ const acceptCall = async (callId) => {
                 <div className="flex items-center justify-between mb-6">
                   <h2 className="text-xl font-bold text-gray-800">Active Call</h2>
                   <div className="flex items-center gap-2">
+                    <button
+                      onClick={refreshCalls}
+                      className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200"
+                    >
+                      Refresh
+                    </button>
                     <span className={`px-3 py-1 rounded-full text-sm ${zegoConnected ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
                       {zegoConnected ? 'Connected' : 'Connecting...'}
                     </span>
@@ -582,212 +719,84 @@ const acceptCall = async (callId) => {
             ) : (
               /* NO ACTIVE CALL - Show incoming calls */
               <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <div className="text-center py-8">
-                  <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
-                    <FaPhone className="text-3xl text-gray-400" />
-                  </div>
-                  <h3 className="text-xl font-bold text-gray-700 mb-2">No Active Calls</h3>
-                  <p className="text-gray-500 mb-6">You're ready to accept incoming calls</p>
-                  <button
-                    onClick={refreshDashboard}
-                    className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
-                  >
-                    Refresh
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {/* INCOMING CALLS SECTION */}
-            {!isCallConnected && incomingCalls.length > 0 && (
-              <div className="bg-white rounded-2xl p-6 shadow-sm">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6">
-                  <div className="flex items-center gap-2 mb-3 sm:mb-0">
-                    <FaBell className="text-[#C06014]" />
+                <div className="flex items-center justify-between mb-6">
+                  <div>
                     <h2 className="text-xl font-bold text-gray-800">Incoming Calls</h2>
+                    <p className="text-gray-500 text-sm">Manage your call requests</p>
                   </div>
-                  <div className="flex items-center gap-3">
-                    <span className="bg-[#C06014] text-white text-xs font-medium px-3 py-1 rounded-full">
-                      {incomingCalls.length} waiting
-                    </span>
-                    {incomingCalls.length > 0 && (
-                      <button
-                        onClick={cleanupMissedCalls}
-                        className="text-xs text-gray-500 hover:text-gray-700"
-                      >
-                        Clear all
-                      </button>
-                    )}
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={refreshCalls}
+                      className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg font-medium hover:bg-blue-200"
+                    >
+                      Refresh Calls
+                    </button>
                   </div>
                 </div>
                 
-                <div className="space-y-4">
-                  {incomingCalls.map((call, index) => (
-                    <div
-                      key={call._id || index}
-                      className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-blue-50 rounded-full flex items-center justify-center">
-                            <FaUser className="text-blue-500" />
+                {incomingCalls.length > 0 ? (
+                  <div className="space-y-4">
+                    {incomingCalls.map((call, index) => (
+                      <div
+                        key={call._id || index}
+                        className="border border-gray-200 rounded-xl p-4 hover:bg-gray-50 transition-colors"
+                      >
+                        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-3">
+                            <div className="w-12 h-12 bg-gradient-to-r from-blue-100 to-blue-50 rounded-full flex items-center justify-center">
+                              <FaUser className="text-blue-500" />
+                            </div>
+                            <div>
+                              <h4 className="font-bold text-gray-800">
+                                {call.user?.name || "Unknown User"}
+                              </h4>
+                              <p className="text-sm text-gray-500">
+                                {call.callType === "VIDEO" ? "Video Call" : "Audio Call"} • ₹{call.ratePerMinute || 100}/min
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {call.receivedAt ? `Waiting for ${Math.floor((new Date() - new Date(call.receivedAt)) / 1000)}s` : 'Just now'}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <h4 className="font-bold text-gray-800">
-                              {call.user?.name || "Unknown User"}
-                            </h4>
-                            <p className="text-sm text-gray-500">
-                              {call.callType === "VIDEO" ? "Video Call" : "Audio Call"} • ₹{call.ratePerMinute || 100}/min
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {call.receivedAt ? `Waiting for ${Math.floor((new Date() - new Date(call.receivedAt)) / 1000)}s` : 'Just now'}
-                            </p>
+                          
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => acceptCall(call._id)}
+                              className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium text-sm hover:from-green-600 hover:to-green-700 transition-all flex items-center gap-2"
+                            >
+                              <FaPhone className="text-xs" />
+                              Accept
+                            </button>
+                            <button
+                              onClick={() => rejectCall(call._id)}
+                              className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-medium text-sm hover:from-red-600 hover:to-red-700 transition-all flex items-center gap-2"
+                            >
+                              <FaPhoneSlash className="text-xs" />
+                              Reject
+                            </button>
                           </div>
-                        </div>
-                        
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => acceptCall(call._id)}
-                            className="px-4 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg font-medium text-sm hover:from-green-600 hover:to-green-700 transition-all flex items-center gap-2"
-                          >
-                            <FaPhone className="text-xs" />
-                            Accept
-                          </button>
-                          <button
-                            onClick={() => rejectCall(call._id)}
-                            className="px-4 py-2 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-lg font-medium text-sm hover:from-red-600 hover:to-red-700 transition-all flex items-center gap-2"
-                          >
-                            <FaPhoneSlash className="text-xs" />
-                            Reject
-                          </button>
                         </div>
                       </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-8">
+                    <div className="w-20 h-20 bg-gradient-to-r from-gray-100 to-gray-200 rounded-full flex items-center justify-center mx-auto mb-4">
+                      <FaPhone className="text-3xl text-gray-400" />
                     </div>
-                  ))}
-                </div>
+                    <h3 className="text-xl font-bold text-gray-700 mb-2">No Incoming Calls</h3>
+                    <p className="text-gray-500 mb-6">You'll see incoming calls here when users request to connect</p>
+                    <button
+                      onClick={refreshCalls}
+                      className="px-6 py-2 bg-gray-100 text-gray-700 rounded-lg font-medium hover:bg-gray-200 transition-colors"
+                    >
+                      Check for Calls
+                    </button>
+                  </div>
+                )}
               </div>
             )}
-          </div>
-
-          {/* Right Column - Stats & Actions */}
-          <div className="space-y-6">
-            {/* Earnings Stats */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="text-lg font-bold text-gray-800">Earnings Overview</h3>
-                <FaMoneyBillWave className="text-[#C06014]" />
-              </div>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
-                  <span className="text-gray-600">Today</span>
-                  <span className="font-bold text-green-700">₹{earnings.today}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg">
-                  <span className="text-gray-600">This Week</span>
-                  <span className="font-bold text-blue-700">₹{earnings.weekly}</span>
-                </div>
-                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg">
-                  <span className="text-gray-600">This Month</span>
-                  <span className="font-bold text-purple-700">₹{earnings.monthly}</span>
-                </div>
-              </div>
-              
-              <button
-                onClick={() => router.push("/astrologer/earnings")}
-                className="w-full mt-6 py-3 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-xl font-medium hover:from-[#D47C3A] hover:to-[#C06014] transition-all flex items-center justify-center gap-2"
-              >
-                <FaChartLine />
-                View Detailed Report
-              </button>
-            </div>
-
-            {/* Call Statistics */}
-            <div className="bg-gradient-to-r from-[#003D33] to-[#00695C] rounded-2xl p-6 text-white">
-              <h3 className="text-lg font-bold mb-6">Call Statistics</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <span>Total Calls</span>
-                  <span className="font-bold text-xl">{totalCalls}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Average Duration</span>
-                  <span className="font-bold text-xl">{avgDuration}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>Response Rate</span>
-                  <span className="font-bold text-xl">95%</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span>User Rating</span>
-                  <span className="font-bold text-xl">4.8/5</span>
-                </div>
-              </div>
-              
-              <div className="mt-6 pt-6 border-t border-white/20">
-                <div className="text-sm text-white/70">
-                  <p>Keep your status online to receive more calls</p>
-                  <p className="mt-1">Quick response increases user satisfaction</p>
-                </div>
-              </div>
-            </div>
-
-            {/* Quick Actions */}
-            <div className="bg-white rounded-2xl p-6 shadow-sm">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Quick Actions</h3>
-              <div className="space-y-3">
-                <button
-                  onClick={() => router.push("/astrologer/profile")}
-                  className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <FaUserCircle className="text-gray-400" />
-                    <span className="font-medium text-gray-700">Update Profile</span>
-                  </div>
-                  <FaArrowRight className="text-gray-400" />
-                </button>
-                
-                <button
-                  onClick={() => router.push("/astrologer/settings")}
-                  className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <FaCog className="text-gray-400" />
-                    <span className="font-medium text-gray-700">Call Settings</span>
-                  </div>
-                  <FaArrowRight className="text-gray-400" />
-                </button>
-                
-                <button
-                  onClick={() => router.push("/astrologer/call-history")}
-                  className="w-full flex items-center justify-between p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <FaHistory className="text-gray-400" />
-                    <span className="font-medium text-gray-700">Call History</span>
-                  </div>
-                  <FaArrowRight className="text-gray-400" />
-                </button>
-                
-                <button
-                  onClick={() => {
-                    localStorage.removeItem("astrologer_token");
-                    localStorage.removeItem("astrologer_id");
-                    router.push("/astrologer/login");
-                  }}
-                  className="w-full flex items-center justify-between p-3 border border-red-200 bg-red-50 rounded-lg hover:bg-red-100 transition-colors"
-                >
-                  <div className="flex items-center gap-3">
-                    <FaSignOutAlt className="text-red-500" />
-                    <span className="font-medium text-red-600">Logout</span>
-                  </div>
-                  <FaArrowRight className="text-red-400" />
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Recent Call History */}
+            {/* Recent Call History */}
         <div className="mt-8 bg-white rounded-2xl p-6 shadow-sm">
           <div className="flex items-center justify-between mb-6">
             <h3 className="text-lg font-bold text-gray-800">Recent Call History</h3>
@@ -857,6 +866,75 @@ const acceptCall = async (callId) => {
             </div>
           )}
         </div>
+          </div>
+
+          {/* Right Column - Stats & Actions */}
+          <div className="space-y-6">
+            {/* Earnings Stats */}
+            <div className="bg-white rounded-2xl p-6 shadow-sm">
+              <div className="flex items-center justify-between mb-6">
+                <h3 className="text-lg font-bold text-gray-800">Earnings Overview</h3>
+                <FaMoneyBillWave className="text-[#C06014]" />
+              </div>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 rounded-lg">
+                  <span className="text-gray-600">Today</span>
+                  <span className="font-bold text-green-700">₹{earnings.today}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-blue-50 to-cyan-50 rounded-lg">
+                  <span className="text-gray-600">This Week</span>
+                  <span className="font-bold text-blue-700">₹{earnings.weekly}</span>
+                </div>
+                <div className="flex items-center justify-between p-3 bg-gradient-to-r from-purple-50 to-violet-50 rounded-lg">
+                  <span className="text-gray-600">This Month</span>
+                  <span className="font-bold text-purple-700">₹{earnings.monthly}</span>
+                </div>
+              </div>
+              
+              <button
+                onClick={() => router.push("/astrologer/earnings")}
+                className="w-full mt-6 py-3 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-xl font-medium hover:from-[#D47C3A] hover:to-[#C06014] transition-all flex items-center justify-center gap-2"
+              >
+                <FaChartLine />
+                View Detailed Report
+              </button>
+            </div>
+
+            {/* Call Statistics */}
+            <div className="bg-gradient-to-r from-[#003D33] to-[#00695C] rounded-2xl p-6 text-white">
+              <h3 className="text-lg font-bold mb-6">Call Statistics</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <span>Total Calls</span>
+                  <span className="font-bold text-xl">{totalCalls}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Average Duration</span>
+                  <span className="font-bold text-xl">{avgDuration}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>Response Rate</span>
+                  <span className="font-bold text-xl">95%</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span>User Rating</span>
+                  <span className="font-bold text-xl">4.8/5</span>
+                </div>
+              </div>
+              
+              <div className="mt-6 pt-6 border-t border-white/20">
+                <div className="text-sm text-white/70">
+                  <p>Keep your status online to receive more calls</p>
+                  <p className="mt-1">Quick response increases user satisfaction</p>
+                </div>
+              </div>
+            </div>
+
+           
+          </div>
+        </div>
+
+        
       </div>
     </div>
   );

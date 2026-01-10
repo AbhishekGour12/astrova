@@ -73,6 +73,9 @@ const isBusyNow =
 
   // Check for mobile screen
   useEffect(() => {
+    if(!user){
+      router.push("/")
+    }
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };

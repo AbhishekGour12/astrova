@@ -381,7 +381,45 @@ export const initSocket = (server) => {
         timestamp: new Date()
       });
     });
-
+     // User ended call
+socket.on("userEndedCall", ({ callId, userId, astrologerId }) => {
+  console.log(`👋 User ${userId} ended call ${callId}`);
+  
+  // Notify astrologer
+  if (astrologerId) {
+    io.to(`astrologer_${astrologerId}`).emit("userEndedCall", {
+      callId,
+      userId,
+      timestamp: new Date()
+    });
+  }
+  // Astrologer ended call
+socket.on("astrologerEndedCall", ({ callId, astrologerId, userId }) => {
+  console.log(`👋 Astrologer ${astrologerId} ended call ${callId}`);
+  
+  // Notify user
+  if (userId) {
+    io.to(`user_${userId}`).emit("callEndedByAstrologer", {
+      callId,
+      astrologerId,
+      timestamp: new Date()
+    });
+  }
+  
+  // Also emit general call ended event
+  io.to(`call_${callId}`).emit("callEnded", {
+    callId,
+    endedBy: "astrologer",
+    timestamp: new Date()
+  });
+});
+  // Also emit general call ended event
+  io.to(`call_${callId}`).emit("callEnded", {
+    callId,
+    endedBy: "user",
+    timestamp: new Date()
+  });
+});
     // Disconnect handler
     socket.on("disconnect", () => {
       console.log("🔴 Socket disconnected:", socket.id);

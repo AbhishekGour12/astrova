@@ -1,727 +1,501 @@
 "use client";
-import { useEffect, useState, useRef } from "react";
-import { io } from "socket.io-client";
-import apiAstrologer from "../lib/apiAstrologer";
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import apiAstrologer from "../lib/apiAstrologer";
 import {
   FaComments,
-  FaUser,
-  FaClock,
-  FaCheck,
-  FaTimes,
-  FaPaperPlane,
+  FaPhone,
   FaWallet,
-  FaBell,
-  FaEllipsisV,
-  FaCheckDouble
+  FaHome,
+  FaUser,
+  FaSignOutAlt,
+  FaBars,
+  FaTimes,
+  FaChartLine,
+  FaHistory,
+  FaCog
 } from "react-icons/fa";
 
-export default function AstrologerDashboard() {
-  const [astrologer, setAstrologer] = useState(null);
-  const [chats, setChats] = useState([]);
-  const [activeChat, setActiveChat] = useState();
-  const [messages, setMessages] = useState([]);
-  const activeChatRef = useRef(null);
+// Import components
+import ChatDashboard from "./components/ChatDashboard";
+import CallDashboard from "./components/CallDashboard";
+import PayoutsDashboard from "./components/PayoutsDashboard";
 
-  const [newMessage, setNewMessage] = useState("");
+export default function AstrologerDashboard() {
+  const router = useRouter();
+  const [astrologer, setAstrologer] = useState(null);
+  const [activeTab, setActiveTab] = useState("chat"); // "chat", "call", "payouts"
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalEarnings: 0,
     todayEarnings: 0,
     activeChats: 0,
-    waitingChats: 0
-  });
-  const [isTyping, setIsTyping] = useState(false);
-  const [userTyping, setUserTyping] = useState(false);
-
-
-  const socketRef = useRef(null);
-  const bottomRef = useRef(null);
-  const typingTimeoutRef = useRef(null);
-
-  // Initialize socket
-  useEffect(() => {
-    const astrologerId = localStorage.getItem("astrologer_id");
-    if (!astrologerId) {
-      window.location.href = "/astrologer/login";
-      return;
-    }
-
-    const socket = io(process.env.NEXT_PUBLIC_API, {
-      transports: ["websocket", "polling"],
-      query: { astrologerId }
-    });
-
-    socketRef.current = socket;
-
-    // Socket event handlers
-    socket.on("connect", () => {
-      console.log("Astrologer socket connected");
-      socket.emit("joinAstrologer", { astrologerId });
-    });
-
-    socket.on("newChat", (chat) => {
-      setChats(prev => [chat, ...prev]);
-      setStats(prev => ({
-        ...prev,
-        waitingChats: prev.waitingChats + 1
-      }));
-      
-     toast.info(
-  `New chat request from ${
-    typeof chat.user === "object" ? chat.user.name : "User"
-  }`,
-  { duration: 5000 }
-);
-
-    });
-
-    // In both user chat and astrologer dashboard
-socket.on("newMessage", (message) => {
-  setMessages(prev => {
-    const exists = prev.some(m => m._id === message._id);
-    if (exists) return prev;
-    return [...prev, message];
+    waitingCalls: 0,
+    pendingPayouts: 0
   });
 
-  // 🔥 ADD THIS (VERY IMPORTANT)
-  if (
-    activeChat &&
-    message.senderType === "user" &&
-    !message.seen
-  ) {
-    socketRef.current.emit("messageSeen", {
-      chatId: activeChat._id,
-      messageId: message._id
-    });
-  }
-
-  setTimeout(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, 100);
-});
-
-// Handle message seen updates
-socket.on("messageSeenUpdate", ({ messageId, seen }) => {
-  setMessages(prev =>
-    prev.map(msg =>
-      msg._id === messageId ? { ...msg, seen } : msg
-    )
-  );
-});
-
- socket.on("typingUpdate", ({ senderRole, isTyping }) => {
-  if (senderRole === "user") {
-    setUserTyping(isTyping);
-  }
-});
-
-
-    socket.on("chatEnded", ({ chatId, endedBy, reason }) => {
-      console.log(chatId)
-      setChats(prev => prev.filter(chat => chat._id !== chatId));
-      setActiveChat(null)
-      if (activeChat?._id === chatId) {
-        setActiveChat(null);
-        setMessages([]);
-        toast.info(`Chat ended by ${endedBy}: ${reason}`);
-      }
-      
-      if (endedBy === "system" && reason.includes("balance")) {
-        toast.warning("User's balance was insufficient");
-      }
-    });
-
-    socket.on("walletRecharged", ({ chatId, amount }) => {
-      if (activeChat?._id === chatId) {
-        toast.success(`User recharged ₹${amount}`);
-      }
-    });
-
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
-    };
-  }, []);
-
-  // Load initial data
+  // Load astrologer data
   useEffect(() => {
-    loadInitialData();
-  }, []);
-
-
-  useEffect(() => {
-  activeChatRef.current = activeChat;
-}, [activeChat]);
-
-  const loadInitialData = async () => {
-    try {
+    const checkAuthAndLoad = async () => {
       const astrologerId = localStorage.getItem("astrologer_id");
-      
-      const [profileRes, chatsRes, statsRes] = await Promise.all([
-       apiAstrologer.get(`/astrologer/profile/${astrologerId}`),
-       apiAstrologer.get(`/chat/astrologer/active/${astrologerId}`),
-       apiAstrologer.get(`/astrologer/stats/${astrologerId}`)
-      ]);
-
-      if (profileRes.data.success) {
-        setAstrologer(profileRes.data.astrologer);
+      if (!astrologerId) {
+        router.push("/astrologer/login");
+        return;
       }
 
-      if (chatsRes.data.success) {
-        setChats(chatsRes.data.chats);
+      try {
+        const [profileRes, statsRes] = await Promise.all([
+          apiAstrologer.get(`/astrologer/profile/${astrologerId}`),
+          apiAstrologer.get(`/astrologer/stats/${astrologerId}`)
+        ]);
+
+        if (profileRes.data.success) {
+          setAstrologer(profileRes.data.astrologer);
+        }
+
+        if (statsRes.data.success) {
+          setStats(statsRes.data.stats);
+        }
+      } catch (error) {
+        console.error("Load data error:", error);
+        toast.error("Failed to load dashboard");
+      } finally {
+        setLoading(false);
       }
-
-      if (statsRes.data.success) {
-        setStats(statsRes.data.stats);
-      }
-    } catch (error) {
-      console.error("Load data error:", error);
-      toast.error("Failed to load dashboard data");
-    }
-  };
-
-  // Accept chat
-  const acceptChat = async (chatId) => {
-    try {
-      const astrologerId = localStorage.getItem("astrologer_id")
-      const response = await apiAstrologer.post(`/chat/astrologer/accept/${chatId}/${astrologerId}`);
-      
-      if (response.data.success) {
-        const updatedChat = response.data.chat;
-        
-        setChats(prev =>
-          prev.map(chat =>
-            chat._id === chatId ? updatedChat : chat
-          )
-        );
-        
-        setStats(prev => ({
-          ...prev,
-          waitingChats: Math.max(0, prev.waitingChats - 1),
-          activeChats: prev.activeChats + 1
-        }));
-        
-        toast.success("Chat accepted!");
-        
-        // Join chat room
-        socketRef.current.emit("joinChat", { chatId });
-        
-        // Start billing
-        socketRef.current.emit("chatStarted", { chatId });
-      }
-    } catch (error) {
-      console.error("Accept chat error:", error);
-      toast.error("Failed to accept chat");
-    }
-  };
-
-  // Open chat
-  const openChat = async (chat) => {
-    if (chat.status !== "ACTIVE") return;
-    
-    setActiveChat(chat);
-    setMessages([]);
-    
-    try {
-      socketRef.current.emit("joinChat", { chatId: chat._id });
-
-      const response = await apiAstrologer.get(`/chat/messages/${chat._id}`);
-      if (response.data.success) {
-        setMessages(response.data.messages);
-        
-        // Mark messages as seen
-       response.data.messages.forEach(msg => {
-  if (msg.senderType === "user" && !msg.seen) {
-    socketRef.current.emit("messageSeen", {
-      chatId: chat._id,
-      messageId: msg._id
-    });
-  }
-});
-
-      }
-    } catch (error) {
-      console.error("Open chat error:", error);
-    }
-  };
-// 🔥 FORCE mark user messages as seen when astrologer opens chat
-useEffect(() => {
-  if (!activeChat || !socketRef.current) return;
-
-  messages.forEach(msg => {
-    if (msg.senderType === "user" && !msg.seen) {
-      socketRef.current.emit("messageSeen", {
-        chatId: activeChat._id,
-        messageId: msg._id
-      });
-    }
-  });
-}, [activeChat?._id, messages]);
-
-  // Send message
-  const sendMessage = async (e) => {
-  e.preventDefault();
-  if (!newMessage.trim() || !activeChat) return;
-  const astrologerId = localStorage.getItem("astrologer_id")
-  
-  try {
-    const messageData = {
-      chatId: activeChat._id,
-      content: newMessage.trim()
     };
 
-    // ONLY send via API - let the API handle socket emission
-    await apiAstrologer.post(`/chat/astrologer/message/${astrologerId}`, messageData);
+    checkAuthAndLoad();
+  }, [router]);
 
-    setNewMessage("");
-    
-    // Clear typing indicator
-    if (typingTimeoutRef.current) {
-      clearTimeout(typingTimeoutRef.current);
-    }
-  } catch (error) {
-    console.error("Send message error:", error);
-    toast.error("Failed to send message");
-  }
-};
-  // End chat
-  const endChat = async () => {
-    if (!activeChat || !window.confirm("End this chat?")) return;
-    const astrologerId = localStorage.getItem("astrologer_id")
-    try {
-      await apiAstrologer.post(`/chat/astrologer/end/${activeChat._id}/${astrologerId}`);
-      toast.success("Chat ended");
-      
-      setChats(prev => prev.filter(chat => chat._id !== activeChat._id));
-      setActiveChat(false);
-      setMessages([]);
-    } catch (error) {
-      console.error("End chat error:", error);
-      toast.error("Failed to end chat");
-    }
+  // Handle logout
+  const handleLogout = () => {
+    localStorage.removeItem("astrologer_id");
+    localStorage.removeItem("astrologer_token");
+    toast.success("Logged out successfully");
+    router.push("/astrologer/login");
   };
 
-  // Handle typing
-  const handleTyping = (e) => {
-  setNewMessage(e.target.value);
-
-  if (!activeChat) return;
-
-  socketRef.current.emit("typing", {
-    chatId: activeChat._id,
-    senderId: astrologer._id,
-    senderRole: "astrologer",
-    isTyping: true
-  });
-
-  if (typingTimeoutRef.current) {
-    clearTimeout(typingTimeoutRef.current);
-  }
-
-  typingTimeoutRef.current = setTimeout(() => {
-    socketRef.current.emit("typing", {
-      chatId: activeChat._id,
-      senderId: astrologer._id,
-      senderRole: "astrologer",
-      isTyping: false
-    });
-  }, 1000);
-};
-
-
-  useEffect(() => {
-  if (activeChat && socketRef.current) {
-    socketRef.current.emit("joinChat", {
-      chatId: activeChat._id
-    });
-  }
-}, [activeChat?._id]);
-
-
-  // Toggle availability
-  const toggleAvailability = async () => {
-    try {
-       const astrologerId = localStorage.getItem("astrologer_id")
-      const response = await apiAstrologer.post(`/astrologer/toggle-availability/${astrologerId}`, {
-        isAvailable: !astrologer.isAvailable
-      });
-      
-      if (response.data.success) {
-        setAstrologer(prev => ({
-          ...prev,
-          isAvailable: !prev.isAvailable
-        }));
-        
-        toast.success(
-          astrologer.isAvailable 
-            ? "You are now offline" 
-            : "You are now available"
-        );
-      }
-    } catch (error) {
-      console.error("Toggle availability error:", error);
-    }
-  };
-
-  // Scroll to bottom
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
-
-  if (!astrologer) {
+  if (loading) {
     return (
-      <div className="min-h-screen bg-[#F7F3E9] flex items-center justify-center">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
         <div className="text-center">
           <div className="w-16 h-16 border-4 border-[#C06014] border-t-transparent rounded-full animate-spin mx-auto"></div>
-          <p className="mt-4 text-[#003D33]">Loading dashboard...</p>
+          <p className="mt-4 text-gray-600">Loading your dashboard...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-[#F7F3E9]">
-      {/* Header */}
-      <div className="bg-white border-b border-[#B2C5B2]">
-        <div className="max-w-7xl mx-auto px-4 py-3">
-          <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      {/* Mobile Header */}
+      <div className="lg:hidden bg-white shadow-sm border-b sticky top-0 z-30">
+        <div className="flex items-center justify-between p-4">
+          <button
+            onClick={() => setSidebarOpen(!sidebarOpen)}
+            className="p-2 rounded-lg hover:bg-gray-100"
+          >
+            {sidebarOpen ? <FaTimes /> : <FaBars />}
+          </button>
+          <div className="flex items-center gap-3">
+            <div className="text-right">
+              <p className="font-semibold text-gray-800 text-sm">
+                {astrologer?.fullName}
+              </p>
+              <p className="text-xs text-gray-500">
+                {astrologer?.specialization || "Astrologer"}
+              </p>
+            </div>
+            <div className="w-10 h-10 bg-gradient-to-r from-[#C06014] to-[#D47C3A] rounded-full flex items-center justify-center text-white font-bold">
+              {astrologer?.fullName?.charAt(0) || "A"}
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="flex">
+        {/* Sidebar */}
+        <div className={`
+          fixed lg:static inset-y-0 left-0 z-20
+          transform ${sidebarOpen ? 'translate-x-0' : '-translate-x-full'}
+          lg:translate-x-0 transition-transform duration-300
+          w-64 bg-white border-r border-gray-200
+          flex flex-col h-screen
+        `}>
+          {/* Sidebar Header */}
+          <div className="p-6 border-b border-gray-200">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-gradient-to-r from-[#C06014] to-[#D47C3A] rounded-full flex items-center justify-center text-white font-bold text-lg">
+                {astrologer?.fullName?.charAt(0) || "A"}
+              </div>
+              <div>
+                <h2 className="font-bold text-gray-800">{astrologer?.fullName}</h2>
+                <p className="text-sm text-gray-500">{astrologer?.experience || "0"} years exp</p>
+              </div>
+            </div>
+            <div className="flex items-center justify-between">
+              <span className="text-sm font-medium">Status</span>
+              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                astrologer?.isAvailable 
+                  ? "bg-green-100 text-green-700" 
+                  : "bg-red-100 text-red-700"
+              }`}>
+                {astrologer?.isAvailable ? "🟢 Online" : "🔴 Offline"}
+              </span>
+            </div>
+          </div>
+
+          {/* Navigation */}
+          <div className="flex-1 p-4 space-y-2">
+            <NavItem
+              icon={<FaHome />}
+              label="Overview"
+              active={activeTab === "overview"}
+              onClick={() => setActiveTab("overview")}
+            />
+            <NavItem
+              icon={<FaComments />}
+              label="Chat"
+              active={activeTab === "chat"}
+              onClick={() => setActiveTab("chat")}
+              badge={stats.activeChats}
+            />
+            <NavItem
+              icon={<FaPhone />}
+              label="Calls"
+              active={activeTab === "call"}
+              onClick={() => setActiveTab("call")}
+              badge={stats.waitingCalls}
+            />
+            <NavItem
+              icon={<FaWallet />}
+              label="Payouts"
+              active={activeTab === "payouts"}
+              onClick={() => setActiveTab("payouts")}
+              badge={stats.pendingPayouts}
+            />
+            <NavItem
+              icon={<FaChartLine />}
+              label="Analytics"
+              active={activeTab === "analytics"}
+              onClick={() => setActiveTab("analytics")}
+            />
+            <NavItem
+              icon={<FaHistory />}
+              label="History"
+              active={activeTab === "history"}
+              onClick={() => setActiveTab("history")}
+            />
+            <NavItem
+              icon={<FaUser />}
+              label="Profile"
+              active={activeTab === "profile"}
+              onClick={() => setActiveTab("profile")}
+            />
+            <NavItem
+              icon={<FaCog />}
+              label="Settings"
+              active={activeTab === "settings"}
+              onClick={() => setActiveTab("settings")}
+            />
+          </div>
+
+          {/* Sidebar Footer */}
+          <div className="p-4 border-t border-gray-200">
+            <button
+              onClick={handleLogout}
+              className="flex items-center gap-3 w-full p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+            >
+              <FaSignOutAlt />
+              <span className="font-medium">Logout</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Overlay for mobile */}
+        {sidebarOpen && (
+          <div 
+            className="fixed inset-0 bg-black bg-opacity-50 z-10 lg:hidden"
+            onClick={() => setSidebarOpen(false)}
+          />
+        )}
+
+        {/* Main Content */}
+        <div className="flex-1 overflow-auto">
+          {/* Top Bar */}
+          <div className="hidden lg:flex items-center justify-between bg-white border-b border-gray-200 p-4 sticky top-0 z-10">
             <div className="flex items-center gap-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-full bg-gradient-to-r from-[#C06014] to-[#D47C3A] flex items-center justify-center text-white text-lg font-bold">
-                  {astrologer.fullName?.charAt(0) || "A"}
-                </div>
-                <div>
-                  <h1 className="font-bold text-[#003D33] text-lg">
-                    {astrologer.fullName}
-                  </h1>
-                  <div className="flex items-center gap-2 text-sm">
-                    <span className={`px-2 py-0.5 rounded-full ${
-                      astrologer.isAvailable
-                        ? "bg-green-100 text-green-700"
-                        : "bg-gray-100 text-gray-600"
-                    }`}>
-                      {astrologer.isAvailable ? "🟢 Online" : "🔴 Offline"}
-                    </span>
-                    <span className="text-[#00695C]">
-                      Rating: {astrologer.averageRating?.toFixed(1) || "5.0"}
-                    </span>
+              <h1 className="text-2xl font-bold text-gray-800 capitalize">
+                {activeTab === "chat" && "Chat Dashboard"}
+                {activeTab === "call" && "Call Dashboard"}
+                {activeTab === "payouts" && "Payouts"}
+                {activeTab === "overview" && "Overview"}
+                {activeTab === "analytics" && "Analytics"}
+                {activeTab === "history" && "History"}
+                {activeTab === "profile" && "Profile"}
+                {activeTab === "settings" && "Settings"}
+              </h1>
+              {activeTab === "chat" && stats.activeChats > 0 && (
+                <span className="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full">
+                  {stats.activeChats} active
+                </span>
+              )}
+              {activeTab === "call" && stats.waitingCalls > 0 && (
+                <span className="bg-blue-100 text-blue-700 text-sm px-3 py-1 rounded-full">
+                  {stats.waitingCalls} waiting
+                </span>
+              )}
+            </div>
+            
+            <div className="flex items-center gap-6">
+              {/* Quick Stats */}
+              <div className="hidden md:flex items-center gap-6">
+                <div className="text-center">
+                  <div className="text-lg font-bold text-[#C06014]">
+                    ₹{stats.todayEarnings}
                   </div>
+                  <div className="text-xs text-gray-500">Today</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-lg font-bold text-gray-800">
+                    ₹{stats.totalEarnings}
+                  </div>
+                  <div className="text-xs text-gray-500">Total</div>
                 </div>
               </div>
               
+              {/* Availability Toggle */}
               <button
-                onClick={toggleAvailability}
-                className={`px-4 py-1.5 rounded-full text-sm font-medium ${
-                  astrologer.isAvailable
+                onClick={() => {
+                  // Toggle availability
+                  toast.success(astrologer?.isAvailable ? "Going offline" : "Going online");
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-medium ${
+                  astrologer?.isAvailable
                     ? "bg-red-100 text-red-600 hover:bg-red-200"
                     : "bg-green-100 text-green-600 hover:bg-green-200"
                 }`}
               >
-                {astrologer.isAvailable ? "Go Offline" : "Go Online"}
+                {astrologer?.isAvailable ? "Go Offline" : "Go Online"}
               </button>
             </div>
-            
-            <div className="flex items-center gap-6">
-              {/* Stats */}
-              <div className="hidden md:flex items-center gap-6">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#C06014]">
-                    ₹{stats.todayEarnings}
-                  </div>
-                  <div className="text-xs text-[#00695C]">Today</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#003D33]">
-                    {stats.activeChats}
-                  </div>
-                  <div className="text-xs text-[#00695C]">Active</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-[#003D33]">
-                    {stats.waitingChats}
-                  </div>
-                  <div className="text-xs text-[#00695C]">Waiting</div>
-                </div>
-              </div>
-              
-              <button className="p-2 hover:bg-[#F7F3E9] rounded-full">
-                <FaBell className="text-[#00695C]" />
-              </button>
+          </div>
+
+          {/* Dashboard Content */}
+          <div className="p-4 lg:p-6">
+            {activeTab === "overview" && <OverviewTab astrologer={astrologer} stats={stats} />}
+            {activeTab === "chat" && <ChatDashboard />}
+            {activeTab === "call" && <CallDashboard />}
+            {activeTab === "payouts" && <PayoutsDashboard />}
+            {activeTab === "analytics" && <AnalyticsTab />}
+            {activeTab === "history" && <HistoryTab />}
+            {activeTab === "profile" && <ProfileTab astrologer={astrologer} />}
+            {activeTab === "settings" && <SettingsTab />}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Navigation Item Component
+function NavItem({ icon, label, active, onClick, badge }) {
+  return (
+    <button
+      onClick={onClick}
+      className={`flex items-center justify-between w-full p-3 rounded-lg transition-all ${
+        active 
+          ? 'bg-gradient-to-r from-[#C06014]/10 to-[#D47C3A]/10 text-[#C06014] border-l-4 border-[#C06014]' 
+          : 'text-gray-600 hover:bg-gray-100'
+      }`}
+    >
+      <div className="flex items-center gap-3">
+        <span className="text-lg">{icon}</span>
+        <span className="font-medium">{label}</span>
+      </div>
+      {badge > 0 && (
+        <span className={`text-xs px-2 py-1 rounded-full ${
+          active ? 'bg-[#C06014] text-white' : 'bg-gray-200 text-gray-700'
+        }`}>
+          {badge}
+        </span>
+      )}
+    </button>
+  );
+}
+
+// Overview Tab Component
+function OverviewTab({ astrologer, stats }) {
+  return (
+    <div className="space-y-6">
+      {/* Welcome Card */}
+      <div className="bg-gradient-to-r from-[#003D33] to-[#00695C] rounded-2xl p-6 text-white">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div>
+            <h2 className="text-2xl font-bold mb-2">Welcome back, {astrologer?.fullName}!</h2>
+            <p className="text-white/80">Here's what's happening with your account today.</p>
+          </div>
+          <div className="flex items-center gap-4">
+            <div className="text-center">
+              <div className="text-3xl font-bold">4.8</div>
+              <div className="text-sm text-white/70">Rating</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-bold">{astrologer?.totalChats || 0}</div>
+              <div className="text-sm text-white/70">Total Chats</div>
             </div>
           </div>
         </div>
       </div>
 
-      {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6">
-        <div className="grid lg:grid-cols-4 gap-6">
-          {/* Sidebar - Chat List */}
-          <div className="lg:col-span-1">
-            <div className="bg-white rounded-2xl border border-[#B2C5B2] overflow-hidden">
-              <div className="p-4 border-b border-[#B2C5B2]">
-                <h2 className="font-bold text-[#003D33] flex items-center gap-2">
-                  <FaComments />
-                  <span>Active Chats ({chats.length})</span>
-                </h2>
-              </div>
-              
-              <div className="divide-y divide-[#F7F3E9] max-h-[70vh] overflow-y-auto">
-                {chats.map(chat => (
-                  <div
-                    key={chat._id}
-                    className={`p-4 cursor-pointer transition-colors ${
-                      activeChat?._id === chat._id
-                        ? "bg-[#F7F3E9]"
-                        : "hover:bg-gray-50"
-                    }`}
-                    onClick={() => openChat(chat)}
-                  >
-                    <div className="flex items-center justify-between mb-2">
-                      <div className="flex items-center gap-2">
-                        <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#00695C] to-[#003D33] flex items-center justify-center text-white text-xs">
-                          {chat.user?.name?.charAt(0) || "U"}
-                        </div>
-                        <div>
-                          <h3 className="font-medium text-[#003D33] text-sm">
-                            {chat.user?.name || "User"}
-                          </h3>
-                          <div className="flex items-center gap-1">
-                            <span className={`w-2 h-2 rounded-full ${
-                              chat.status === "ACTIVE" 
-                                ? "bg-green-500" 
-                                : "bg-yellow-500"
-                            }`}></span>
-                            <span className="text-xs text-gray-500">
-                              {chat.status === "ACTIVE" ? "Active" : "Waiting"}
-                            </span>
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-medium px-2 py-0.5 rounded-full bg-[#F7F3E9] text-[#00695C]">
-                          ₹{chat.ratePerMinute}/min
-                        </span>
-                        {chat.status === "WAITING" && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              acceptChat(chat._id);
-                            }}
-                            className="w-6 h-6 bg-green-500 text-white rounded-full flex items-center justify-center hover:bg-green-600"
-                          >
-                            <FaCheck className="text-xs" />
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                    
-                    <div className="text-xs text-gray-500">
-                      Started: {new Date(chat.createdAt).toLocaleTimeString([], {
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </div>
-                  </div>
-                ))}
-                
-                {chats.length === 0 && (
-                  <div className="p-8 text-center">
-                    <div className="w-16 h-16 bg-[#F7F3E9] rounded-full flex items-center justify-center mx-auto mb-4">
-                      <FaComments className="text-2xl text-[#B2C5B2]" />
-                    </div>
-                    <p className="text-gray-500">No active chats</p>
-                    <p className="text-sm text-gray-400 mt-1">
-                      New chat requests will appear here
-                    </p>
-                  </div>
-                )}
-              </div>
-            </div>
-            
-            {/* Quick Stats */}
-            <div className="mt-6 bg-white rounded-2xl border border-[#B2C5B2] p-4">
-              <h3 className="font-bold text-[#003D33] mb-3">Today's Summary</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Earnings</span>
-                  <span className="font-medium text-[#C06014]">
-                    ₹{stats.todayEarnings}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Total Chats</span>
-                  <span className="font-medium text-[#003D33]">
-                    {chats.length}
-                  </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Rating</span>
-                  <span className="font-medium text-[#00695C]">
-                    {astrologer.averageRating?.toFixed(1) || "5.0"} ⭐
-                  </span>
-                </div>
-              </div>
-            </div>
+      {/* Stats Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard
+          title="Today's Earnings"
+          value={`₹${stats.todayEarnings}`}
+          icon="💰"
+          color="green"
+          trend="+12%"
+        />
+        <StatCard
+          title="Active Chats"
+          value={stats.activeChats}
+          icon="💬"
+          color="blue"
+          trend="+3"
+        />
+        <StatCard
+          title="Waiting Calls"
+          value={stats.waitingCalls}
+          icon="📞"
+          color="purple"
+          trend="+2"
+        />
+        <StatCard
+          title="Pending Payout"
+          value={`₹${stats.pendingPayouts}`}
+          icon="💳"
+          color="orange"
+          trend="Process"
+        />
+      </div>
+
+      {/* Quick Actions */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <h3 className="font-bold text-gray-800 mb-4">Quick Actions</h3>
+          <div className="space-y-3">
+            <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+              <span className="font-medium text-gray-700">Start New Session</span>
+              <span className="text-[#C06014]">→</span>
+            </button>
+            <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+              <span className="font-medium text-gray-700">Withdraw Earnings</span>
+              <span className="text-[#C06014]">→</span>
+            </button>
+            <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
+              <span className="font-medium text-gray-700">Update Schedule</span>
+              <span className="text-[#C06014]">→</span>
+            </button>
           </div>
+        </div>
 
-          {/* Main Chat Area */}
-          <div className="lg:col-span-3">
-            <div className="bg-white rounded-2xl border border-[#B2C5B2] h-[75vh] overflow-hidden flex flex-col">
-              {activeChat  ? (
-                <>
-                  {/* Chat Header */}
-                  <div className="p-4 border-b border-[#B2C5B2] flex items-center justify-between bg-[#F7F3E9]">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-gradient-to-r from-[#00695C] to-[#003D33] flex items-center justify-center text-white">
-                        <FaUser />
-                      </div>
-                      <div>
-                        <h3 className="font-bold text-[#003D33]">
-                          {activeChat.user?.name || "User"}
-                        </h3>
-                        <div className="flex items-center gap-2 text-sm">
-                          <span className="text-[#00695C]">
-                            Rate: ₹{activeChat.ratePerMinute}/min
-                          </span>
-                         {userTyping && (
-  <span className="text-[#C06014] text-sm">
-    User is typing...
-  </span>
-)}
-
-                        </div>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-3">
-                      <button className="px-4 py-2 bg-[#00695C] text-white rounded-lg text-sm font-medium hover:bg-[#005247]">
-                        Call User
-                      </button>
-                      <button
-                        onClick={endChat}
-                        className="px-4 py-2 bg-red-100 text-red-600 rounded-lg text-sm font-medium hover:bg-red-200"
-                      >
-                        End Chat
-                      </button>
-                    </div>
-                  </div>
-
-                  {/* Messages */}
-                  <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-[#F7F3E9]/30">
-                    {messages.map((message) => (
-                      <div
-                        key={message._id}
-                        className={`flex ${
-                          message.senderType === "astrologer" 
-                            ? "justify-end" 
-                            : "justify-start"
-                        }`}
-                      >
-                        <div
-                          className={`max-w-[70%] rounded-2xl p-3 ${
-                            message.senderType === "astrologer"
-                              ? "bg-gradient-to-r from-[#00695C] to-[#003D33] text-white rounded-br-none"
-                              : "bg-[#F7F3E9] text-[#003D33] border border-[#B2C5B2] rounded-bl-none"
-                          }`}
-                        >
-                          <p className="whitespace-pre-wrap">{message.content}</p>
-                          <div className="flex items-center justify-between mt-1 text-xs opacity-70">
-                            <span>
-                              {new Date(message.createdAt).toLocaleTimeString([], {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </span>
-                            {message.senderType === "astrologer" && (
-                              <span>
-                                {message.seen ? (
-                                  <FaCheckDouble className="text-blue-300" />
-                                ) : (
-                                  <FaCheck />
-                                )}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                    <div ref={bottomRef} />
-                  </div>
-
-                  {/* Input Area */}
-                  <div className="p-4 border-t border-[#B2C5B2] bg-white">
-                    <form onSubmit={sendMessage} className="flex gap-3">
-                      <input
-                        type="text"
-                        value={newMessage}
-                        onChange={handleTyping}
-                        placeholder="Type your message here..."
-                        className="flex-1 border border-[#B2C5B2] rounded-full px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#00695C]"
-                      />
-                      <button
-                        type="submit"
-                        disabled={!newMessage.trim()}
-                        className="w-12 h-12 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white rounded-full flex items-center justify-center hover:from-[#003D33] hover:to-[#00695C] disabled:opacity-50"
-                      >
-                        <FaPaperPlane />
-                      </button>
-                    </form>
-                    
-                    {/* Chat Info */}
-                    <div className="mt-3 text-center text-sm text-gray-500">
-                      <div className="flex items-center justify-center gap-4">
-                        <span>Chat Active</span>
-                        <span>•</span>
-                        <span>Rate: ₹{activeChat.ratePerMinute}/min</span>
-                        <span>•</span>
-                        <button className="text-[#C06014] hover:underline">
-                          View Chat History
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center p-8">
-                  <div className="w-24 h-24 bg-[#F7F3E9] rounded-full flex items-center justify-center mb-6">
-                    <FaComments className="text-4xl text-[#B2C5B2]" />
-                  </div>
-                  <h3 className="text-xl font-semibold text-[#003D33] mb-2">
-                    Select a Chat
-                  </h3>
-                  <p className="text-gray-500 text-center max-w-md">
-                    Choose a chat from the sidebar to start messaging. 
-                    New chat requests will appear automatically.
-                  </p>
-                  
-                  <div className="mt-8 grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-[#F7F3E9] rounded-xl">
-                      <div className="text-2xl font-bold text-[#C06014]">
-                        {stats.totalEarnings}
-                      </div>
-                      <div className="text-sm text-gray-600">Total Earnings</div>
-                    </div>
-                    <div className="text-center p-4 bg-[#F7F3E9] rounded-xl">
-                      <div className="text-2xl font-bold text-[#00695C]">
-                        {astrologer.totalChats || 0}
-                      </div>
-                      <div className="text-sm text-gray-600">Total Chats</div>
-                    </div>
-                    <div className="text-center p-4 bg-[#F7F3E9] rounded-xl">
-                      <div className="text-2xl font-bold text-[#003D33]">
-                        {astrologer.averageRating?.toFixed(1) || "5.0"}
-                      </div>
-                      <div className="text-sm text-gray-600">Avg Rating</div>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+        <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+          <h3 className="font-bold text-gray-800 mb-4">Recent Activity</h3>
+          <div className="space-y-3">
+            <ActivityItem time="2 min ago" text="Accepted chat request from User123" />
+            <ActivityItem time="15 min ago" text="Completed call with Priya S." />
+            <ActivityItem time="1 hour ago" text="Received payment of ₹500" />
+            <ActivityItem time="2 hours ago" text="New review received (5 stars)" />
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function StatCard({ title, value, icon, color, trend }) {
+  const colors = {
+    green: 'from-green-500 to-emerald-500',
+    blue: 'from-blue-500 to-cyan-500',
+    purple: 'from-purple-500 to-violet-500',
+    orange: 'from-orange-500 to-amber-500'
+  };
+
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      <div className="flex items-center justify-between mb-4">
+        <div className={`w-12 h-12 rounded-full bg-gradient-to-r ${colors[color]} flex items-center justify-center text-white text-xl`}>
+          {icon}
+        </div>
+        <span className="text-sm font-medium text-green-600">{trend}</span>
+      </div>
+      <div>
+        <div className="text-2xl font-bold text-gray-800">{value}</div>
+        <div className="text-sm text-gray-500">{title}</div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityItem({ time, text }) {
+  return (
+    <div className="flex items-start gap-3 p-3 hover:bg-gray-50 rounded-lg transition-colors">
+      <div className="w-2 h-2 bg-[#C06014] rounded-full mt-2"></div>
+      <div className="flex-1">
+        <p className="text-gray-700">{text}</p>
+        <p className="text-xs text-gray-400 mt-1">{time}</p>
+      </div>
+    </div>
+  );
+}
+
+// Placeholder components for other tabs
+function AnalyticsTab() {
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      <h2 className="text-xl font-bold text-gray-800 mb-6">Analytics Dashboard</h2>
+      <p className="text-gray-500">Analytics features coming soon...</p>
+    </div>
+  );
+}
+
+function HistoryTab() {
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      <h2 className="text-xl font-bold text-gray-800 mb-6">History</h2>
+      <p className="text-gray-500">History features coming soon...</p>
+    </div>
+  );
+}
+
+function ProfileTab({ astrologer }) {
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      <h2 className="text-xl font-bold text-gray-800 mb-6">Profile Settings</h2>
+      <div className="space-y-4">
+        <div className="flex items-center gap-4">
+          <div className="w-20 h-20 bg-gradient-to-r from-[#C06014] to-[#D47C3A] rounded-full flex items-center justify-center text-white text-2xl font-bold">
+            {astrologer?.fullName?.charAt(0) || "A"}
+          </div>
+          <div>
+            <h3 className="font-bold text-gray-800 text-lg">{astrologer?.fullName}</h3>
+            <p className="text-gray-500">{astrologer?.email}</p>
+            <p className="text-gray-500">{astrologer?.phone}</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function SettingsTab() {
+  return (
+    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
+      <h2 className="text-xl font-bold text-gray-800 mb-6">Settings</h2>
+      <p className="text-gray-500">Settings features coming soon...</p>
     </div>
   );
 }

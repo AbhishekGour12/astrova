@@ -6,6 +6,7 @@ import Chat from "../models/Chat.js";
 import AstrologerEarning from "../models/AstrologerEarning.js";
 import Call from "../models/Call.js";
 import axios from "axios";
+import mongoose from "mongoose";
 
 
 
@@ -251,48 +252,118 @@ export const getAstrologerProfile = async (req, res) => {
     res.status(500).json({ success: false, message: err.message });
   }
 };
-
-
 export const getAstrologerStats = async (req, res) => {
   try {
-    const astrologerId = req.params.id;
-
-    // Earnings
-    const earnings = await AstrologerEarning.find({ astrologer: astrologerId });
-
-    const totalEarnings = earnings.reduce((sum, e) => sum + e.amount, 0);
+    const astrologerId = new mongoose.Types.ObjectId(req.params.id);
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
-    const todayEarnings = earnings
-      .filter(e => e.createdAt >= today)
-      .reduce((sum, e) => sum + e.amount, 0);
+    const earnings = await AstrologerEarning.aggregate([
+      {
+        $match: { astrologer: astrologerId }
+      },
 
-    // Chats
+      // Create a single session id for chat or call
+      {
+        $project: {
+          amount: 1,
+          createdAt: 1,
+          serviceType: 1,
+          sessionId: {
+            $cond: [
+              { $eq: ["$serviceType", "CALL"] },
+              "$call",
+              "$chat"
+            ]
+          }
+        }
+      },
+
+      // One row per chat/call
+      {
+        $group: {
+          _id: "$sessionId",
+          serviceType: { $first: "$serviceType" },
+          totalForSession: { $max: "$amount" },
+          createdAt: { $max: "$createdAt" }
+        }
+      },
+
+      // Global totals
+      {
+        $group: {
+          _id: null,
+          totalEarnings: { $sum: "$totalForSession" },
+          todayEarnings: {
+            $sum: {
+              $cond: [
+                { $gte: ["$createdAt", today] },
+                "$totalForSession",
+                0
+              ]
+            }
+          },
+
+          callEarnings: {
+            $sum: {
+              $cond: [
+                { $eq: ["$serviceType", "CALL"] },
+                "$totalForSession",
+                0
+              ]
+            }
+          },
+
+          chatEarnings: {
+            $sum: {
+              $cond: [
+                { $eq: ["$serviceType", "CHAT"] },
+                "$totalForSession",
+                0
+              ]
+            }
+          }
+        }
+      }
+    ]);
+
+    const stats = earnings[0] || {
+      totalEarnings: 0,
+      todayEarnings: 0,
+      callEarnings: 0,
+      chatEarnings: 0
+    };
+
     const activeChats = await Chat.countDocuments({
       astrologer: astrologerId,
-      status: "ACTIVE",
+      status: "ACTIVE"
     });
 
     const waitingChats = await Chat.countDocuments({
       astrologer: astrologerId,
-      status: "WAITING",
+      status: "WAITING"
     });
 
     res.json({
       success: true,
       stats: {
-        totalEarnings,
-        todayEarnings,
+        ...stats,
         activeChats,
-        waitingChats,
-      },
+        waitingChats
+      }
     });
+
   } catch (err) {
-    res.status(500).json({ success: false, message: err.message });
+    console.error("Astrologer stats error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to load stats"
+    });
   }
 };
+
+
 
 export const toggleAstrologerAvailability = async (req, res) => {
   try {

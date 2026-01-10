@@ -24,6 +24,7 @@ export const useCall = (callId, identity) => {
   const [appId, setAppId] = useState(null);
   const durationIntervalRef = useRef(null);
   const socketRef = useRef(null);
+  const callStartedAtRef = useRef(null);
 
   // Check if component is mounted and client-side
   const [isMounted, setIsMounted] = useState(false);
@@ -60,53 +61,59 @@ export const useCall = (callId, identity) => {
       if (socketRef.current) {
         socketRef.current.disconnect();
       }
-      if (durationIntervalRef.current) {
-        clearInterval(durationIntervalRef.current);
-      }
+      stopCallTimer();
     };
   }, [isMounted, callId, identity]);
 
   const setupSocketListeners = () => {
     if (!socketRef.current) return;
 
-   // Add this for call activation
-  socketRef.current.on("callActivated", (data) => {
-    console.log("🎉 Call activated via socket:", data);
-    
-    // Update call status to CONNECTED
-    setCallStatus("CONNECTED");
-    setIsConnecting(false)
-    
-    // IMPORTANT: Update call data with room ID if provided
-    if (data.call) {
-      setCall(prev => ({
-        ...prev,
-        ...data.call,
-        zegoRoomId: data.call.zegoRoomId || data.zegoRoomId
-      }));
+    socketRef.current.on("callActivated", (data) => {
+      console.log("🎉 Call activated via socket:", data);
       
-      // If we have Zego room ID, trigger token fetch
-      if (data.call.zegoRoomId || data.zegoRoomId) {
-        fetchZegoTokenForRoom(data.call.zegoRoomId || data.zegoRoomId);
+      setCallStatus("CONNECTED");
+      setIsConnecting(false);
+      
+      if (data.call?.startedAt) {
+        callStartedAtRef.current = new Date(data.call.startedAt);
+      } else {
+        callStartedAtRef.current = new Date();
       }
-    }
-    
-    startCallTimer();
-    toast.success("Call connected!");
-  });
-
-       // Also listen for astrologer joined event
-  socketRef.current.on("astrologerJoinedCall", (data) => {
-    console.log("Astrologer joined call:", data);
-    setPeerJoined(true);
-    toast.success("Astrologer has joined the call");
-  });
       
+      if (data.call) {
+        setCall(prev => ({
+          ...prev,
+          ...data.call,
+          zegoRoomId: data.call.zegoRoomId || data.zegoRoomId
+        }));
+        
+        if (data.call.zegoRoomId || data.zegoRoomId) {
+          fetchZegoTokenForRoom(data.call.zegoRoomId || data.zegoRoomId);
+        }
+      }
+      
+      startCallTimer();
+      toast.success("Call connected!");
+    });
 
+    socketRef.current.on("astrologerJoinedCall", (data) => {
+      console.log("Astrologer joined call:", data);
+      setPeerJoined(true);
+      toast.success("Astrologer has joined the call");
+    });
+      
     socketRef.current.on('callEnded', (data) => {
+      console.log("Call ended event received:", data);
       setCallStatus('ENDED');
       stopCallTimer();
-      toast.success(`Call ended. Duration: ${formatDuration(duration)}`);
+      
+      if (data.endedBy === "user") {
+        toast.success('You ended the call');
+      } else if (data.endedBy === "astrologer") {
+        toast.success('Astrologer ended the call');
+      } else {
+        toast.success(`Call ended. Duration: ${formatDuration(duration)}`);
+      }
     });
 
     socketRef.current.on('callRejected', (data) => {
@@ -118,38 +125,35 @@ export const useCall = (callId, identity) => {
       setCallStatus('MISSED');
       toast.error('Astrologer did not answer');
     });
-  };
-  //Add this function to fetch Zego token
-const fetchZegoTokenForRoom = async (roomId) => {
-  try {
-    console.log("🔑 Fetching Zego token for room:", roomId);
     
-    const response = await api.post('/call/zego-token', {
-      roomId: roomId,
-      userId: identity,
-      userName: user?.name || 'User'
+    // Listen for specific astrologer ended call event
+    socketRef.current.on('callEndedByAstrologer', (data) => {
+      console.log("Astrologer ended the call:", data);
+      setCallStatus('ENDED');
+      stopCallTimer();
+      toast.success("Astrologer ended the call");
     });
-    
-    if (response.data.success) {
-      console.log("✅ Zego token received");
-      
-      // Update Zego parameters
-      setZegoToken(response.data.token);
-      setZegoRoomId(response.data.roomId);
-      setAppId(response.data.appId);
-      
-      return response.data;
-    }
-  } catch (error) {
-    console.error("❌ Failed to fetch Zego token:", error);
-  }
-  return null;
-};
+  };
 
   const startCallTimer = () => {
     stopCallTimer();
+    
+    let initialDuration = 0;
+    if (callStartedAtRef.current) {
+      const now = new Date();
+      initialDuration = Math.floor((now - callStartedAtRef.current) / 1000);
+    }
+    
+    setDuration(initialDuration);
+    
     durationIntervalRef.current = setInterval(() => {
-      setDuration(prev => prev + 1);
+      setDuration(prev => {
+        if (callStartedAtRef.current) {
+          const now = new Date();
+          return Math.floor((now - callStartedAtRef.current) / 1000);
+        }
+        return prev + 1;
+      });
     }, 1000);
   };
 
@@ -158,6 +162,7 @@ const fetchZegoTokenForRoom = async (roomId) => {
       clearInterval(durationIntervalRef.current);
       durationIntervalRef.current = null;
     }
+    callStartedAtRef.current = null;
   };
 
   const formatDuration = (seconds) => {
@@ -165,6 +170,82 @@ const fetchZegoTokenForRoom = async (roomId) => {
     const secs = seconds % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
+
+  const calculateDurationFromBackend = (callData) => {
+    if (!callData?.startedAt) return 0;
+    
+    const startedAt = new Date(callData.startedAt);
+    const now = new Date();
+    return Math.max(0, Math.floor((now - startedAt) / 1000));
+  };
+
+  // Fetch call data if callId is provided
+  useEffect(() => {
+    if (callId && isMounted) {
+      const fetchCallData = async () => {
+        try {
+          const response = await api.get(`/call/status/${callId}`);
+          if (response.data.success) {
+            const callData = response.data.call;
+            setCall(callData);
+            setCallStatus(callData.status);
+            
+            if (callData.status === 'ACTIVE' && callData.startedAt) {
+              callStartedAtRef.current = new Date(callData.startedAt);
+              const initialDuration = calculateDurationFromBackend(callData);
+              setDuration(initialDuration);
+              startCallTimer();
+            }
+          }
+        } catch (error) {
+          console.error('Fetch call error:', error);
+        }
+      };
+      
+      fetchCallData();
+    }
+  }, [callId, isMounted]);
+
+  const fetchZegoTokenForRoom = async (roomId) => {
+    try {
+      console.log("🔑 Fetching Zego token for room:", roomId);
+      
+      const response = await api.post('/call/zego-token', {
+        roomId: roomId,
+        userId: identity,
+        userName: user?.name || 'User'
+      });
+      
+      if (response.data.success) {
+        console.log("✅ Zego token received");
+        setZegoToken(response.data.token);
+        setZegoRoomId(response.data.roomId);
+        setAppId(response.data.appId);
+        return response.data;
+      }
+    } catch (error) {
+      console.error("❌ Failed to fetch Zego token:", error);
+    }
+    return null;
+  };
+
+  const fetchZegoToken = useCallback(async () => {
+    try {
+      const response = await api.post('/call/zego-token', {
+        roomId: zegoRoomId || call?.zegoRoomId,
+        userId: identity,
+        userName: user?.name || 'User'
+      });
+      
+      if (response.data.success) {
+        return response.data;
+      }
+    } catch (error) {
+      console.error('Failed to fetch Zego token:', error);
+      throw error;
+    }
+    return null;
+  }, [call, identity, user]);
 
   // Start a new call - SIMPLIFIED
   const startCall = async (astrologerId) => {
@@ -193,10 +274,7 @@ const fetchZegoTokenForRoom = async (roomId) => {
         setCallStatus('WAITING');
         
         toast.success('Call request sent! Waiting for astrologer...');
-        
-        // Redirect to call page
         router.push(`/astrologers/call/${newCall._id}`);
-        
         return newCall;
       }
     } catch (error) {
@@ -214,13 +292,15 @@ const fetchZegoTokenForRoom = async (roomId) => {
       setIsConnecting(false);
       toast.dismiss();
     }
-
     return null;
   };
 
-  // End call
+  // End call - UPDATED TO CALL BACKEND API
   const endCall = async () => {
-    if (!callId || !call) return false;
+    if (!callId || !call) {
+      toast.error('No active call to end');
+      return false;
+    }
 
     try {
       setIsConnecting(true);
@@ -228,22 +308,39 @@ const fetchZegoTokenForRoom = async (roomId) => {
 
       let response;
       if (identity?.startsWith('user_')) {
+        // Call the backend API to properly end the call
         response = await api.post(`/call/user/end/${callId}`);
       } else if (identity?.startsWith('astrologer_')) {
         const astrologerId = identity.replace('astrologer_', '');
         response = await api.post(`/call/astrologer/end/${callId}/${astrologerId}`);
+      } else {
+        toast.error('Unauthorized to end call');
+        return false;
       }
 
       if (response?.data?.success) {
         setCallStatus('ENDED');
         stopCallTimer();
         
+        // Emit socket event
+        if (socketRef.current && identity?.startsWith('user_')) {
+          socketRef.current.emit("userEndedCall", {
+            callId,
+            userId: user?._id,
+            astrologerId: call?.astrologer?._id
+          });
+        }
+        
         toast.success('Call ended successfully');
         return true;
+      } else {
+        toast.error('Failed to end call');
+        return false;
       }
     } catch (error) {
       console.error('End call error:', error);
-      toast.error('Failed to end call');
+      const errorMessage = error.response?.data?.message || 'Failed to end call';
+      toast.error(errorMessage);
     } finally {
       setIsConnecting(false);
       toast.dismiss();
@@ -251,51 +348,6 @@ const fetchZegoTokenForRoom = async (roomId) => {
 
     return false;
   };
-
-  // Fetch call data if callId is provided
-  useEffect(() => {
-    if (callId && isMounted) {
-      const fetchCallData = async () => {
-        try {
-          const response = await api.get(`/call/status/${callId}`);
-          if (response.data.success) {
-            const callData = response.data.call;
-            setCall(callData);
-            setCallStatus(callData.status);
-            
-            if (callData.status === 'ACTIVE' && callData.startedAt) {
-              const startedAt = new Date(callData.startedAt);
-              const now = new Date();
-              const seconds = Math.floor((now - startedAt) / 1000);
-              setDuration(Math.max(0, seconds));
-              startCallTimer();
-            }
-          }
-        } catch (error) {
-          console.error('Fetch call error:', error);
-        }
-      };
-      
-      fetchCallData();
-    }
-  }, [callId, isMounted]);
-const fetchZegoToken = useCallback(async () => {
-  try {
-    const response = await api.post('/call/zego-token', {
-      roomId: zegoRoomId || call?.zegoRoomId,
-      userId: identity,
-      userName: user?.name || 'User'
-    });
-    
-    if (response.data.success) {
-      return response.data;
-    }
-  } catch (error) {
-    console.error('Failed to fetch Zego token:', error);
-    throw error;
-  }
-  return null;
-}, [call, identity, user]);
 
   // Fetch wallet balance on mount
   useEffect(() => {
@@ -319,13 +371,14 @@ const fetchZegoToken = useCallback(async () => {
     isMuted,
     isSpeakerOn,
     isConnecting,
-    zegoReady: isMounted, // Always ready if mounted (simplified)
+    zegoReady: isMounted,
     peerJoined,
     isInitialized: isMounted,
     fetchZegoToken,
-    zegoToken,        // Add this
-    zegoRoomId,       // Add this
-    appId,  
+    zegoToken,
+    zegoRoomId,
+    appId,
+    
     // Functions
     startCall,
     endCall,
@@ -333,8 +386,8 @@ const fetchZegoToken = useCallback(async () => {
     toggleSpeaker: () => setIsSpeakerOn(!isSpeakerOn),
     formatDuration,
     setPeerJoined,
-    setZegoToken,     // Add setter
-  setZegoRoomId,    // Add setter
-  setAppId   
+    setZegoToken,
+    setZegoRoomId,
+    setAppId
   };
 };

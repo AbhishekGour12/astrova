@@ -1,4 +1,7 @@
 "use client";
+export const dynamic = "force-dynamic";
+
+
 import { useEffect, useState, useCallback } from "react";
 import {
   FaStar,
@@ -45,7 +48,8 @@ export default function AstrologerList() {
 
 
 const searchParams = useSearchParams();
-const service = searchParams.get("service") || "ALL";
+const service = searchParams?.get("service") || "ALL";
+
 
  // Use the call hook
   
@@ -58,6 +62,7 @@ const service = searchParams.get("service") || "ALL";
 
   // Initialize socket
   useEffect(() => {
+     if (typeof window === "undefined") return;
     const newSocket = io(process.env.NEXT_PUBLIC_API, {
       transports: ["websocket", "polling"],
       reconnection: true,
@@ -261,8 +266,12 @@ const service = searchParams.get("service") || "ALL";
         },
       };
 
-      const rzp = new window.Razorpay(options);
-      rzp.open();
+if (typeof window !== "undefined") {
+  const rzp = new window.Razorpay(options);
+  rzp.open();
+}
+
+
     } catch (err) {
       console.error("Recharge error:", err);
       toast.error("Failed to initiate payment");
@@ -691,7 +700,7 @@ const testToken = async () => {
                 {/* Experience */}
                 <div className="flex items-center justify-center gap-2 mt-2 text-sm text-[#00695C]">
                   <FaClock />
-                  <span>{astrologer.experience || "5+"} years experience</span>
+                  <span>{astrologer.experienceYears || "5+"} years experience</span>
                 </div>
                 
                 {/* Languages */}

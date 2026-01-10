@@ -4,6 +4,7 @@ import User from "../models/User.js";
 import AstrologerEarning from "../models/AstrologerEarning.js";
 import { Message } from "../models/Message.js";
 import { getIO } from "../services/socket.js";
+import { stopBillingInterval } from "../services/chatBilling.js";
 /* ======================================================
    START CHAT
 ====================================================== */
@@ -100,6 +101,17 @@ export const acceptChatByAstrologer = async (req, res) => {
   chat.status = "ACTIVE";
   chat.startedAt = new Date();
   await chat.save();
+  await AstrologerEarning.create({
+  astrologer: chat.astrologer,
+  user: chat.user._id,
+  chat: chat._id,
+  serviceType: "CHAT",
+  minutes: 0,
+  ratePerMinute: chat.ratePerMinute,
+  amount: 0,
+  isPaid: false
+});
+
 
   const io = getIO();
    io.to(`user_${chat.user._id}`).emit("chatActivated", chat);
@@ -306,19 +318,17 @@ export const endChatByUser = async (req, res) => {
     chat.totalMinutes = minutes;
     chat.totalAmount = totalAmount;
     await chat.save();
-
+   stopBillingInterval(chatId);
     // Create earning record
     if (totalAmount > 0) {
-      await AstrologerEarning.create({
-        astrologer: chat.astrologer._id,
-        user: chat.user._id,
-        chat: chat._id,
-        serviceType: "CHAT",
-        minutes: minutes,
-        ratePerMinute: chat.ratePerMinute,
-        amount: totalAmount,
-        isPaid: false
-      });
+     await AstrologerEarning.findOneAndUpdate(
+  { chat: chat._id },
+  {
+    minutes: minutes,
+    amount: totalAmount
+  }
+);
+
     }
 // Send real-time notifications
     const io = getIO();
@@ -383,19 +393,17 @@ export const endChatByAstrologer = async (req, res) => {
     chat.totalMinutes = minutes;
     chat.totalAmount = totalAmount;
     await chat.save();
-
+    stopBillingInterval(chatId)
     // Create earning record
     if (totalAmount > 0) {
-      await AstrologerEarning.create({
-        astrologer: chat.astrologer._id,
-        user: chat.user._id,
-        chat: chat._id,
-        serviceType: "CHAT",
-        minutes: minutes,
-        ratePerMinute: chat.ratePerMinute,
-        amount: totalAmount,
-        isPaid: false
-      });
+      await AstrologerEarning.findOneAndUpdate(
+  { chat: chat._id },
+  {
+    minutes: minutes,
+    amount: totalAmount
+  }
+);
+
     }
 // Send real-time notifications
     const io = getIO();
