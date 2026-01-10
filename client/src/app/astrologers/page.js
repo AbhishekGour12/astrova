@@ -2,7 +2,7 @@
 export const dynamic = "force-dynamic";
 
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, Suspense } from "react";
 import {
   FaStar,
   FaComments,
@@ -27,7 +27,16 @@ import { io } from "socket.io-client";
 import { useSelector } from "react-redux";
 
 import { useCall } from "../hooks/useCall";
-export default function AstrologerList() {
+// 1. Create a Loading Component (Extracted from your existing code)
+const LoadingFallback = () => (
+  <div className="min-h-screen bg-[#F7F3E9] flex items-center justify-center">
+    <div className="text-center">
+      <div className="w-16 h-16 border-4 border-[#C06014] border-t-transparent rounded-full animate-spin mx-auto"></div>
+      <p className="mt-4 text-[#003D33]">Loading astrologers...</p>
+    </div>
+  </div>
+);
+ function AstrologerContent() {
   const [astrologers, setAstrologers] = useState([]);
   const [wallet, setWallet] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -229,7 +238,7 @@ const service = searchParams?.get("service") || "ALL";
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
         amount: orderRes.data.amount,
         currency: "INR",
-        name: "Sacred Earth Astrology",
+        name: "My Astrova",
         description: "Wallet Recharge",
         order_id: orderRes.data.id,
         handler: async (response) => {
@@ -966,5 +975,15 @@ const testToken = async () => {
         </div>
       )}
     </div>
+  );
+}
+
+
+// 3. New Default Export wrapping the content in Suspense
+export default function AstrologerList() {
+  return (
+    <Suspense fallback={<LoadingFallback />}>
+      <AstrologerContent />
+    </Suspense>
   );
 }
