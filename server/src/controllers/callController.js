@@ -88,7 +88,8 @@ export const startCall = async (req, res) => {
       call: populatedCall,
       type: callType,
       zegoRoomId: zegoRoomId,
-      timestamp: new Date()
+      timestamp: new Date(),
+      userName: user.username
     });
 
     io.emit("astrologerStatusUpdate", {

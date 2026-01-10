@@ -324,24 +324,31 @@ export default function UserCallPage() {
   const shouldShowCallControls = (statusInfo.showControls || isVideoMode) && !callEndedByAstrologer && callStatus !== "ENDED";
 
   if (!user) return null;
-
-  return (
-    <div className="fixed inset-0 w-full h-full overflow-hidden bg-black">
+return (
+    // MAIN WRAPPER: Force strict overflow hidden and viewport height
+    <div className="fixed inset-0 w-full h-[100dvh] max-w-full overflow-hidden bg-black touch-none">
       
       {/* LAYER 1: ZEGO INTERFACE */}
       <div 
-        className={`fixed inset-x-0 top-0 transition-all duration-300 ease-in-out bg-gray-900
-        ${isVideoMode ? 'h-[88dvh] z-40 opacity-100' : 'h-0 z-[-1] opacity-0'}
+        className={`fixed inset-0 z-40 w-full transition-all duration-300 ease-in-out bg-gray-900
+        ${isVideoMode ? 'opacity-100' : ' opacity-0'}
         `}
       >
         {isClient && zegoEnabled && (
-          <div ref={containerRef} className="w-full h-full object-cover" />
+          // ✅ FIX: Added [&_*] classes to force EVERY child element to fit width
+          <div className="relative w-screen h-[100dvh] overflow-hidden">
+          <div 
+            ref={containerRef} 
+            id="zego-root"
+            className="absolute inset-0  overflow-hidden"
+          />
+          </div>
         )}
 
         {/* Timer Overlay */}
         {isVideoMode && (
-          <div className="absolute top-8 left-0 w-full flex flex-col items-center z-50 pointer-events-none">
-            <h3 className="text-white font-bold text-lg drop-shadow-md bg-black/30 px-4 py-1 rounded-full backdrop-blur-sm mb-2">
+          <div className="absolute top-12 md:top-8 left-0 w-full flex flex-col items-center z-50 pointer-events-none px-4">
+            <h3 className="text-white font-bold text-lg drop-shadow-md bg-black/30 px-4 py-1 rounded-full backdrop-blur-sm mb-2 max-w-[90%] truncate">
               {call?.astrologer?.fullName}
             </h3>
             <div className="bg-red-600/90 text-white px-6 py-1 rounded-full font-mono text-xl shadow-lg backdrop-blur-md">
@@ -351,65 +358,61 @@ export default function UserCallPage() {
         )}
       </div>
 
-      {/* LAYER 2: CONNECTING UI */}
+      {/* LAYER 2: CONNECTING UI (Non-Zego Mode) */}
       {!isVideoMode && (
-        <div className="absolute inset-0 z-30 bg-gradient-to-b from-[#003D33] to-[#001F1A] flex flex-col pt-20 px-4">
-          <div className="flex items-center justify-between mb-10">
-            <button onClick={() => router.push("/astrologers")} className="p-2 bg-white/10 rounded-full">
+        <div className="absolute inset-0 z-30 bg-gradient-to-b from-[#003D33] to-[#001F1A] flex flex-col w-full h-full">
+          {/* Header */}
+          <div className="flex items-center justify-between p-4 pt-8 w-full max-w-4xl mx-auto z-10">
+            <button onClick={() => router.push("/astrologers")} className="p-3 bg-white/10 rounded-full hover:bg-white/20 transition">
                <FaArrowLeft className="text-white" />
             </button>
-            <div className="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full">
+            <div className="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full backdrop-blur-sm">
                <FaWallet className="text-yellow-400" />
                <span className="text-white font-bold">₹{walletBalance}</span>
             </div>
           </div>
-          <div className="bg-white/10 backdrop-blur-md border border-white/5 rounded-3xl p-8 flex flex-col items-center shadow-2xl">
-            <div className="relative mb-6">
-              <div className="w-32 h-32 rounded-full border-4 border-white/20 overflow-hidden bg-gray-700">
-                {call?.astrologer?.profileImageUrl ? (
-                   <img src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${call.astrologer.profileImageUrl}`} className="w-full h-full object-cover" />
-                ) : (
-                   <FaUser className="w-full h-full p-6 text-gray-400" />
-                )}
+
+          {/* Centered Card */}
+          <div className="flex-1 flex flex-col items-center justify-center p-4 w-full">
+            <div className="bg-white/10 backdrop-blur-md border border-white/5 rounded-3xl p-6 md:p-8 flex flex-col items-center shadow-2xl w-full max-w-[90%] md:max-w-sm mx-auto">
+              <div className="relative mb-6">
+                <div className="w-24 h-24 md:w-32 md:h-32 rounded-full border-4 border-white/20 overflow-hidden bg-gray-700 shadow-xl">
+                  {call?.astrologer?.profileImageUrl ? (
+                     <img src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${call.astrologer.profileImageUrl}`} className="w-full h-full object-cover" />
+                  ) : (
+                     <FaUser className="w-full h-full p-6 text-gray-400" />
+                  )}
+                </div>
+                {callStatus === "RINGING" && <div className="absolute inset-0 rounded-full border-4 border-green-400/50 animate-ping" />}
               </div>
-              {callStatus === "RINGING" && (
-                <div className="absolute inset-0 rounded-full border-4 border-green-400/50 animate-ping" />
+              <h2 className="text-xl md:text-2xl font-bold text-white mb-2 text-center">{call?.astrologer?.fullName || "Astrologer"}</h2>
+              <p className={`text-base md:text-lg font-medium mb-6 text-center ${callStatus === 'RINGING' ? 'text-green-400' : 'text-gray-300'}`}>
+                {statusInfo.message}
+              </p>
+              {callStatus === "CONNECTED" && !zegoConnected && (
+               <div className="flex items-center gap-3 text-yellow-400 text-sm md:text-base animate-pulse">
+                  <FaSpinner className="animate-spin" /><span>Connecting secure line...</span>
+               </div>
               )}
             </div>
-            <h2 className="text-2xl font-bold text-white mb-2">{call?.astrologer?.fullName || "Astrologer"}</h2>
-            <p className={`text-lg font-medium mb-6 ${callStatus === 'RINGING' ? 'text-green-400' : 'text-gray-300'}`}>
-              {statusInfo.message}
-            </p>
-            {callStatus === "CONNECTED" && !zegoConnected && (
-               <div className="flex items-center gap-3 text-yellow-400">
-                  <FaSpinner className="animate-spin text-xl" />
-                  <span>Establishing secure connection...</span>
-               </div>
-            )}
           </div>
+          <div className="h-[20vh] w-full shrink-0" />
         </div>
       )}
 
       {/* LAYER 3: BOTTOM CONTROLS */}
       {shouldShowCallControls && (
-        <div 
-          className={`fixed bottom-0 left-0 w-full z-50 flex items-center justify-center transition-all duration-300
-          ${isVideoMode 
-             ? "h-[12dvh] bg-[#111] rounded-t-3xl border-t border-white/10" 
-             : "h-[20vh] bg-transparent"
-          }`}
-        >
-          <div className="flex items-center gap-8">
-            <button onClick={toggleMute} className={`p-4 rounded-full transition-all ${isMuted ? 'bg-white text-black' : 'bg-gray-700 text-white'}`}>
-              {isMuted ? <FaMicrophoneSlash size={24} /> : <FaMicrophone size={24} />}
+        <div className={`fixed bottom-0 left-0 w-full z-50 flex items-center justify-center transition-all duration-300 pb-4
+          ${isVideoMode ? "h-[15dvh] bg-[#111] rounded-t-3xl border-t border-white/10" : "h-[20vh] bg-transparent"}`}>
+          <div className="flex items-center gap-6 md:gap-10">
+            <button onClick={toggleMute} className={`p-4 rounded-full transition-all shadow-lg ${isMuted ? 'bg-white text-black' : 'bg-gray-700/80 text-white backdrop-blur-md'}`}>
+              {isMuted ? <FaMicrophoneSlash size={22} /> : <FaMicrophone size={22} />}
             </button>
-
-            <button onClick={handleEndCall} className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-red-600/30 hover:bg-red-700 hover:scale-105 transition-all">
+            <button onClick={handleEndCall} className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-white shadow-xl hover:bg-red-700 active:scale-95 transition-all">
                {isLeaving ? <FaSpinner className="animate-spin" size={28} /> : <FaPhoneSlash size={28} />}
             </button>
-
-            <button onClick={toggleSpeaker} className={`p-4 rounded-full transition-all ${isSpeakerOn ? 'bg-white text-black' : 'bg-gray-700 text-white'}`}>
-              {isSpeakerOn ? <FaVolumeUp size={24} /> : <FaVolumeMute size={24} />}
+            <button onClick={toggleSpeaker} className={`p-4 rounded-full transition-all shadow-lg ${isSpeakerOn ? 'bg-white text-black' : 'bg-gray-700/80 text-white backdrop-blur-md'}`}>
+              {isSpeakerOn ? <FaVolumeUp size={22} /> : <FaVolumeMute size={22} />}
             </button>
           </div>
         </div>
@@ -417,16 +420,15 @@ export default function UserCallPage() {
 
       {/* LAYER 4: CALL ENDED OVERLAY */}
       {(callEndedByAstrologer || callStatus === "ENDED") && (
-        <div className="fixed inset-0 z-[60] bg-black/90 flex flex-col items-center justify-center text-white">
-          <FaPhoneSlash className="text-red-500 text-6xl mb-6" />
-          <h2 className="text-3xl font-bold mb-2">Call Ended</h2>
-          <p className="text-gray-400 mb-8">Duration: {formatDuration(localDuration)}</p>
-          <button onClick={() => router.push("/astrologers")} className="px-8 py-3 bg-white text-black rounded-full font-bold hover:bg-gray-200">
-            Return to Home
-          </button>
+        <div className="fixed inset-0 z-[60] bg-black/95 flex flex-col items-center justify-center text-white px-4">
+          <div className="bg-gray-900/50 p-8 rounded-3xl border border-white/10 flex flex-col items-center max-w-sm w-full">
+            <FaPhoneSlash className="text-red-500 text-4xl mb-6" />
+            <h2 className="text-2xl font-bold mb-2">Call Ended</h2>
+            <p className="text-gray-400 mb-8 font-mono bg-black/30 px-4 py-1 rounded-lg">Duration: {formatDuration(localDuration)}</p>
+            <button onClick={() => router.push("/astrologers")} className="w-full py-3 bg-white text-black rounded-xl font-bold hover:bg-gray-200 transition">Return to Home</button>
+          </div>
         </div>
       )}
-
     </div>
   );
 }

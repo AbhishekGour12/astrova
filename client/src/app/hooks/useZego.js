@@ -158,7 +158,7 @@ export function useZego({
           showRecordingButton: false,
           maxUsers: 2,
           layout: "Auto",
-          showLayoutButton: false,
+          showLayoutButton: true,
           showNonVideoUser: false,
           showOnlyAudioUser: true,
           onJoinRoom: () => {

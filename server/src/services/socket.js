@@ -466,7 +466,8 @@ export const notifyNewCall = (astrologerId, call) => {
   if (io) {
     io.to(`astrologer_${astrologerId}`).emit("incomingCall", {
       call,
-      timestamp: new Date()
+      timestamp: new Date(),
+      userName: call.user?.name || "User"
     });
   }
 };

@@ -198,7 +198,7 @@ export default function AstrologerCallDashboard() {
             <div>
               <h3 className="font-bold text-gray-800">Incoming Call</h3>
               <p className="text-sm text-gray-600">
-                {callData.user?.name || "User"} wants to connect
+                {callData?.username || "User"} wants to connect
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 Type: {callData.callType || "AUDIO"} Call
