@@ -74,7 +74,7 @@ export default function AstrologerDashboard() {
     localStorage.removeItem("astrologer_id");
     localStorage.removeItem("astrologer_token");
     toast.success("Logged out successfully");
-    router.push("/astrologer/login");
+    router.push("/Astrologer/login");
   };
 
   if (loading) {
