@@ -236,15 +236,15 @@ ${
                 initial={{ x: "100%" }}
                 animate={{ x: 0 }}
                 exit={{ x: "100%" }}
-                // --- CHANGES START HERE ---
-                // 1. Added 'overflow-y-auto' to enable internal scrolling
-                // 2. Added 'flex flex-col' to manage layout of footer
-                className="fixed top-[72px] right-0 h-[calc(100vh-72px)] w-72 bg-white shadow-2xl z-50 overflow-y-auto flex flex-col"
+                // --- FIXED HERE ---
+                // Added pb-20 (padding bottom)
+                // Changed 100vh to 100dvh (dynamic viewport height for mobile browsers)
+                className="fixed top-[72px] right-0 h-[calc(100dvh-72px)] w-72 bg-white shadow-2xl z-50 overflow-y-auto flex flex-col pb-20"
               >
                 <div className="flex justify-between items-center p-4 border-b shrink-0">
                   <div className="text-[18px] font-bold flex items-center">
                     <Image
-                      src="/logo.png"
+                      src="/logo2.png"
                       width={30}
                       height={30}
                       alt="logo"
@@ -301,7 +301,6 @@ ${
                 </ul>
 
                 {/* USER SECTION */}
-                {/* 3. Changed from 'absolute' to 'mt-auto' so it pushes to the bottom safely */}
                 <div className="mt-auto p-4 shrink-0">
                   {user ? (
                     <>
