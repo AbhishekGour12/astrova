@@ -104,7 +104,7 @@ export const startCall = async (req, res) => {
         await markMissedCall(call._id);
       }
     }, 60000);
-
+   
     res.status(201).json({
       success: true,
       call: populatedCall,
@@ -237,7 +237,9 @@ await AstrologerEarning.create({
     });
     
      console.log(`✅ Call ${callId} activated. Emitted socket events to user ${call.user._id} and astrologer ${astrologerId}`);
-
+    await Astrologer.findByIdAndUpdate(astrologerId,{
+      $inc: { totalConsultations: 1 } 
+     })
 
     res.json({ 
       success: true, 

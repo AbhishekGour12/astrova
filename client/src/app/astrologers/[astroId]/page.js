@@ -36,6 +36,7 @@ import { useCall } from "../../hooks/useCall";
 export default function AstrologerProfile() {
   const { astroId } = useParams();
   const router = useRouter();
+  
   const [showMeetModal, setShowMeetModal] = useState(false);
   const [selectedAstrologer, setSelectedAstrologer] = useState(null);
   const [meetForm, setMeetForm] = useState({
@@ -58,7 +59,11 @@ const { startCall, isConnecting: callConnecting } = useCall(null, user ? `user_$
 const canChat = availability === "CHAT" || availability === "BOTH" || availability === "ALL";
 const canCall = availability === "CALL" || availability === "BOTH" || availability === "ALL";
 const canMeet = availability === "MEET" || availability === "ALL";
-
+const [reviewStats, setReviewStats] = useState({
+  totalReviews: 0,
+  averageRating: 0,
+  ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+});
 const isBusyChat = astrologer?.isBusyChat;
 const isBusyCall = astrologer?.isBusyCall;
 
@@ -110,10 +115,14 @@ const isBusyNow =
         user ? api.get("/auth/wallet") : Promise.resolve({ data: { balance: 0 } })
       ]);
       
-      if (astroRes.data.success) {
-        setAstrologer(astroRes.data.astrologer);
-        
-      } else {
+     if (astroRes.data.success) {
+  setAstrologer(astroRes.data.astrologer);
+  
+  // Set the calculated stats from backend
+  if (astroRes.data.reviewStats) {
+    setReviewStats(astroRes.data.reviewStats);
+  }
+} else {
         setAstrologer(null);
       }
       
@@ -511,7 +520,7 @@ const isBusyNow =
                       <FaStar
                         key={i}
                         className={`text-sm sm:text-base lg:text-xl ${
-                          i < Math.floor(astrologer.averageRating || 0)
+                          i < Math.floor(reviewStats.averageRating || 0)
                             ? "fill-current"
                             : "text-gray-300"
                         }`}
@@ -519,7 +528,7 @@ const isBusyNow =
                     ))}
                   </div>
                   <span className="text-sm sm:text-base lg:text-lg font-bold text-[#C06014]">
-                    {astrologer.averageRating?.toFixed(1) || "New"}
+                    {reviewStats.averageRating || "New"}
                   </span>
                   <span className="text-gray-500 text-xs sm:text-sm hidden sm:inline">
                     ({astrologer.totalConsultations || 0} sessions)

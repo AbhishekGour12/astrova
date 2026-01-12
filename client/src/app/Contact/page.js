@@ -549,7 +549,7 @@ export default function ContactUsPage() {
                     href={social.link}
                     target="_blank"
                     rel="noopener noreferrer"
-                    className="flex flex-col items-center justify-center p-3 md:p-4 rounded-xl transition-all duration-300 hover:scale-105"
+                    className="flex  flex-col items-center justify-center p-3 border md:p-3  rounded-xl transition-all duration-300 hover:scale-105"
                     style={{ 
                       background: sacredEarthTheme.colors.bgSecondary,
                       border: `1px solid ${sacredEarthTheme.colors.border}`
@@ -557,11 +557,10 @@ export default function ContactUsPage() {
                     onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-2px)'}
                     onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
                   >
-                    <div className="text-xl md:text-2xl mb-1 md:mb-2" style={{ color: social.color }}>
+                    <div className="text-xl md:text-2xl " style={{ color: social.color }}>
                       {social.icon}
                     </div>
-                    {/* Hide label on very small screens if needed, or keep it small */}
-                    <span className="text-[10px] md:text-xs font-medium text-center">{social.label}</span>
+                   
                   </a>
                 ))}
               </div>

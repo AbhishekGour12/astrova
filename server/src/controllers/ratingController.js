@@ -1,5 +1,6 @@
 import Rating from '../models/Rating.js'
 import Product from '../models/Products.js';
+import Review from '../models/Review.js';
 export const submitRating = async (req, res) => {
   try {
     const { rating, review, productId } = req.body;
@@ -124,5 +125,35 @@ export const getProductReviews = async (req, res) => {
       success: false,
       message: "Failed to fetch reviews"
     });
+  }
+};
+
+
+export const getHighRatedAstrologerReviews = async (req, res) => {
+  try {
+    // 1. Find reviews with 4 or 5 stars that HAVE an astrologer ID
+    const reviews = await Review.find({
+      rating: { $gte: 4 },
+      astrologer: { $exists: true, $ne: null } // Ensure it is an astrologer review
+    })
+    .populate({
+      path: "astrologer",
+      select: "fullName profileImageUrl expertise" // Fetch specific astrologer fields
+    })
+    .populate({
+      path: "user",
+      select: "username profileImageUrl" // Fetch user details
+    })
+    .sort({ createdAt: -1 }) // Newest first
+    .limit(6); // Limit to 6 reviews for the UI
+
+    return res.status(200).json({
+      success: true,
+      reviews
+    });
+
+  } catch (error) {
+    console.error("Error fetching astrologer reviews:", error);
+    return res.status(500).json({ success: false, message: "Server Error" });
   }
 };

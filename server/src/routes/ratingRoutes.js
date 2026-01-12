@@ -3,7 +3,8 @@ import {
   submitRating, 
   getProductRatings, 
   getUserRating, 
-  getProductReviews
+  getProductReviews,
+  getHighRatedAstrologerReviews
 } from '../controllers/ratingController.js';
 import { authMiddleware, onlyUser } from '../middleware/authMiddleware.js';
 
@@ -17,4 +18,5 @@ router.route('/product/:productId')
 router.route('/user/:productId')
   .get(authMiddleware, onlyUser, getUserRating);
 router.route("/reviews").get(getProductReviews)
+router.route("/astrologer-reviews").get(getHighRatedAstrologerReviews)
 export default router;

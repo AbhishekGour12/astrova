@@ -7,7 +7,7 @@ import AstrologerEarning from "../models/AstrologerEarning.js";
 import Call from "../models/Call.js";
 import axios from "axios";
 import mongoose from "mongoose";
-
+import Review from "../models/Review.js";
 
 
 const otpStore = new Map();
@@ -144,7 +144,10 @@ export const astrologerLogin = async (req, res) => {
       role: "astrologer"
     }
   });
-};export const getAllAstrologers = async (req, res) => {
+};
+
+
+export const getAllAstrologers = async (req, res) => {
   try {
     const { service = "ALL" } = req.query;
 
@@ -167,10 +170,52 @@ export const astrologerLogin = async (req, res) => {
 
     // service === "ALL" → no availability filter
 
-    const astrologers = await Astrologer.find(filter).select("-password");
+    /* ===============================
+       FETCH DATA + RATINGS (Aggregation)
+    =============================== */
+    const astrologers = await Astrologer.aggregate([
+      // 1. Apply your existing filters
+      { $match: filter },
+
+      // 2. Join with Reviews collection
+      {
+        $lookup: {
+          from: "reviews", // Must match your MongoDB collection name (usually lowercase plural)
+          localField: "_id",
+          foreignField: "astrologer",
+          as: "reviewsData"
+        }
+      },
+
+      // 3. Calculate Average Rating & Count
+      {
+        $addFields: {
+          totalReviews: { $size: "$reviewsData" },
+          averageRating: {
+            $cond: {
+              if: { $gt: [{ $size: "$reviewsData" }, 0] },
+              then: { $avg: "$reviewsData.rating" },
+              else: 0 // Default if no reviews
+            }
+          }
+        }
+      },
+
+      // 4. Remove heavy reviews array & sensitive info
+      {
+        $project: {
+          reviewsData: 0,
+          password: 0,
+          __v: 0
+        }
+      },
+
+      // 5. Optional: Sort by Rating (High to Low)
+      { $sort: { averageRating: -1 } }
+    ]);
 
     /* ===============================
-       BUSY LOGIC
+       BUSY LOGIC (Existing Code)
     =============================== */
 
     let busyChatAstrologerIds = new Set();
@@ -205,7 +250,7 @@ export const astrologerLogin = async (req, res) => {
       const id = a._id.toString();
 
       return {
-        ...a.toObject(),
+        ...a, // Note: Removed .toObject() because aggregation already returns plain objects
 
         // Chat busy only if astrologer supports chat
         isBusyChat:
@@ -233,22 +278,49 @@ export const astrologerLogin = async (req, res) => {
   }
 };
 
-
 export const getAstrologerProfile = async (req, res) => {
   try {
+    const { id } = req.params;
 
-    const astrologer = await Astrologer.findById(req.params.id)
-      .select("-password");
-
+    // 1. Fetch Astrologer
+    const astrologer = await Astrologer.findById(id).select("-password");
     if (!astrologer) {
       return res.status(404).json({ success: false, message: "Astrologer not found" });
+    }
+
+    // 2. Fetch All Reviews (Just fields needed for calculation)
+    const reviews = await Review.find({ astrologer: id }).select("rating");
+
+    // 3. Calculate Average & Breakdown Manually
+    const totalReviews = reviews.length;
+    let averageRating = 0;
+    
+    // Initialize breakdown: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+    const ratingDistribution = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+
+    if (totalReviews > 0) {
+      const sum = reviews.reduce((acc, curr) => {
+        // Count distribution
+        const r = Math.round(curr.rating); // Ensure integer for key
+        ratingDistribution[r] = (ratingDistribution[r] || 0) + 1;
+        return acc + curr.rating;
+      }, 0);
+      
+      averageRating = (sum / totalReviews).toFixed(1); // e.g., "4.5"
     }
 
     res.json({
       success: true,
       astrologer,
+      reviewStats: {
+        totalReviews,
+        averageRating,
+        ratingDistribution // Send the breakdown (e.g., 5 star: 10, 4 star: 2)
+      }
     });
+
   } catch (err) {
+    console.error("Profile Error:", err);
     res.status(500).json({ success: false, message: err.message });
   }
 };

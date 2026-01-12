@@ -117,7 +117,9 @@ export const acceptChatByAstrologer = async (req, res) => {
    io.to(`user_${chat.user._id}`).emit("chatActivated", chat);
    
   io.to(`chat_${chat._id}`).emit("chatActivated", chat);
-
+ await Astrologer.findByIdAndUpdate(astrologerId,{
+  $inc: { totalConsultations: 1 } 
+ })
   res.json({ success: true, chat });
 }catch(err){
   console.log(err.message)
@@ -300,7 +302,10 @@ export const endChatByUser = async (req, res) => {
   const endedBy = "user";
 
 
-  await Astrologer.findByIdAndUpdate(chat.astrologer, { isBusy: false });
+  // ✅ UPDATED: Reset busy status AND increment totalConsultations
+  await Astrologer.findByIdAndUpdate(chat.astrologer, { 
+    isBusy: false
+  });
 
   // Calculate total minutes and amount
     const startedAt = chat.startedAt || new Date();

@@ -80,7 +80,8 @@ const service = searchParams?.get("service") || "ALL";
     });
 
     setSocket(newSocket);
-    if(!user){
+    let token = localStorage.getItem("token")
+    if(!token){
       toast.error("login first")
       router.push("/Login")
     }

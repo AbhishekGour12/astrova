@@ -1,154 +1,136 @@
 "use client";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
-import { Quote } from "lucide-react";
+import { motion } from "framer-motion";
+import { Quote, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import axios from "axios";
 
-const REVIEWS_PER_SLIDE = 3
+const REVIEWS_PER_SLIDE = 3;
 
 export default function Testimonial() {
-  const [reviews, setReviews] = useState([]);
+  const [siteReviews, setSiteReviews] = useState([]); // Top section reviews
+  const [astroReviews, setAstroReviews] = useState([]); // Bottom section reviews
   const [index, setIndex] = useState(0);
 
-  // 🔹 Fetch reviews (already filtered 4–5 stars from backend)
+  // 🔹 Fetch Data
   useEffect(() => {
-    const loadReviews = async () => {
+    const fetchData = async () => {
       try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/api/ratings/reviews`
-        );
-        console.log(res.data)
-        setReviews(res.data.reviews || []);
+        const apiUrl = process.env.NEXT_PUBLIC_API;
+        
+        // 1. Fetch General Site Reviews (Top Section)
+        const siteRes = await axios.get(`${apiUrl}/api/ratings/reviews`);
+        setSiteReviews(siteRes.data.reviews || []);
+
+        // 2. Fetch Astrologer Reviews (Bottom Section)
+        const astroRes = await axios.get(`${apiUrl}/api/ratings/astrologer-reviews`);
+        
+        setAstroReviews(astroRes.data.reviews || []);
+        
       } catch (err) {
         console.error("Failed to load reviews", err);
       }
     };
-    loadReviews();
+    fetchData();
   }, []);
 
-  // 🔹 Auto slide carousel
+  // 🔹 Auto slide carousel for Top Section
   useEffect(() => {
-    if (reviews.length <= REVIEWS_PER_SLIDE) return;
-
+    if (siteReviews.length <= REVIEWS_PER_SLIDE) return;
     const interval = setInterval(() => {
       setIndex((prev) =>
-        prev + REVIEWS_PER_SLIDE >= reviews.length ? 0 : prev + REVIEWS_PER_SLIDE
+        prev + REVIEWS_PER_SLIDE >= siteReviews.length ? 0 : prev + REVIEWS_PER_SLIDE
       );
     }, 4000);
-
     return () => clearInterval(interval);
-  }, [reviews]);
+  }, [siteReviews]);
 
-  const visibleReviews = reviews.slice(index, index + REVIEWS_PER_SLIDE);
-  
+  const visibleSiteReviews = siteReviews.slice(index, index + REVIEWS_PER_SLIDE);
+
   return (
     <div className="relative overflow-visible">
-      {/* ===================== TOP TESTIMONIAL SECTION (CAROUSEL) ===================== */}
-
-       <section className="relative bg-white py-16   sm:py-20 md:py-28 lg:py-32 overflow-visible ">
+      
+      {/* ===================== TOP SECTION: SITE TESTIMONIALS ===================== */}
+      <section className="relative bg-white py-16 sm:py-20 md:py-28 lg:py-32 overflow-visible">
         {/* Background decorations */}
-        <div className="absolute left-[-50px]  bottom-[-80px] w-[250px] sm:w-[300px] md:w-[400px] opacity-60 z-0">
-          <Image
-            src="/star.png"
-            alt="Stars"
-            width={400}
-            height={400}
-            className="object-contain"
-          />
+        <div className="absolute left-[-50px] bottom-[-80px] w-[250px] sm:w-[300px] md:w-[400px] opacity-60 z-0 pointer-events-none">
+          <Image src="/star.png" alt="Stars" width={400} height={400} className="object-contain" />
+        </div>
+        <div className="absolute right-[-100px] top-[20px] w-[350px] sm:w-[450px] md:w-[600px] opacity-20 z-0 pointer-events-none">
+          <Image src="/bgCircle.png" alt="Chakra" width={600} height={600} className="object-contain" />
         </div>
 
-        <div className="absolute right-[-100px] top-[20px] w-[350px] sm:w-[450px] md:w-[600px] opacity-20 z-0">
-          <Image
-            src="/bgCircle.png"
-            alt="Chakra"
-            width={600}
-            height={600}
-            className="object-contain"
-          />
+        <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-12">
+          {/* Badge */}
+          <p className="inline-block px-4 sm:px-5 py-2 bg-[#E5DECED6] rounded-full text-[#7E5833] font-medium text-xs sm:text-sm mb-4">
+            Testimonial
+          </p>
+
+          {/* Heading */}
+          <h2 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-semibold leading-snug text-black mb-8 sm:mb-10 max-w-[95%] sm:max-w-[650px] md:w-[700px]">
+            User Love for MyAstrova
+          </h2>
+
+          {/* Site Reviews Grid / Slider */}
+          {/* UPDATED LAYOUT:
+              1. flex: Enables horizontal row layout
+              2. overflow-x-auto: Enables scrolling on mobile
+              3. snap-x: Enables snap scrolling
+              4. md:grid: Switches to Grid on tablets/desktop
+          */}
+          <div className="flex md:grid md:grid-cols-3 gap-6 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-4 md:pb-0 scrollbar-hide">
+            {visibleSiteReviews.map((review) => (
+              <motion.div
+                key={review._id}
+                whileHover={{ scale: 1.03 }}
+                transition={{ duration: 0.3 }}
+                // UPDATED ITEM: min-w added to prevent shrinking on mobile flex layout
+                className="relative bg-white border border-gray-200 rounded-lg shadow-md p-6 overflow-hidden min-w-[85vw] sm:min-w-[45vw] md:min-w-0 snap-center flex-shrink-0"
+              >
+                {/* Decorative Ellipse */}
+                <div className="absolute top-0 left-0 w-24 h-24 sm:w-28 sm:h-28 -translate-x-6 -translate-y-6">
+                  <Image src="/ellipse.png" alt="ellipse" fill className="object-contain opacity-95" />
+                  <div className="absolute inset-0 flex items-center justify-center text-[#7E5833]">
+                    <Quote size={28} className="opacity-80" />
+                  </div>
+                </div>
+
+                {/* Content */}
+                <h3 className="text-[#7E5833] font-semibold italic text-lg sm:text-xl mt-8 mb-4 ml-6">
+                  {review.userId?.username || "Anonymous"}
+                </h3>
+                <p className="text-[#4A3A28] text-sm sm:text-[15px] leading-relaxed mb-6">
+                  {review.review.length > 150 ? review.review.slice(0, 150) + "..." : review.review}
+                </p>
+
+                {/* Footer */}
+                <div className="flex items-center justify-between mt-4">
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 rounded-full bg-[#E5DECED6] flex items-center justify-center text-[#7E5833] font-bold">
+                      {review.userId?.username?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-[#7E5833] text-sm">{review.userId?.username}</p>
+                      <p className="text-xs text-gray-500">{review.createdAt?.slice(0, 10)}</p>
+                    </div>
+                  </div>
+                  <div className="flex text-yellow-500 text-sm">
+                    {"★".repeat(review.rating)}{"☆".repeat(5 - review.rating)}
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
         </div>
-
-        {/* Content */}
-       <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-12">
-      {/* Badge */}
-      <p className="inline-block px-4 sm:px-5 py-2 bg-[#E5DECED6] rounded-full text-[#7E5833] font-medium text-xs sm:text-sm mb-4">
-        Testimonial
-      </p>
-
-      {/* Heading */}
-      <h2 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-semibold leading-snug text-black mb-8 sm:mb-10 max-w-[95%] sm:max-w-[650px] md:w-[700px]">
-        Expert Readings Led to Life-Changing Clarity
-      </h2>
-
-      {/* Testimonial Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-        {visibleReviews.map((i) => (
-          <motion.div
-            key={i._id}
-            whileHover={{ scale: 1.03 }}
-            transition={{ duration: 0.3 }}
-            className="relative bg-white border border-gray-200 rounded-lg shadow-md p-6 overflow-hidden"
-          >
-            {/* Ellipse Background + Quote */}
-            <div className="absolute top-0 left-0 w-24 h-24 sm:w-28 sm:h-28 -translate-x-6 -translate-y-6">
-              <Image
-                src="/ellipse.png"
-                alt="decorative ellipse"
-                fill
-                className="object-contain opacity-95"
-              />
-              <div className="absolute inset-0 flex items-center justify-center text-[#7E5833]">
-                <Quote size={28} className="opacity-80" />
-              </div>
-            </div>
-
-            {/* Name */}
-            <h3 className="text-[#7E5833] font-semibold italic text-lg sm:text-xl mt-8 mb-4 text-left ml-6">
-              {i.userId.username}
-            </h3>
-
-            {/* Review */}
-            <p className="text-[#4A3A28] text-sm sm:text-[15px] leading-relaxed mb-6">
-              {i.review.length > 150
-                ? i.review.slice(0, 150) + "..."
-                : i.review}
-            </p>
-
-            {/* Profile Section */}
-            <div className="flex items-center justify-between mt-4 flex-wrap sm:flex-nowrap">
-              <div className="flex items-center space-x-3">
-                {/* Profile Circle */}
-                <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-full bg-[#E5DECED6] flex items-center justify-center text-[#7E5833] font-semibold text-base sm:text-lg">
-                  {i.userId.username.charAt(0).toUpperCase()}
-                </div>
-                <div>
-                  <p className="font-semibold text-[#7E5833] text-sm sm:text-base">
-                    {i.userId.username}
-                  </p>
-                  <p className="text-xs sm:text-sm text-gray-500">
-                    {i.createdAt.slice(0, 10)}
-                  </p>
-                </div>
-              </div>
-              {/* Stars */}
-              <div className="text-yellow-500 text-sm sm:text-base mt-2 sm:mt-0">
-               {"★".repeat(i.rating) + "☆".repeat(5 - i.rating)}
-              </div>
-            </div>
-          </motion.div>
-        ))}
-      </div>
-    </div>
       </section>
 
-
-      {/* ===================== BOTTOM BLOG SECTION ===================== */}
-      <section className="relative py-16 sm:py-20 md:py-28 overflow-hidden">
-        {/* Blended Background with soft overlay */}
+      {/* ===================== BOTTOM SECTION: ASTROLOGER REVIEWS ===================== */}
+      <section className="relative py-16 sm:py-20 md:py-28 overflow-hidden bg-[#FDFBF7]">
+        {/* Background Overlay */}
         <div className="absolute inset-0 -z-10">
           <Image
             src="/testimonialbg.png"
-            alt="Star Background"
+            alt="Background"
             fill
             className="object-cover brightness-[0.9] opacity-10"
           />
@@ -158,57 +140,83 @@ export default function Testimonial() {
         <div className="relative max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-12">
           {/* Badge */}
           <p className="inline-block px-4 sm:px-5 py-2 bg-[#E5DECED6] rounded-full text-[#7E5833] font-medium text-xs sm:text-sm mb-4">
-            Testimonial
+            Astrologer Reviews
           </p>
 
           {/* Heading */}
-          <h2 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-semibold leading-snug text-black mb-8 sm:mb-10 max-w-[95%] sm:max-w-[650px] md:w-[700px]">
-            Expert Readings Led to Life-Changing Clarity
+          <h2 className="text-xl sm:text-2xl md:text-4xl lg:text-5xl font-semibold leading-snug text-black mb-8 sm:mb-12 max-w-[95%] sm:max-w-[750px]">
+              Trusted by Thousands for Expert Guidance
           </h2>
 
-          {/* Blog Cards */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-8">
-            {[
-              {
-                title:
-                  "Mercury in Libra Retrograde November 2025 : Major Shifts Ahead",
-                img: "/testomonial1.png",
-              },
-              {
-                title:
-                  "Evil Eye Remover Retrograde November 2025 : Major Shifts Ahead",
-                img: "/testimonial1.jpg",
-              },
-              {
-                title:
-                  "Mercury in Libra Retrograde November 2025 : Major Shifts Ahead",
-                img: "/testomonial1.png",
-              },
-            ].map((card, i) => (
-              <motion.div
-                key={i}
-                whileHover={{ scale: 1.03 }}
-                transition={{ duration: 0.3 }}
-                className="bg-white rounded-xl shadow-md overflow-hidden"
-              >
-                <Image
-                  src={card.img}
-                  alt={card.title}
-                  width={400}
-                  height={250}
-                  unoptimized
-                  className="object-cover w-full h-[180px] sm:h-[200px] md:h-[220px]"
-                />
-                <div className="p-4 sm:p-5">
-                  <p className="text-[#4A3A28] font-medium text-[14px] sm:text-[15px] leading-snug mb-2">
-                    {card.title}
-                  </p>
-                  <p className="text-[#7E5833] text-[11px] sm:text-xs">
-                    29 November 2025
-                  </p>
-                </div>
-              </motion.div>
-            ))}
+          {/* Astrologer Review Cards - SLIDER ENABLED */}
+          <div className="flex md:grid md:grid-cols-3 gap-6 lg:gap-8 overflow-x-auto md:overflow-visible snap-x snap-mandatory pb-6 md:pb-0 scrollbar-hide">
+            {astroReviews.length > 0 ? (
+              astroReviews.map((item) => (
+                <motion.div
+                  key={item._id}
+                  whileHover={{ y: -5 }}
+                  // UPDATED ITEM: Added min-w-[85vw] for mobile slider effect
+                  className="bg-white rounded-2xl shadow-lg border border-[#E5E0D6] p-5 flex flex-col h-full min-w-[85vw] sm:min-w-[45vw] md:min-w-0 snap-center flex-shrink-0"
+                >
+                  {/* 1. Astrologer Header */}
+                  <div className="flex items-center gap-4 border-b border-gray-100 pb-4 mb-4">
+                    <div className="relative w-14 h-14 flex-shrink-0">
+                      <img
+                        src={item.astrologer?.profileImageUrl 
+                          ? `${process.env.NEXT_PUBLIC_API}${item.astrologer.profileImageUrl}` 
+                          : "/avatar-placeholder.png"}
+                        alt={item.astrologer?.fullName}
+                        className="rounded-full h-full w-full object-cover border-2 border-[#E5DECED6]"
+                      />
+                    </div>
+                    <div>
+                      <h4 className="text-[#3E2723] font-bold text-lg leading-tight">
+                        {item.astrologer?.fullName}
+                      </h4>
+                      <p className="text-[#7E5833] text-xs font-medium">
+                        {item.astrologer?.expertise?.[0] || "Vedic Astrologer"}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* 2. Review Content */}
+                  <div className="flex-grow">
+                    <div className="flex text-yellow-400 mb-2">
+                      {[...Array(5)].map((_, i) => (
+                          <Star 
+                            key={i} 
+                            size={14} 
+                            fill={i < item.rating ? "currentColor" : "none"} 
+                            className={i < item.rating ? "text-yellow-400" : "text-gray-300"}
+                          />
+                      ))}
+                    </div>
+                    <p className="text-gray-600 text-sm leading-relaxed italic">
+                      "{item.comment?.length > 120 ? item.comment.slice(0, 120) + "..." : item.comment}"
+                    </p>
+                  </div>
+
+                  {/* 3. User Footer */}
+                  <div className="mt-5 pt-3 border-t border-gray-50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] text-gray-600 font-bold">
+                          {item.user?.username?.charAt(0).toUpperCase() || "U"}
+                        </div>
+                        <span className="text-xs text-gray-500 font-medium">
+                          {item.user?.username || "Anonymous User"}
+                        </span>
+                    </div>
+                    <span className="text-[10px] text-gray-400">
+                      {item.createdAt?.slice(0, 10)}
+                    </span>
+                  </div>
+                </motion.div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-10 text-gray-500 w-full">
+                Loading astrologer reviews...
+              </div>
+            )}
           </div>
         </div>
       </section>

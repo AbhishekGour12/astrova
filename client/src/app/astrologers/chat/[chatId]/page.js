@@ -19,6 +19,7 @@ import {
   FaChevronLeft,
   FaHourglassHalf // Added icon for remaining time
 } from "react-icons/fa";
+import ReviewModal from "../../../components/ReviewModal";
 
 export default function ChatPage() {
   const { chatId } = useParams();
@@ -38,7 +39,10 @@ export default function ChatPage() {
   const [astrologerTyping, setAstrologerTyping] = useState(false);
   const [totalCharged, setTotalCharged] = useState(0);
   const [isRecharging, setIsRecharging] = useState(false);
-  
+   // Review Modal State
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [hasCheckedForReview, setHasCheckedForReview] = useState(false);
+   const [redirectTimer, setRedirectTimer] = useState(null);
   // New State for Timer
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
 
@@ -124,12 +128,71 @@ export default function ChatPage() {
       } else {
         toast.success(`Chat completed! Total: ₹${totalAmount}`);
       }
-      setTimeout(() => router.push("/astrologers"), 3000);
+        // Check if user can review this chat
+      checkReviewEligibility();
+      
     });
 
     return socket;
   }, [user, chatId, router, chat?._id]);
 
+
+   const checkReviewEligibility = useCallback(async () => {
+    if (!user || !chatId) return;
+    
+    try {
+      setHasCheckedForReview(true);
+      const response = await api.get(`/reviews/check/CHAT/${chatId}`);
+      
+      
+      if (!response.data.canReview) {
+        // User can review - show modal
+        setShowReviewModal(true);
+      } else {
+        // User cannot review - redirect after delay
+        toast.success(response.data.reason || "Redirecting to astrologers...");
+        startRedirectTimer();
+      }
+    } catch (error) {
+      console.error("Check review eligibility error:", error);
+      // If there's an error checking, still redirect
+      startRedirectTimer();
+    }
+  }, [user, chatId]);
+
+  // ==========================================
+  //  REDIRECT TIMER
+  // ==========================================
+  const startRedirectTimer = useCallback(() => {
+    // Clear any existing timer
+    if (redirectTimer) {
+      clearTimeout(redirectTimer);
+    }
+    
+    // Start new timer for 3 seconds
+    const timer = setTimeout(() => {
+      router.push("/astrologers");
+    }, 2000);
+    
+    setRedirectTimer(timer);
+  }, [router, redirectTimer]);
+
+  // ==========================================
+  //  HANDLE MODAL CLOSE (SKIP REVIEW)
+  // ==========================================
+  const handleModalClose = useCallback(() => {
+    setShowReviewModal(false);
+    // Start redirect timer when user skips review
+    startRedirectTimer();
+  }, [startRedirectTimer]);
+
+  // ==========================================
+  //  HANDLE REVIEW SUBMISSION
+  // ==========================================
+  const handleReviewSubmitted = useCallback(() => {
+    // Start redirect timer after successful review submission
+    startRedirectTimer();
+  }, [startRedirectTimer]);
   // ==========================================
   //  FIXED TIMER LOGIC
   // ==========================================
@@ -196,7 +259,7 @@ export default function ChatPage() {
     } catch (error) {
       toast.error("Failed to load chat");
     }
-  }, [chatId]);
+  }, [chatId, hasCheckedForReview, checkReviewEligibility]);
 
   // Socket connection effect
   useEffect(() => {
@@ -261,7 +324,7 @@ export default function ChatPage() {
     try {
       await api.post(`/chat/user/end/${chatId}`);
       toast.success("Chat ended");
-      router.push("/astrologers");
+      checkReviewEligibility()
     } catch (error) {
       toast.error("Failed to end");
     }
@@ -324,11 +387,29 @@ export default function ChatPage() {
     if (!user) return;
     const socket = initSocket();
     loadChatData();
-    return () => { if (socket) socket.disconnect(); };
+    return () => {
+      if (socket) socket.disconnect();
+       if (redirectTimer) clearTimeout(redirectTimer);
+     };
   }, [user, router, initSocket, loadChatData]);
 
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      if (redirectTimer) {
+        clearTimeout(redirectTimer);
+      }
+    };
+  }, [redirectTimer]);
   if (!chat) return <div className="min-h-screen flex items-center justify-center">Loading...</div>;
 
+
+  
+  // ==========================================
+  //  HANDLE REVIEW SUBMISSION
+  // ==========================================
+  
+  
   return (
     <div className="min-h-screen bg-[#F7F3E9] pt-20 lg:pt-24">
       <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-[calc(100vh-80px)]">
@@ -388,7 +469,7 @@ export default function ChatPage() {
               </div>
             </div>
           </div>
-
+          
           {/* Messages */}
           <div className="flex-1 bg-white rounded-b-2xl border border-[#B2C5B2] flex flex-col min-h-0">
             <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
@@ -439,6 +520,17 @@ export default function ChatPage() {
           </div>
         </div>
       </div>
+       {/* Review Modal */}
+      {showReviewModal && chat?.astrologer && (
+        <ReviewModal
+          serviceId={chatId}
+          serviceType="CHAT"
+          astrologerName={chat.astrologer.fullName}
+          onClose={handleModalClose}
+          onReviewSubmitted={handleReviewSubmitted}
+        />
+      )}
     </div>
+    
   );
 }
