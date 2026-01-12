@@ -18,7 +18,7 @@ import {
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
 
-export const sacredEarthTheme = {
+ const sacredEarthTheme = {
   colors: {
     bg: '#F7F3E9',
     bgSecondary: '#ECE5D3',
