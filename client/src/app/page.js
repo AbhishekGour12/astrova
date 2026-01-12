@@ -52,6 +52,8 @@ const HeroSection = () => {
     router.push("/astrologers")
   }
 
+  
+
   return (
   <section className="  relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 ">
 
@@ -94,8 +96,10 @@ const HeroSection = () => {
           >
             {/* Tagline */}
             <div className="flex justify-center lg:justify-start mb-4 sm:mb-5 md:mb-6  ">
-              <p className="inline-block px-3 py-1.5 sm:px-4 sm:py-2 bg-[#E5DECED6] rounded-full text-[#7E5833] text-xs sm:text-sm md:text-base lg:text-lg font-medium text-center ">
+              <p className="inline-block px-3 py-1.5 sm:px-4 sm:py-2 bg-[#E5DECED6] rounded-full text-[#7E5833] text-xs sm:text-sm md:text-base lg:text-lg font-medium text-center hover:cursor-pointer ">
+               <Link href="/astrologers?service=ALL">
                  Personalized Consultations 
+                </Link>
               </p>
                <button className="w-full  ml-9 lg:w-auto px-6 py-3 bg-[#7E5833] text-white rounded-full shadow-md hover:bg-[#5A3E25] transition-all duration-300 text-sm sm:text-base font-medium whitespace-nowrap" onClick={() =>{router.push("/ProductsPage")}}>
                 Shop Astrology Products

@@ -305,12 +305,17 @@ export const endChatByUser = async (req, res) => {
   // Calculate total minutes and amount
     const startedAt = chat.startedAt || new Date();
     const endedAt = new Date();
-    const minutes = Math.max(
-      1,
-      Math.ceil((endedAt - startedAt) / (1000 * 60))
-    );
+    const diffMs = endedAt - startedAt;
+const diffSeconds = Math.floor(diffMs / 1000);
 
-    const totalAmount = minutes * chat.ratePerMinute;
+let minutes = 0;
+let totalAmount = 0;
+
+// Only charge if at least 60 seconds passed
+if (diffSeconds >= 60) {
+  minutes = Math.ceil(diffSeconds / 60);
+  totalAmount = minutes * chat.ratePerMinute;
+}
 
     // Update chat
     chat.status = "ENDED";

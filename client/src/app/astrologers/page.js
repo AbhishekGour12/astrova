@@ -82,7 +82,7 @@ const service = searchParams?.get("service") || "ALL";
     setSocket(newSocket);
     if(!user){
       toast.error("login first")
-      router.push("/")
+      router.push("/Login")
     }
 
     return () => {
@@ -154,6 +154,9 @@ const service = searchParams?.get("service") || "ALL";
 
   const fetchActiveChats = useCallback(async () => {
     try {
+      if(!user){
+        return;
+      }
       const response = await api.get('/chat/user/active');
       if (response.data.success) {
         setActiveChats(response.data.chats);
@@ -191,6 +194,9 @@ const service = searchParams?.get("service") || "ALL";
 
   const fetchData = useCallback(async () => {
     try {
+      if(!user){
+        return;
+      }
       setLoading(true);
      
 

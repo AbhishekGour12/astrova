@@ -9,11 +9,26 @@ import { MdEmail, MdLocationOn } from "react-icons/md";
 import { FiPhone } from "react-icons/fi";
 import Link from "next/link";
 import { useSelector } from "react-redux";
-
+import {useRouter} from "next/navigation"
 export default function Footer() {
-  // You can pass user as a prop or get it from context
+  const router = useRouter()
+  // You can pass user as a prop or get it f
+  // rom context
   const user = useSelector((state) => state.auth.user); // Replace with your actual user state
+const chats = () => {
+  router.push("/astrologers?service=CHAT");
+  
+};
 
+const calls = () => {
+  router.push("/astrologers?service=CALL");
+  
+};
+
+const meet = () => {
+  router.push("/astrologers?service=MEET");
+  
+};
   return (
     <footer className="w-full bg-[#B49A77] text-white font-poppins">
       
@@ -50,7 +65,7 @@ export default function Footer() {
                 <Link href="/ProductsPage" className="hover:underline">Products</Link>
               </li>
               <li className="border-b pb-3 border-white/30">
-                <Link href="/astrologers" className="hover:underline">Chats</Link>
+                <div className="hover:underline hover:cursor-pointer" onClick={chats}>Chats</div>
               </li>
               <li className={`border-b pb-3 border-white/30 ${user ? "hover:cursor-pointer" : "hover:cursor-not-allowed"}`}>
                 <Link 
@@ -61,16 +76,16 @@ export default function Footer() {
                 </Link>
               </li>
               <li className="border-b pb-3 border-white/30">
-                <Link href="/calls" className="hover:underline">Calls</Link>
+                <div  className="hover:cursor-pointer hover:underline " onClick={calls}>Calls</div>
               </li>
               <li className="border-b pb-3 border-white/30">
                 <Link href="/Remedy" className="hover:underline">Remedies</Link>
               </li>
               <li className="border-b pb-3 border-white/30">
-                <Link href="/meet" className="hover:underline">Meet</Link>
+                <div  className="hover:cursor-pointer hover:underline" onClick={meet}>Meet</div>
               </li>
               <li className="border-b pb-3 border-white/30">
-                <Link href="/About" className="hover:underline">About</Link>
+                <Link href="/about" className="hover:underline">About</Link>
               </li>
             </ul>
           </div>
@@ -82,16 +97,16 @@ export default function Footer() {
             </h3>
             <ul className="space-y-2 text-sm">
               <li className="border-b pb-3 border-white/30">
-                <Link href="/contact" className="hover:underline">Contact Us</Link>
+                <Link href="/Contact" className="hover:underline">Contact Us</Link>
               </li>
               <li className="border-b pb-3 border-white/30">
-                <Link href="/privacy-policy" className="hover:underline">Privacy Policy</Link>
+                <Link href="/privacyPolicy" className="hover:underline">Privacy Policy</Link>
               </li>
               <li className="border-b pb-3 border-white/30">
-                <Link href="/terms-conditions" className="hover:underline">Terms & Conditions</Link>
+                <Link href="/Terms&Conditions" className="hover:underline">Terms & Conditions</Link>
               </li>
               <li className="border-b pb-3 border-white/30">
-                <Link href="/refund-policy" className="hover:underline">Refund Policy</Link>
+                <Link href="/RefundPolicy" className="hover:underline">Refund Policy</Link>
               </li>
               <li className="border-b pb-3 border-white/30">
                 <Link href="/shipping-policy" className="hover:underline">Shipping Policy</Link>

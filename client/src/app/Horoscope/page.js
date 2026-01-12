@@ -10,6 +10,8 @@ import {
   getSadeSati,
 } from "../lib/astrology/horoscopeApis";
 import DashaTimeline from "../components/DashaTimeline";
+import { useRouter } from "next/navigation";
+import toast from "react-hot-toast";
 export default function HoroscopePage() {
   const user = useSelector((state) => state.auth.user);
   const [nakshatra, setNakshatra] = useState(null);
@@ -18,8 +20,18 @@ export default function HoroscopePage() {
 const [daily, setDaily] = useState(null);
 const [dasha, setDasha] = useState(null);
 const [sadeSati, setSadeSati] = useState(null);
+const router = useRouter()
   useEffect(() => {
-    if (!user?.astroProfile) return;
+    if(!user){
+      router.push("/Login");
+      
+
+    }
+    if (!user?.astroProfile){
+      toast.error("first complete your profile");
+      return;
+    }
+    
 
     async function load() {
       setLoading(true);
