@@ -240,6 +240,20 @@ const service = searchParams?.get("service") || "ALL";
   useEffect(() => {
     fetchData()
   }, [fetchData]);
+const loadRazorpay = () => {
+  return new Promise((resolve) => {
+    if (window.Razorpay) {
+      resolve(true);
+      return;
+    }
+
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+};
 
   const handleWalletRecharge = async () => {
     const amount = prompt("Enter recharge amount (₹)");
@@ -249,6 +263,12 @@ const service = searchParams?.get("service") || "ALL";
     }
 
     try {
+       // Load Razorpay
+    const isLoaded = await loadRazorpay();
+    if (!isLoaded) {
+      toast.error("Razorpay SDK failed to load");
+      return;
+    }
       const orderRes = await api.post("/payment/create-order", {
         amount: Number(amount),
       });
@@ -294,10 +314,8 @@ const service = searchParams?.get("service") || "ALL";
         },
       };
 
-if (typeof window !== "undefined") {
-  const rzp = new window.Razorpay(options);
-  rzp.open();
-}
+ const rzp = new window.Razorpay(options);
+    rzp.open();
 
 
     } catch (err) {
