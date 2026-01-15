@@ -6,7 +6,8 @@ import {
   canReviewService,
   getAstrologerReviewStats,
   updateReview,
-  deleteReview
+  deleteReview,
+  submitUserReview
 } from '../controllers/reviewController.js';
 import { authMiddleware, onlyUser } from '../middleware/authMiddleware.js';
 
@@ -22,5 +23,5 @@ router.get('/user', authMiddleware, onlyUser, getUserReviews);
 router.get('/check/:serviceType/:serviceId', authMiddleware, onlyUser, canReviewService);
 router.put('/:reviewId', authMiddleware, onlyUser, updateReview);
 router.delete('/:reviewId', authMiddleware, onlyUser, deleteReview);
-
+router.post('/user/submit', authMiddleware, onlyUser, submitUserReview)
 export default router;

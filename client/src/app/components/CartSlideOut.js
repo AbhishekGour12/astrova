@@ -39,6 +39,7 @@ const [offerDiscount, setOfferDiscount] = useState(0);
 const [paymentMethod, setPaymentMethod] = useState(null); // "cod" | "online"
 
 const platformFee = 11;
+const codFee = 52;
 
 
   useEffect(() => {
@@ -148,7 +149,8 @@ const rawTotal =
   subtotal +
   gst +
   shippingCharge +
-  platformFee -
+  platformFee +
+  (isCOD? codFee: 0) -
   discount -
   offerDiscount;
 
@@ -156,11 +158,11 @@ const rawTotal =
 const finalAmount =
  isCOD ? Math.ceil(rawTotal) : Number(rawTotal.toFixed(2));
 
-const roundOff =
-  paymentMethod === "cod"
-    ? Math.ceil(rawTotal) - rawTotal
-    : 0;
-
+// Round off logic
+  const roundOff =
+    paymentMethod === "cod" || isCOD
+      ? Math.ceil(rawTotal) - rawTotal
+      : 0;
 
 
   // ================================
@@ -232,12 +234,12 @@ const validateAddress = () => {
 // ================================
 // Example: 5% offer on prepaid orders above ₹1000
 useEffect(() => {
-  if (paymentMethod === "online" && subtotal >= 1000) {
+  if ( subtotal >= 1000) {
     setOfferDiscount(Math.round(subtotal * 0.05));
   } else {
     setOfferDiscount(0);
   }
-}, [paymentMethod, subtotal]);
+}, [ subtotal]);
 
   // ================================
   // SHIPPING – now checks login BEFORE API call
@@ -621,29 +623,30 @@ useEffect(() => {
     <h3 className="font-bold mb-3">Payment Method</h3>
 
     <div className="space-y-3">
-      {/* COD */}
-      <button
-  onClick={() => {
-    if (!user) return toast.error("Please login");
-    setPaymentMethod("cod");
-    placeOrder("cod");
-  }}
-  className="w-full bg-gray-100 py-3 rounded-lg"
->
-  Cash on Delivery
-</button>
-
-      {/* Razorpay */}
-      <button
-  onClick={() => {
-    if (!user) return toast.error("Please login");
-    setPaymentMethod("online");
-    handleRazorpay();
-  }}
-  className="w-full bg-[#C06014] text-white py-3 rounded-lg"
->
-  Pay Securely Online
-</button>
+     {isCOD ? (
+                      <button
+                        onClick={() => {
+                          if (!user) return toast.error("Please login");
+                          setPaymentMethod("cod");
+                          placeOrder("cod");
+                        }}
+                        className="w-full bg-gray-800 text-white py-4 rounded-xl font-bold flex flex-col items-center justify-center hover:bg-gray-900 transition"
+                      >
+                        <span>Place Order (Cash on Delivery)</span>
+                        <span className="text-xs font-normal mt-1 opacity-80">Pay ₹{finalAmount} on delivery</span>
+                      </button>
+                    ) : (
+                      <button
+                        onClick={() => {
+                          if (!user) return toast.error("Please login");
+                          setPaymentMethod("online");
+                          handleRazorpay();
+                        }}
+                        className="w-full bg-[#C06014] text-white py-4 rounded-xl font-bold hover:bg-[#a35212] transition"
+                      >
+                        Pay Securely Online
+                      </button>
+                    )}
 
     </div>
 
@@ -695,6 +698,13 @@ useEffect(() => {
             <span>Discount</span>
             <span>-₹{discount}</span>
           </div>
+          {/* ✅ Show COD Fee in Summary */}
+                            {isCOD && (
+                              <div className="flex justify-between text-orange-800 font-medium">
+                                <span>COD Handling Fee</span>
+                                <span>+ ₹{codFee}</span>
+                              </div>
+                            )}
           {offerDiscount > 0 && (
   <div className="flex justify-between text-green-700 font-semibold">
     <span>Offer Applied</span>

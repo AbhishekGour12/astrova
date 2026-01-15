@@ -8,6 +8,7 @@ import Call from "../models/Call.js";
 import axios from "axios";
 import mongoose from "mongoose";
 import Review from "../models/Review.js";
+import { getIO } from "../services/socket.js";
 
 
 const otpStore = new Map();
@@ -31,19 +32,20 @@ export const registerAstrologer = async (req, res) => {
       bankAccountNumber,
       ifsc
     } = req.body;
-
+    
+    const phoneRegex = /^(?:\+91\s?)?[6-9]\d{9}$/;
     /* ================= BASIC VALIDATION ================= */
     if (!fullName || !email || !phone || !bio)
       return res.status(400).json({ message: "Missing required fields" });
 
-    if (!/^[6-9]\d{9}$/.test(phone))
+    if (!phoneRegex.test(phone))
       return res.status(400).json({ message: "Invalid phone number" });
 
     const exists = await Astrologer.findOne({
-      $or: [{ email }, { phone }]
+      email: email
     });
     if (exists)
-      return res.status(400).json({ message: "Astrologer already registered" });
+      return res.status(400).json({ message: "Email already registered" });
 
     /* ================= SERVICE-BASED VALIDATION ================= */
     if (["CHAT", "BOTH", "ALL"].includes(availability) && !chatPerMinute)
@@ -326,8 +328,17 @@ export const getAstrologerProfile = async (req, res) => {
 };
 export const getAstrologerStats = async (req, res) => {
   try {
-    const astrologerId = new mongoose.Types.ObjectId(req.params.id);
-
+    const { id } = req.params;
+    
+    // 1. Check if ID exists and is a valid MongoDB ObjectId
+    if (!id || !mongoose.Types.ObjectId.isValid(id)) {
+      return res.status(400).json({
+        success: false,
+        message: "Invalid or missing Astrologer ID"
+      });
+    }
+    const astrologerId = new mongoose.Types.ObjectId(id);
+  
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -399,7 +410,7 @@ export const getAstrologerStats = async (req, res) => {
         }
       }
     ]);
-
+   
     const stats = earnings[0] || {
       totalEarnings: 0,
       todayEarnings: 0,
@@ -427,7 +438,7 @@ export const getAstrologerStats = async (req, res) => {
     });
 
   } catch (err) {
-    console.error("Astrologer stats error:", err);
+    console.log("Astrologer stats error:", err.message);
     res.status(500).json({
       success: false,
       message: "Failed to load stats"
@@ -440,7 +451,7 @@ export const getAstrologerStats = async (req, res) => {
 export const toggleAstrologerAvailability = async (req, res) => {
   try {
     const {astrologerId} =  req.params;
-
+    const io = getIO()
     const astrologer = await Astrologer.findById(astrologerId);
     
     if (!astrologer) {
@@ -449,10 +460,24 @@ export const toggleAstrologerAvailability = async (req, res) => {
 
     astrologer.isAvailable = !astrologer.isAvailable;
     await astrologer.save();
-
+   
+     if (io) {
+      io.emit('astrologerAvailabilityChanged', {
+         astrologerId,
+         isAvailable: astrologer.isAvailable,
+         name: astrologer.fullName
+       });
+     }
     res.json({
       success: true,
+       message: `Successfully ${astrologer.isAvailable ? 'online' : 'offline'}`,
       isAvailable: astrologer.isAvailable,
+      astrologer: {
+        id: astrologer._id,
+        fullName: astrologer.fullName,
+        isAvailable: astrologer.isAvailable
+      }
+      
     });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });
@@ -463,6 +488,12 @@ export const toggleAstrologerAvailability = async (req, res) => {
 
 export const sendOTP = async (req, res) => {
   const { phone } = req.body;
+  const user = await Astrologer.findOne({phone: phone});
+  
+  if(user){
+     return res.status(400).json({ success: false, message: "Phone no. already registered" });
+
+  }
 
   if (!phone) {
     return res.status(400).json({ success: false, message: "Phone required" });
@@ -486,7 +517,7 @@ const mobile = phone.substring(3);
 const response = await axios.get (`https://cpaas.socialteaser.com/restapi/request.php?authkey=6aa45940ce7d45f2&mobile=${mobile}&country_code=${countryCode}&sid=29289&name=Twinkle&otp=${otp}` );
       
 
-  res.json({ success: true, message: "OTP sent successfully" });
+  res.status(200).json({ success: true, message: "OTP sent successfully" });
 };
 
 export const verifyOTP = async (req, res) => {

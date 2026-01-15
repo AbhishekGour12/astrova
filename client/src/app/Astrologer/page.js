@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import apiAstrologer from "../lib/apiAstrologer";
@@ -14,53 +14,195 @@ import {
   FaTimes,
   FaChartLine,
   FaHistory,
-  FaCog
+  FaCog,
+  FaPowerOff
 } from "react-icons/fa";
+import {FiPower} from "react-icons/fi"
 
 // Import components
 import ChatDashboard from "./components/ChatDashboard";
 import CallDashboard from "./components/CallDashboard";
 import PayoutsDashboard from "./components/PayoutsDashboard";
-
+import io from "socket.io-client"
 export default function AstrologerDashboard() {
   const router = useRouter();
   const [astrologer, setAstrologer] = useState(null);
-  const [activeTab, setActiveTab] = useState("chat"); // "chat", "call", "payouts"
+  const [reviewStats, setReviewStats] = useState();
+  const [activeTab, setActiveTab] = useState("chat");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [togglingAvailability, setTogglingAvailability] = useState(false);
   const [stats, setStats] = useState({
     totalEarnings: 0,
     todayEarnings: 0,
     activeChats: 0,
     waitingCalls: 0,
-    pendingPayouts: 0
+    pendingPayouts: 0,
+    waitingChats: 0
   });
+ const socketRef = useRef(null);
+  // Initialize Socket Connection
+  useEffect(() => {
+    const astrologerId = localStorage.getItem("astrologer_id");
+    if (!astrologerId) return;
+
+    const socket = io(process.env.NEXT_PUBLIC_API, {
+      transports: ["websocket", "polling"],
+      query: { astrologerId }
+    });
+
+    socketRef.current = socket;
+
+    socket.on("connect", () => {
+      console.log("Dashboard socket connected");
+      socket.emit("joinAstrologer", { astrologerId });
+    });
+
+    // Listen for new chat requests
+    socket.on("newChat", (chat) => {
+      console.log("New chat received:", chat);
+      setStats(prev => ({
+        ...prev,
+        waitingChats: prev.waitingChats + 1
+      }));
+      
+      // Show notification
+      toast.success(`New chat request from ${chat.user?.username || "User"}`, {
+        duration: 3000
+      });
+    });
+
+    // Listen for chat activated
+    socket.on("chatActivated", (chat) => {
+      console.log("Chat activated:", chat);
+      setStats(prev => ({
+        ...prev,
+        waitingChats: Math.max(0, prev.waitingChats - 1),
+        activeChats: prev.activeChats + 1
+      }));
+    });
+
+    // Listen for chat ended
+    socket.on("chatEnded", (data) => {
+      console.log("Chat ended:", data);
+      setStats(prev => ({
+        ...prev,
+        activeChats: Math.max(0, prev.activeChats - 1)
+      }));
+      
+      // Update earnings
+      if (data.totalAmount) {
+        setStats(prev => ({
+          ...prev,
+          totalEarnings: prev.totalEarnings + data.totalAmount,
+          todayEarnings: prev.todayEarnings + data.totalAmount
+        }));
+      }
+    });
+
+    // Listen for new calls
+    socket.on("incomingCall", (data) => {
+      console.log("New incoming call:", data);
+      const call = data.call || data;
+      setStats(prev => ({
+        ...prev,
+        waitingCalls: prev.waitingCalls + 1
+      }));
+      
+      toast.info(`Incoming call from ${call.user?.name || "User"}`, {
+        duration: 3000
+      });
+    });
+
+    // Listen for call activated
+    socket.on("callActivated", (data) => {
+      console.log("Call activated:", data);
+      setStats(prev => ({
+        ...prev,
+        waitingCalls: Math.max(0, prev.waitingCalls - 1)
+      }));
+    });
+
+    // Listen for call ended
+    socket.on("callEnded", (data) => {
+      console.log("Call ended:", data);
+      
+      // Update earnings
+      if (data.totalAmount) {
+        setStats(prev => ({
+          ...prev,
+          totalEarnings: prev.totalEarnings + data.totalAmount,
+          todayEarnings: prev.todayEarnings + data.totalAmount,
+          waitingCalls: data.endedBy === "user" ? prev.waitingCalls : Math.max(0, prev.waitingCalls - 1)
+        }));
+      }
+    });
+
+    // Listen for astrologer status updates
+    socket.on("availabilityUpdated", (data) => {
+      console.log("Availability updated:", data);
+      if (astrologer) {
+        setAstrologer(prev => ({
+          ...prev,
+          isAvailable: data.isAvailable
+        }));
+      }
+    });
+
+    return () => {
+      if (socketRef.current) {
+        socketRef.current.disconnect();
+      }
+    };
+  }, [astrologer?._id]);
 
   // Load astrologer data
   useEffect(() => {
+    
     const checkAuthAndLoad = async () => {
       const astrologerId = localStorage.getItem("astrologer_id");
-      if (!astrologerId) {
+      const token = localStorage.getItem("astrologer_token");
+      
+      if (!astrologerId || !token) {
+        toast.error("Please login first");
         router.push("/astrologer/login");
         return;
       }
 
       try {
+        // Set default headers for API calls
+        apiAstrologer.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
         const [profileRes, statsRes] = await Promise.all([
           apiAstrologer.get(`/astrologer/profile/${astrologerId}`),
           apiAstrologer.get(`/astrologer/stats/${astrologerId}`)
         ]);
 
         if (profileRes.data.success) {
+         
+          
           setAstrologer(profileRes.data.astrologer);
+          setReviewStats(profileRes.data.reviewStats)
+
+        } else {
+          toast.error("Failed to load profile");
         }
 
         if (statsRes.data.success) {
+          console.log(statsRes.data)
           setStats(statsRes.data.stats);
+        } else {
+          toast.error("Failed to load statistics");
         }
       } catch (error) {
         console.error("Load data error:", error);
-        toast.error("Failed to load dashboard");
+        if (error.response?.status === 401) {
+          toast.error("Session expired. Please login again.");
+          localStorage.clear();
+          router.push("/astrologer/login");
+        } else {
+          toast.error("Failed to load dashboard");
+        }
       } finally {
         setLoading(false);
       }
@@ -69,6 +211,43 @@ export default function AstrologerDashboard() {
     checkAuthAndLoad();
   }, [router]);
 
+  // Handle availability toggle
+  const handleToggleAvailability = async () => {
+    if (!astrologer) return;
+    
+    setTogglingAvailability(true);
+    try {
+      const response = await apiAstrologer.post(
+        `/astrologer/toggle-availability/${astrologer._id}`
+      );
+
+      if (response.data.success) {
+        // Update local state
+        setAstrologer(prev => ({
+          ...prev,
+          isAvailable: response.data.isAvailable,
+          isBusy: !response.data.isAvailable // Also update busy status
+        }));
+        // Emit socket event
+        socketRef.current.emit("astrologerAvailabilityChanged", {
+          astrologerId: astrologer._id,
+          isAvailable: response.data.isAvailable
+        });
+        
+        
+        toast.success(response.data.message || 
+          `You are now ${response.data.isAvailable ? 'online' : 'offline'}`);
+      } else {
+        toast.error(response.data.message || "Failed to toggle availability");
+      }
+    } catch (error) {
+      console.error("Toggle availability error:", error);
+      toast.error(error.response?.data?.message || "Network error. Please try again.");
+    } finally {
+      setTogglingAvailability(false);
+    }
+  };
+
   // Handle logout
   const handleLogout = () => {
     localStorage.removeItem("astrologer_id");
@@ -76,6 +255,35 @@ export default function AstrologerDashboard() {
     toast.success("Logged out successfully");
     router.push("/Astrologer/login");
   };
+
+  // Real-time stats refresh (optional)
+  const refreshStats = async () => {
+    if (!astrologer) return;
+    
+    try {
+      const statsRes = await apiAstrologer.get(`/astrologer/stats/${astrologer._id}`);
+      if (statsRes.data.success) {
+       setStats(prev => ({
+          ...prev,
+          ...statsRes.data.stats,
+          waitingChats: statsRes.data.stats.waitingChats || prev.waitingChats
+        }));
+      }
+    } catch (error) {
+      console.error("Refresh stats error:", error);
+    }
+  };
+
+  // Auto-refresh stats every 30 seconds
+  useEffect(() => {
+    if (!astrologer) return;
+    
+    const interval = setInterval(() => {
+      refreshStats();
+    }, 30000); // 30 seconds
+    
+    return () => clearInterval(interval);
+  }, [astrologer]);
 
   if (loading) {
     return (
@@ -132,18 +340,34 @@ export default function AstrologerDashboard() {
               </div>
               <div>
                 <h2 className="font-bold text-gray-800">{astrologer?.fullName}</h2>
-                <p className="text-sm text-gray-500">{astrologer?.experience || "0"} years exp</p>
+                <p className="text-sm text-gray-500">{astrologer?.experienceYears || "0"} years exp</p>
               </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="text-sm font-medium">Status</span>
-              <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                astrologer?.isAvailable 
-                  ? "bg-green-100 text-green-700" 
-                  : "bg-red-100 text-red-700"
-              }`}>
-                {astrologer?.isAvailable ? "🟢 Online" : "🔴 Offline"}
-              </span>
+              <div className="flex items-center gap-2">
+                <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                  astrologer?.isAvailable 
+                    ? "bg-green-100 text-green-700" 
+                    : "bg-red-100 text-red-700"
+                }`}>
+                  {astrologer?.isAvailable ? "🟢 Online" : "🔴 Offline"}
+                </span>
+                <button
+                  onClick={handleToggleAvailability}
+                  disabled={togglingAvailability}
+                  className="p-1 hover:bg-gray-100 rounded"
+                  title={astrologer?.isAvailable ? "Go Offline" : "Go Online"}
+                >
+                  {togglingAvailability ? (
+                    <div className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
+                  ) : astrologer?.isAvailable ? (
+                    <FaPowerOff className="text-red-500 text-sm" />
+                  ) : (
+                    <FiPower className="text-green-500 text-sm" />
+                  )}
+                </button>
+              </div>
             </div>
           </div>
 
@@ -177,18 +401,6 @@ export default function AstrologerDashboard() {
               badge={stats.pendingPayouts}
             />
             <NavItem
-              icon={<FaChartLine />}
-              label="Analytics"
-              active={activeTab === "analytics"}
-              onClick={() => setActiveTab("analytics")}
-            />
-            <NavItem
-              icon={<FaHistory />}
-              label="History"
-              active={activeTab === "history"}
-              onClick={() => setActiveTab("history")}
-            />
-            <NavItem
               icon={<FaUser />}
               label="Profile"
               active={activeTab === "profile"}
@@ -204,6 +416,13 @@ export default function AstrologerDashboard() {
 
           {/* Sidebar Footer */}
           <div className="p-4 border-t border-gray-200">
+            <div className="mb-4 p-3 bg-gray-50 rounded-lg">
+             
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-600">Total Earnings</span>
+                <span className="font-bold text-gray-800">₹{stats.totalEarnings}</span>
+              </div>
+            </div>
             <button
               onClick={handleLogout}
               className="flex items-center gap-3 w-full p-3 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
@@ -232,8 +451,6 @@ export default function AstrologerDashboard() {
                 {activeTab === "call" && "Call Dashboard"}
                 {activeTab === "payouts" && "Payouts"}
                 {activeTab === "overview" && "Overview"}
-                {activeTab === "analytics" && "Analytics"}
-                {activeTab === "history" && "History"}
                 {activeTab === "profile" && "Profile"}
                 {activeTab === "settings" && "Settings"}
               </h1>
@@ -268,31 +485,42 @@ export default function AstrologerDashboard() {
               
               {/* Availability Toggle */}
               <button
-                onClick={() => {
-                  // Toggle availability
-                  toast.success(astrologer?.isAvailable ? "Going offline" : "Going online");
-                }}
-                className={`px-4 py-2 rounded-full text-sm font-medium ${
+                onClick={handleToggleAvailability}
+                disabled={togglingAvailability}
+                className={`px-4 py-2 rounded-full text-sm font-medium flex items-center gap-2 transition-all ${
                   astrologer?.isAvailable
                     ? "bg-red-100 text-red-600 hover:bg-red-200"
                     : "bg-green-100 text-green-600 hover:bg-green-200"
-                }`}
+                } ${togglingAvailability ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
-                {astrologer?.isAvailable ? "Go Offline" : "Go Online"}
+                {togglingAvailability ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                    Updating...
+                  </>
+                ) : astrologer?.isAvailable ? (
+                  <>
+                    <FaPowerOff />
+                    Go Offline
+                  </>
+                ) : (
+                  <>
+                    <FiPower />
+                    Go Online
+                  </>
+                )}
               </button>
             </div>
           </div>
 
           {/* Dashboard Content */}
           <div className="p-4 lg:p-6">
-            {activeTab === "overview" && <OverviewTab astrologer={astrologer} stats={stats} />}
-            {activeTab === "chat" && <ChatDashboard />}
-            {activeTab === "call" && <CallDashboard />}
-            {activeTab === "payouts" && <PayoutsDashboard />}
-            {activeTab === "analytics" && <AnalyticsTab />}
-            {activeTab === "history" && <HistoryTab />}
+            {activeTab === "overview" && <OverviewTab astrologer={astrologer} stats={stats} refreshStats={refreshStats} reviewStats={reviewStats} setActiveTab={setActiveTab}/>}
+            {activeTab === "chat" && <ChatDashboard astrologerId={astrologer?._id} />}
+            {activeTab === "call" && <CallDashboard astrologerId={astrologer?._id} />}
+            {activeTab === "payouts" && <PayoutsDashboard astrologer={astrologer} stats={stats} />}
             {activeTab === "profile" && <ProfileTab astrologer={astrologer} />}
-            {activeTab === "settings" && <SettingsTab />}
+            {activeTab === "settings" && <SettingsTab astrologer={astrologer} />}
           </div>
         </div>
       </div>
@@ -326,8 +554,9 @@ function NavItem({ icon, label, active, onClick, badge }) {
   );
 }
 
-// Overview Tab Component
-function OverviewTab({ astrologer, stats }) {
+// Updated Overview Tab Component
+// Updated OverviewTab component with real-time stats
+function OverviewTab({ astrologer, stats, refreshStats, reviewStats, setActiveTab }) {
   return (
     <div className="space-y-6">
       {/* Welcome Card */}
@@ -335,50 +564,56 @@ function OverviewTab({ astrologer, stats }) {
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <h2 className="text-2xl font-bold mb-2">Welcome back, {astrologer?.fullName}!</h2>
-            <p className="text-white/80">Here's what's happening with your account today.</p>
+            <p className="text-white/80">
+              {astrologer?.isAvailable 
+                ? "You are currently online and receiving requests." 
+                : "You are currently offline. Go online to receive requests."}
+            </p>
           </div>
           <div className="flex items-center gap-4">
             <div className="text-center">
-              <div className="text-3xl font-bold">4.8</div>
+              <div className="text-3xl font-bold">{reviewStats?.averageRating || "4.8"}</div>
               <div className="text-sm text-white/70">Rating</div>
             </div>
             <div className="text-center">
-              <div className="text-3xl font-bold">{astrologer?.totalChats || 0}</div>
-              <div className="text-sm text-white/70">Total Chats</div>
+              <div className="text-3xl font-bold">{astrologer?.totalConsultations || 0}</div>
+              <div className="text-sm text-white/70">Total Sessions</div>
             </div>
           </div>
         </div>
       </div>
 
       {/* Stats Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
         <StatCard
-          title="Today's Earnings"
-          value={`₹${stats.todayEarnings}`}
+          title="Total Earnings"
+          value={`₹${stats.totalEarnings || 0}`}
           icon="💰"
           color="green"
-          trend="+12%"
         />
         <StatCard
           title="Active Chats"
-          value={stats.activeChats}
+          value={stats.activeChats || 0}
           icon="💬"
           color="blue"
-          trend="+3"
+        />
+        <StatCard
+          title="Waiting Chats"
+          value={stats.waitingChats || 0}
+          icon="⏳"
+          color="yellow"
         />
         <StatCard
           title="Waiting Calls"
-          value={stats.waitingCalls}
+          value={stats.waitingCalls || 0}
           icon="📞"
           color="purple"
-          trend="+2"
         />
         <StatCard
           title="Pending Payout"
-          value={`₹${stats.pendingPayouts}`}
+          value={`₹${stats.pendingPayouts || 0}`}
           icon="💳"
           color="orange"
-          trend="Process"
         />
       </div>
 
@@ -387,28 +622,54 @@ function OverviewTab({ astrologer, stats }) {
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
           <h3 className="font-bold text-gray-800 mb-4">Quick Actions</h3>
           <div className="space-y-3">
-            <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-              <span className="font-medium text-gray-700">Start New Session</span>
+            <button 
+              onClick={() => setActiveTab("chat")}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <span className="font-medium text-gray-700">View Active Chats ({stats.activeChats})</span>
               <span className="text-[#C06014]">→</span>
             </button>
-            <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-              <span className="font-medium text-gray-700">Withdraw Earnings</span>
+            <button 
+              onClick={() => setActiveTab("call")}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <span className="font-medium text-gray-700">Handle Waiting Calls ({stats.waitingCalls})</span>
               <span className="text-[#C06014]">→</span>
             </button>
-            <button className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors">
-              <span className="font-medium text-gray-700">Update Schedule</span>
+            <button 
+              onClick={() => setActiveTab("payouts")}
+              className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
+            >
+              <span className="font-medium text-gray-700">Withdraw Earnings (₹{stats.pendingPayouts})</span>
               <span className="text-[#C06014]">→</span>
             </button>
           </div>
         </div>
 
         <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-          <h3 className="font-bold text-gray-800 mb-4">Recent Activity</h3>
+          <div className="flex justify-between items-center mb-4">
+            <h3 className="font-bold text-gray-800">Live Activity</h3>
+            <button 
+              onClick={refreshStats}
+              className="text-sm text-[#C06014] hover:underline"
+            >
+              Refresh
+            </button>
+          </div>
           <div className="space-y-3">
-            <ActivityItem time="2 min ago" text="Accepted chat request from User123" />
-            <ActivityItem time="15 min ago" text="Completed call with Priya S." />
-            <ActivityItem time="1 hour ago" text="Received payment of ₹500" />
-            <ActivityItem time="2 hours ago" text="New review received (5 stars)" />
+            {stats.todayEarnings > 0 && (
+              <ActivityItem time="Today" text={`Earned ₹${stats.todayEarnings} today`} />
+            )}
+            {stats.activeChats > 0 && (
+              <ActivityItem time="Active" text={`${stats.activeChats} active chat${stats.activeChats > 1 ? 's' : ''}`} />
+            )}
+            {stats.waitingChats > 0 && (
+              <ActivityItem time="Waiting" text={`${stats.waitingChats} waiting chat${stats.waitingChats > 1 ? 's' : ''}`} />
+            )}
+            {stats.waitingCalls > 0 && (
+              <ActivityItem time="Waiting" text={`${stats.waitingCalls} waiting call${stats.waitingCalls > 1 ? 's' : ''}`} />
+            )}
+            <ActivityItem time="Status" text={`Currently ${astrologer?.isAvailable ? 'Online' : 'Offline'}`} />
           </div>
         </div>
       </div>
@@ -452,38 +713,71 @@ function ActivityItem({ time, text }) {
   );
 }
 
-// Placeholder components for other tabs
-function AnalyticsTab() {
-  return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-      <h2 className="text-xl font-bold text-gray-800 mb-6">Analytics Dashboard</h2>
-      <p className="text-gray-500">Analytics features coming soon...</p>
-    </div>
-  );
-}
-
-function HistoryTab() {
-  return (
-    <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-      <h2 className="text-xl font-bold text-gray-800 mb-6">History</h2>
-      <p className="text-gray-500">History features coming soon...</p>
-    </div>
-  );
-}
-
+// Updated Profile Tab Component
 function ProfileTab({ astrologer }) {
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
-      <h2 className="text-xl font-bold text-gray-800 mb-6">Profile Settings</h2>
-      <div className="space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="w-20 h-20 bg-gradient-to-r from-[#C06014] to-[#D47C3A] rounded-full flex items-center justify-center text-white text-2xl font-bold">
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold text-gray-800">Profile Settings</h2>
+        <button className="px-4 py-2 bg-[#C06014] text-white rounded-lg hover:bg-[#D47C3A] transition-colors">
+          Edit Profile
+        </button>
+      </div>
+      <div className="space-y-6">
+        <div className="flex items-center gap-6">
+          <div className="w-24 h-24 bg-gradient-to-r from-[#C06014] to-[#D47C3A] rounded-full flex items-center justify-center text-white text-3xl font-bold">
             {astrologer?.fullName?.charAt(0) || "A"}
           </div>
-          <div>
-            <h3 className="font-bold text-gray-800 text-lg">{astrologer?.fullName}</h3>
-            <p className="text-gray-500">{astrologer?.email}</p>
-            <p className="text-gray-500">{astrologer?.phone}</p>
+          <div className="flex-1">
+            <h3 className="font-bold text-gray-800 text-xl mb-2">{astrologer?.fullName}</h3>
+            <p className="text-gray-600">{astrologer?.email}</p>
+            <p className="text-gray-600">{astrologer?.phone}</p>
+            <div className="flex gap-4 mt-3">
+              <span className="px-3 py-1 bg-gray-100 text-gray-700 rounded-full text-sm">
+                {astrologer?.experienceYears || 0} years exp
+              </span>
+              <span className={`px-3 py-1 rounded-full text-sm font-medium ${
+                astrologer?.isAvailable 
+                  ? "bg-green-100 text-green-700" 
+                  : "bg-red-100 text-red-700"
+              }`}>
+                {astrologer?.isAvailable ? "Online" : "Offline"}
+              </span>
+            </div>
+          </div>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <h4 className="font-semibold text-gray-700">Professional Details</h4>
+            <div className="space-y-2">
+              <div>
+                <label className="text-sm text-gray-500">Specialization</label>
+                <p className="font-medium">{astrologer?.expertise?.[0] || "Vedic Astrology"}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Languages</label>
+                <p className="font-medium">{astrologer?.languages?.join(", ") || "English, Hindi"}</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Availability</label>
+                <p className="font-medium">{astrologer?.availability || "Both"}</p>
+              </div>
+            </div>
+          </div>
+          
+          <div className="space-y-4">
+            <h4 className="font-semibold text-gray-700">Pricing</h4>
+            <div className="space-y-2">
+              <div>
+                <label className="text-sm text-gray-500">Chat Rate</label>
+                <p className="font-medium">₹{astrologer?.pricing?.chatPerMinute || 0}/min</p>
+              </div>
+              <div>
+                <label className="text-sm text-gray-500">Call Rate</label>
+                <p className="font-medium">₹{astrologer?.pricing?.callPerMinute || 0}/min</p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -491,11 +785,37 @@ function ProfileTab({ astrologer }) {
   );
 }
 
-function SettingsTab() {
+function SettingsTab({ astrologer }) {
   return (
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
       <h2 className="text-xl font-bold text-gray-800 mb-6">Settings</h2>
-      <p className="text-gray-500">Settings features coming soon...</p>
+      <div className="space-y-6">
+        <div>
+          <h3 className="font-semibold text-gray-700 mb-4">Account Settings</h3>
+          <div className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">Email Notifications</p>
+                <p className="text-sm text-gray-500">Receive email alerts for new requests</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" defaultChecked />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C06014]"></div>
+              </label>
+            </div>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">SMS Notifications</p>
+                <p className="text-sm text-gray-500">Receive SMS for urgent requests</p>
+              </div>
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" className="sr-only peer" defaultChecked />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[#C06014]"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

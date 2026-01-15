@@ -13,9 +13,37 @@ import {
   FaWallet,
   FaBell,
   FaEllipsisV,
-  FaCheckDouble
+  FaCheckDouble,
+  FaInfoCircle,
+  FaVenusMars,
+  FaCalendarAlt,
+  FaBriefcase,
+  FaHeart,
+  FaBirthdayCake,
+  FaMapMarkedAlt
 } from "react-icons/fa";
+import CryptoJS from "crypto-js"
+// --- ENCRYPTION HELPERS ---
+const SECRET_KEY = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || "my-secret-astro-key"; // Use env var in production
 
+const encryptData = (data) => {
+  try {
+    return CryptoJS.AES.encrypt(JSON.stringify(data), SECRET_KEY).toString();
+  } catch (e) {
+    console.error("Encryption failed", e);
+    return null;
+  }
+};
+
+const decryptData = (ciphertext) => {
+  try {
+    const bytes = CryptoJS.AES.decrypt(ciphertext, SECRET_KEY);
+    return JSON.parse(bytes.toString(CryptoJS.enc.Utf8));
+  } catch (e) {
+    console.error("Decryption failed", e);
+    return null;
+  }
+};
 export default function ChatDashboard() {
   const [astrologer, setAstrologer] = useState(null);
   const [chats, setChats] = useState([]);
@@ -30,10 +58,12 @@ export default function ChatDashboard() {
     activeChats: 0,
     waitingChats: 0
   });
-  const [isTyping, setIsTyping] = useState(false);
+  
+ // const [isTyping, setIsTyping] = useState(false);
   const [userTyping, setUserTyping] = useState(false);
 
-
+const [userProfileInfo, setUserProfileInfo] = useState(null);
+  const [showProfileModal, setShowProfileModal] = useState(false);
   const socketRef = useRef(null);
   const bottomRef = useRef(null);
   const typingTimeoutRef = useRef(null);
@@ -66,9 +96,9 @@ export default function ChatDashboard() {
         waitingChats: prev.waitingChats + 1
       }));
       
-     toast.info(
+     toast.success(
   `New chat request from ${
-    typeof chat.user === "object" ? chat.user.name : "User"
+    typeof chat.user === "object" ? chat.user.username : "User"
   }`,
   { duration: 5000 }
 );
@@ -170,6 +200,7 @@ socket.on("messageSeenUpdate", ({ messageId, seen }) => {
 
       if (chatsRes.data.success) {
         setChats(chatsRes.data.chats);
+        
       }
 
       if (statsRes.data.success) {
@@ -189,6 +220,7 @@ socket.on("messageSeenUpdate", ({ messageId, seen }) => {
       
       if (response.data.success) {
         const updatedChat = response.data.chat;
+       
         
         setChats(prev =>
           prev.map(chat =>
@@ -222,6 +254,19 @@ socket.on("messageSeenUpdate", ({ messageId, seen }) => {
     
     setActiveChat(chat);
     setMessages([]);
+    setUserProfileInfo(null); // Reset first to avoid showing old data
+
+    // 1. Check LocalStorage for Encrypted Profile
+    const storageKey = `astro_profile_${chat.user?._id || chat.user}`;
+    const storedEncryptedData = localStorage.getItem(storageKey);
+
+    if (storedEncryptedData) {
+      const decryptedData = decryptData(storedEncryptedData);
+      if (decryptedData) {
+        console.log("Loaded profile from encrypted storage");
+        setUserProfileInfo(decryptedData);
+      }
+    }
     
     try {
       socketRef.current.emit("joinChat", { chatId: chat._id });
@@ -241,11 +286,58 @@ socket.on("messageSeenUpdate", ({ messageId, seen }) => {
 });
 
       }
+      
+
+       if (chat.user && chat.user.astroProfile) {
+        setUserProfileInfo(chat.user.astroProfile);
+        localStorage.setItem(storageKey, encryptData(chat.user.astroProfile));
+      } else {
+        // Try to fetch user profile from API
+        try {
+          const userProfileRes = await apiAstrologer.get(`/user/profile/${chat.user._id}`);
+          if (userProfileRes.data.success && userProfileRes.data.astroProfile) {
+            setUserProfileInfo(userProfileRes.data.astroProfile);
+            localStorage.setItem(storageKey, encryptData(chat.user.astroProfile));
+          }
+        } catch (error) {
+          console.log("Could not fetch user profile:", error);
+        }
+      }
     } catch (error) {
       console.error("Open chat error:", error);
     }
   };
-// 🔥 FORCE mark user messages as seen when astrologer opens chat
+// Format birth details
+  const formatBirthDetails = (birthDetails) => {
+    if (!birthDetails) return "Not provided";
+    
+    const { day, month, year, hour, minute } = birthDetails;
+    return `${day}/${month}/${year} at ${hour}:${minute.toString().padStart(2, '0')}`;
+  };
+
+  // Format birth place
+  const formatBirthPlace = (birthPlace) => {
+    if (!birthPlace) return "Not provided";
+    
+    const { city, state, country } = birthPlace;
+    return `${city}, ${state}, ${country}`;
+  };
+
+  // Format problem areas
+  const formatProblemAreas = (problemAreas) => {
+    if (!problemAreas) return "Not specified";
+    
+    const areas = [];
+    if (problemAreas.love) areas.push("Love");
+    if (problemAreas.career) areas.push("Career");
+    if (problemAreas.health) areas.push("Health");
+    if (problemAreas.marriage) areas.push("Marriage");
+    if (problemAreas.finance) areas.push("Finance");
+    
+    return areas.length > 0 ? areas.join(", ") : "Not specified";
+  };
+
+  // 🔥 FORCE mark user messages as seen when astrologer opens chat
 useEffect(() => {
   if (!activeChat || !socketRef.current) return;
 
@@ -294,8 +386,13 @@ useEffect(() => {
       toast.success("Chat ended");
       
       setChats(prev => prev.filter(chat => chat._id !== activeChat._id));
+      // Clean up storage on end
+      if(activeChat.user?._id) {
+         localStorage.removeItem(`astro_profile_${activeChat.user._id}`);
+      }
       setActiveChat(false);
       setMessages([]);
+      setUserProfileInfo(null)
     } catch (error) {
       console.error("End chat error:", error);
       toast.error("Failed to end chat");
@@ -480,11 +577,11 @@ useEffect(() => {
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
                         <div className="w-8 h-8 rounded-full bg-gradient-to-r from-[#00695C] to-[#003D33] flex items-center justify-center text-white text-xs">
-                          {chat.user?.name?.charAt(0) || "U"}
+                          {chat.user?.username?.charAt(0) || "U"}
                         </div>
                         <div>
                           <h3 className="font-medium text-[#003D33] text-sm">
-                            {chat.user?.name || "User"}
+                            {chat.user?.username || "User"}
                           </h3>
                           <div className="flex items-center gap-1">
                             <span className={`w-2 h-2 rounded-full ${
@@ -540,7 +637,7 @@ useEffect(() => {
               </div>
             </div>
             
-            {/* Quick Stats */}
+            {/* Quick Stats 
             <div className="mt-6 bg-white rounded-2xl border border-[#B2C5B2] p-4">
               <h3 className="font-bold text-[#003D33] mb-3">Today's Summary</h3>
               <div className="space-y-3">
@@ -564,6 +661,8 @@ useEffect(() => {
                 </div>
               </div>
             </div>
+            */}
+
           </div>
 
           {/* Main Chat Area */}
@@ -579,8 +678,17 @@ useEffect(() => {
                       </div>
                       <div>
                         <h3 className="font-bold text-[#003D33]">
-                          {activeChat.user?.name || "User"}
+                          {activeChat.user?.username || "User"}
                         </h3>
+                        {userProfileInfo && (
+                              <button
+                                onClick={() => setShowProfileModal(!showProfileModal)}
+                                className="flex items-center gap-1 text-sm bg-blue-100 text-blue-700 px-2 py-1 rounded-full hover:bg-blue-200"
+                              >
+                                <FaInfoCircle className="text-xs" />
+                                <span>View Astro Profile</span>
+                              </button>
+                            )}
                         <div className="flex items-center gap-2 text-sm">
                           <span className="text-[#00695C]">
                             Rate: ₹{activeChat.ratePerMinute}/min
@@ -607,7 +715,35 @@ useEffect(() => {
                       </button>
                     </div>
                   </div>
+                  {/* Quick Profile Summary - Always visible */}
+                    {userProfileInfo && (
+                      <div className="mt-3 p-3 pt-3 border-t border-[#B2C5B2]">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                          <div className="flex items-center gap-1">
+                            <FaVenusMars className="text-gray-500" />
+                            <span className="text-sm">{userProfileInfo.gender || "Not specified"}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <FaCalendarAlt className="text-gray-500" />
+                            <span className="text-sm">
+                              {userProfileInfo.dateOfBirth 
+                                ? new Date(userProfileInfo.dateOfBirth).toLocaleDateString()
+                                : "No DOB"}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <FaBriefcase className="text-gray-500" />
+                            <span className="text-sm">{userProfileInfo.occupation || "Not specified"}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <FaHeart className="text-gray-500" />
+                            <span className="text-sm">{userProfileInfo.maritalStatus || "Not specified"}</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
 
+                    
                   {/* Messages */}
                   <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-white to-[#F7F3E9]/30">
                     {messages.map((message) => (
@@ -696,32 +832,77 @@ useEffect(() => {
                     New chat requests will appear automatically.
                   </p>
                   
-                  <div className="mt-8 grid grid-cols-3 gap-4">
-                    <div className="text-center p-4 bg-[#F7F3E9] rounded-xl">
-                      <div className="text-2xl font-bold text-[#C06014]">
-                        {stats.totalEarnings}
-                      </div>
-                      <div className="text-sm text-gray-600">Total Earnings</div>
-                    </div>
-                    <div className="text-center p-4 bg-[#F7F3E9] rounded-xl">
-                      <div className="text-2xl font-bold text-[#00695C]">
-                        {astrologer.totalChats || 0}
-                      </div>
-                      <div className="text-sm text-gray-600">Total Chats</div>
-                    </div>
-                    <div className="text-center p-4 bg-[#F7F3E9] rounded-xl">
-                      <div className="text-2xl font-bold text-[#003D33]">
-                        {astrologer.averageRating?.toFixed(1) || "5.0"}
-                      </div>
-                      <div className="text-sm text-gray-600">Avg Rating</div>
-                    </div>
-                  </div>
+                 
                 </div>
               )}
             </div>
           </div>
         </div>
       </div>
+      {showProfileModal && userProfileInfo && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center p-4 border-b border-gray-100 bg-gray-50 sticky top-0">
+              <h4 className="font-bold text-[#003D33] text-lg">Astrological Profile</h4>
+              <button
+                onClick={() => setShowProfileModal(false)}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-white hover:bg-gray-100 text-gray-500 transition-colors"
+              >
+                <FaTimes />
+              </button>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Personal */}
+                  <div className="space-y-3">
+                     <h5 className="font-semibold text-[#C06014] uppercase text-xs tracking-wider border-b pb-1">Personal Info</h5>
+                     <div className="space-y-2 text-sm text-gray-700">
+                        <p><span className="font-medium">Name:</span> {userProfileInfo.fullName}</p>
+                        <p><span className="font-medium">Gender:</span> {userProfileInfo.gender}</p>
+                        <p><span className="font-medium">Occupation:</span> {userProfileInfo.occupation}</p>
+                        <p><span className="font-medium">Marital:</span> {userProfileInfo.maritalStatus}</p>
+                     </div>
+                  </div>
+                  
+                  {/* Birth */}
+                  <div className="space-y-3">
+                     <h5 className="font-semibold text-[#C06014] uppercase text-xs tracking-wider border-b pb-1">Birth Info</h5>
+                     <div className="space-y-2 text-sm text-gray-700">
+                        <p className="flex items-center gap-2"><FaBirthdayCake className="text-gray-400"/> {new Date(userProfileInfo.dateOfBirth).toLocaleDateString()}</p>
+                        {userProfileInfo.birthDetails && (
+                           <>
+                             <p className="flex items-center gap-2"><FaCalendarAlt className="text-gray-400"/> {userProfileInfo.birthDetails.day}/{userProfileInfo.birthDetails.month}/{userProfileInfo.birthDetails.year}</p>
+                             <p className="flex items-center gap-2"><FaUser className="text-gray-400"/> Time: {userProfileInfo.birthDetails.hour}:{userProfileInfo.birthDetails.minute}</p>
+                           </>
+                        )}
+                        <p className="flex items-center gap-2"><FaMapMarkedAlt className="text-gray-400"/> {formatBirthPlace(userProfileInfo.birthPlace)}</p>
+                     </div>
+                  </div>
+               </div>
+
+               {/* Problem Areas */}
+               {userProfileInfo.problemAreas && (
+                 <div>
+                    <h5 className="font-semibold text-[#C06014] uppercase text-xs tracking-wider border-b pb-1 mb-3">Concern Areas</h5>
+                    <div className="flex flex-wrap gap-2">
+                       {Object.entries(userProfileInfo.problemAreas).map(([key, value]) => 
+                          value && <span key={key} className="px-3 py-1 bg-[#F7F3E9] text-[#003D33] rounded-full text-sm capitalize border border-[#B2C5B2]">{key}</span>
+                       )}
+                    </div>
+                 </div>
+               )}
+            </div>
+            
+            {/* Modal Footer */}
+            <div className="p-4 bg-yellow-50 text-yellow-800 text-xs text-center border-t border-yellow-100">
+               ⚠️ Birth details are crucial for chart calculation. Ensure accuracy.
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

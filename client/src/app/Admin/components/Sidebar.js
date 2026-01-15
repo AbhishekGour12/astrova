@@ -11,7 +11,8 @@ import {
   FaSignOutAlt,
   FaGift,
   FaTimes,
-  FaAdversal, // Added Close Icon
+  FaAdversal,
+  FaMoneyBill, // Added Close Icon
 } from 'react-icons/fa';
 
 const menuItems = [
@@ -20,7 +21,7 @@ const menuItems = [
   { id: 'products', label: 'Products', icon: FaShoppingBag },
   { id: 'orders', label: 'Orders', icon: FaBox },
   { id: 'payments', label: 'Payments', icon: FaRupeeSign },
-  { id: 'chats', label: 'Chats', icon: FaComments },
+  {id: 'astrologerPayout', label: 'Payout', icon: FaMoneyBill},
   { id: 'coupon', label: 'Coupon', icon: FaGift },
   { id: 'carousel', label: 'Advsertisements', icon: FaAdversal },
   { id: 'remedies', label: 'Remedies', icon: FaAdversal },

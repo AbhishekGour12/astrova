@@ -14,11 +14,11 @@ const reviewSchema = new mongoose.Schema({
   serviceType: {
     type: String,
     enum: ['CHAT', 'CALL'],
-    required: true
+    
   },
   serviceId: {
     type: mongoose.Schema.Types.ObjectId,
-    required: true,
+    
     refPath: 'serviceType' // Will reference either Chat or Call model
   },
   rating: {

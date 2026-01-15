@@ -1,7 +1,8 @@
 import { Server } from "socket.io";
 import { startBillingInterval, stopBillingInterval } from "./chatBilling.js";
 import { Message } from "../models/Message.js";
-import Call from "../models/Call.js"; // Add this import
+import Call from "../models/Call.js";
+import Astrologer from "../models/Astrologer.js"; // Add this import
 
 let io;
 
@@ -66,6 +67,36 @@ export const initSocket = (server) => {
       socket.join(`chat_${chatId}`);
       console.log(`Socket joined chat ${chatId}`);
     });
+     socket.on("astrologerAvailabilityChanged", async ({ astrologerId, isAvailable }) => {
+      try {
+        console.log(`🔄 Astrologer ${astrologerId} availability changed to: ${isAvailable ? 'Online' : 'Offline'}`);
+        
+        // Update database
+        await Astrologer.findByIdAndUpdate(
+          astrologerId,
+          { isAvailable },
+          { new: true }
+        );
+        
+        // Broadcast to all connected clients
+        io.emit("astrologerAvailabilityChanged", {
+          astrologerId,
+          isAvailable,
+          timestamp: new Date()
+        });
+        
+        // Notify specific rooms
+        io.to(`astrologer_${astrologerId}`).emit("availabilityUpdated", {
+          isAvailable,
+          timestamp: new Date()
+        });
+        
+        console.log(`✅ Availability update broadcast for astrologer ${astrologerId}`);
+      } catch (error) {
+        console.error("Error updating astrologer availability:", error);
+      }
+    });
+
 
     // User joins call room
     socket.on("joinCallRoom", ({ callId, userId }) => {

@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import { type } from "os";
 
 const payoutSchema = new mongoose.Schema({
   astrologer: {
@@ -20,9 +21,7 @@ const payoutSchema = new mongoose.Schema({
     default: "INR"
   },
   status: {
-    type: String,
-    enum: ["CREATED", "PROCESSING", "PROCESSED", "REVERSED", "FAILED", "QUEUED"],
-    default: "CREATED"
+    type: String
   },
   method: {
     type: String,
@@ -34,7 +33,7 @@ const payoutSchema = new mongoose.Schema({
   },
   mode: {
     type: String,
-    enum: ["IMPS", "NEFT", "RTGS", "UPI"],
+    enum: ["IMPS", "NEFT", "RTGS", "UPI", "MANUAL"],
     default: "IMPS"
   },
   referenceId: String,
@@ -62,10 +61,34 @@ const payoutSchema = new mongoose.Schema({
   chatSessions: Number,
   callSessions: Number,
   chatEarnings: Number,
-  callEarnings: Number
-}, {
+  callEarnings: Number,
+  // Manual payment details
+  manualPaymentDetails: {
+    paymentDate: Date,
+    paymentMode: String,
+    transactionId: String,
+    paidBy: {
+      type: String,
+    },
+    screenshot: String,
+    notes: String
+  },
+   // Linked earnings
+  earningIds: [{
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "AstrologerEarning"
+  }],
+  
+},
+
+
+ {
   timestamps: true
 });
+// Compound index for efficient queries
+payoutSchema.index({ astrologer: 1, status: 1, createdAt: -1 });
+payoutSchema.index({ weekStartDate: 1, weekEndDate: 1 });
+payoutSchema.index({ payoutType: 1, status: 1 });
 
 const Payout = mongoose.models.Payout || mongoose.model("Payout", payoutSchema);
 export default Payout;

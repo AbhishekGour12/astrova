@@ -27,7 +27,7 @@ import astrologerRoutes from "./routes/astrologerRoutes.js";
 import callRoutes from "./routes/callRoutes.js"
 import payoutRoutes from "./routes/payoutRoutes.js"
 import reviewRoutes from "./routes/reviewRoutes.js"
-
+import adminPayoutRoutes from "./routes/adminPayoutRoutes.js"
 /* =======================
    INITIAL SETUP
 ======================= */
@@ -90,6 +90,7 @@ app.use("/api/astrologer", astrologerRoutes);
 app.use("/api/call", callRoutes);
 app.use("/api/payouts", payoutRoutes)
 app.use("/api/reviews", reviewRoutes)
+app.use("/api/admin-payout/astrologerpayouts", adminPayoutRoutes)
 
 /* =======================
    HEALTH CHECK

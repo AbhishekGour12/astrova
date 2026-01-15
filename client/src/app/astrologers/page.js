@@ -18,7 +18,8 @@ import {
   FaPhoneAlt,
   FaEnvelope,
   FaPhoneSlash,
-  FaSpinner
+  FaSpinner,
+  FaCircle
 } from "react-icons/fa";
 import { useRouter, useSearchParams } from "next/navigation";
 import api from "../lib/api"
@@ -139,6 +140,15 @@ const service = searchParams?.get("service") || "ALL";
     socket.on("zegoParticipantLeft", (data) => {
       console.log("Astrologer left Zego room:", data);
     });
+    socket.on("astrologerAvailabilityChanged", ({ astrologerId, isAvailable }) => {
+      setAstrologers(prev =>
+        prev.map(astro =>
+          astro._id === astrologerId
+            ? { ...astro, isAvailable }
+            : astro
+        )
+      );
+    });
     return () => {
       socket.off("astrologerStatusUpdate");
       socket.off("chatStarted");
@@ -149,6 +159,8 @@ const service = searchParams?.get("service") || "ALL";
       socket.off("walletUpdated");
       socket.off("zegoParticipantJoined");
       socket.off("zegoParticipantLeft");
+       socket.off("astrologerAvailabilityChanged");
+
     };
   }, [socket, router]);
 
@@ -620,13 +632,28 @@ const testToken = async () => {
               key={astrologer._id}
               className="bg-white rounded-2xl p-5 border border-[#B2C5B2]/60 shadow-[0_8px_30px_rgba(0,61,51,0.08)] hover:shadow-[0_12px_40px_rgba(192,96,20,0.15)] transition-all duration-300 hover:-translate-y-1 relative"
             >
+
+              {/* Status Badge - Updated with online/offline */}
+              <div className="flex justify-between items-center mb-3">
+                <div className="flex flex-col gap-1">
+                  {/* Online/Offline Status */}
+                  <div className="flex items-center gap-1">
+                    <FaCircle
+                      className={`text-xs ${astrologer.isAvailable ? 'text-green-500' : 'text-gray-400'}`}
+                    />
+                    <span className={`text-xs font-medium ${astrologer.isAvailable ? 'text-green-600' : 'text-gray-500'}`}>
+                      {astrologer.isAvailable ? 'Online' : 'Offline'}
+                    </span>
+                  </div>
+                </div>
+              </div>
               {/* Status Badge */}
               <div className="flex justify-between items-center mb-3">
                 <div>
                  {resumeChat && showChatBtn(astrologer) && (
   <button
     onClick={() => handleResumeChat(resumeChat.chatId)}
-    className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"
+    className="w-full p-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"
   >
     <FaHistory />
     Resume Chat
@@ -749,7 +776,7 @@ const testToken = async () => {
 {/* ✅ UPDATED: Call Button with Zego */}
                   {showCallBtn(astrologer) && (
   <button
-    disabled={astrologer.isBusyCall || callConnecting}
+    disabled={astrologer.isBusyCall || callConnecting || !astrologer.isAvailable}
     onClick={() => handleStartCall(astrologer._id)}
     className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 ${
       astrologer.isBusyCall || callConnecting
@@ -799,6 +826,7 @@ const testToken = async () => {
   {/* RESUME CHAT */}
   {resumeChat &&service !== "MEET" && (
     <button
+      disabled={!astrologer.isAvailable}
       onClick={() => handleResumeChat(resumeChat.chatId)}
       className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"
     >
@@ -811,7 +839,7 @@ const testToken = async () => {
   {showChatBtn(astrologer) && !resumeChat && (
   <button
     onClick={() => handleStartChat(astrologer._id)}
-    disabled={astrologer.isBusyChat}
+    disabled={astrologer.isBusyChat || !astrologer.isAvailable}
     className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 ${
       astrologer.isBusyChat
         ? "bg-gray-100 text-gray-400 cursor-not-allowed"

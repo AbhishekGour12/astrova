@@ -22,7 +22,13 @@ import {
   FaChevronLeft,
   FaUserCheck,
   FaEnvelope,
-  FaPhoneAlt
+  FaPhoneAlt,
+  FaEdit,
+  FaTrash,
+  FaSpinner,
+  FaPhoneSlash,
+  FaRegStar,
+  FaStarHalfAlt
 } from "react-icons/fa";
 import { IoMdChatbubbles } from "react-icons/io";
 import { GiSkills } from "react-icons/gi";
@@ -46,39 +52,48 @@ export default function AstrologerProfile() {
     message: "",
   });
   const [meetLoading, setMeetLoading] = useState(false);
+  
+  // Review State
+  const [showReviewModal, setShowReviewModal] = useState(false);
+  const [reviewForm, setReviewForm] = useState({
+    rating: 0,
+    comment: "",
+  });
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewStats, setReviewStats] = useState({
+    totalReviews: 0,
+    averageRating: 0,
+    ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
+  });
+  const [reviewsLoading, setReviewsLoading] = useState(true);
+  const [hasUserReviewed, setHasUserReviewed] = useState(false);
+  const [userReview, setUserReview] = useState(null);
+
   const user = useSelector((state) => state.auth.user);
-const { startCall, isConnecting: callConnecting } = useCall(null, user ? `user_${user._id}` : null);
+  const { startCall, isConnecting: callConnecting } = useCall(null, user ? `user_${user._id}` : null);
+  
   const [astrologer, setAstrologer] = useState(null);
   const [loading, setLoading] = useState(true);
   const [wallet, setWallet] = useState(0);
   const [socket, setSocket] = useState(null);
   const [activeChat, setActiveChat] = useState(null);
 
- const availability = astrologer?.availability;
+  const availability = astrologer?.availability;
+  const canChat = availability === "CHAT" || availability === "BOTH" || availability === "ALL";
+  const canCall = availability === "CALL" || availability === "BOTH" || availability === "ALL";
+  const canMeet = availability === "MEET" || availability === "ALL";
+  
+  const isBusyChat = astrologer?.isBusyChat;
+  const isBusyCall = astrologer?.isBusyCall;
 
-const canChat = availability === "CHAT" || availability === "BOTH" || availability === "ALL";
-const canCall = availability === "CALL" || availability === "BOTH" || availability === "ALL";
-const canMeet = availability === "MEET" || availability === "ALL";
-const [reviewStats, setReviewStats] = useState({
-  totalReviews: 0,
-  averageRating: 0,
-  ratingDistribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }
-});
-const isBusyChat = astrologer?.isBusyChat;
-const isBusyCall = astrologer?.isBusyCall;
-
-// Overall busy only if enabled service is busy
-const isBusyNow =
-  (canChat && isBusyChat) ||
-  (canCall && isBusyCall);
-
-
-
+  const isBusyNow = (canChat && isBusyChat) || (canCall && isBusyCall);
   const [isMobile, setIsMobile] = useState(false);
 
   // Check for mobile screen
   useEffect(() => {
-    if(!user){
+    const token = localStorage.getItem("token") || ""
+    if(!token){
       router.push("/")
     }
     const checkMobile = () => {
@@ -115,14 +130,14 @@ const isBusyNow =
         user ? api.get("/auth/wallet") : Promise.resolve({ data: { balance: 0 } })
       ]);
       
-     if (astroRes.data.success) {
-  setAstrologer(astroRes.data.astrologer);
-  
-  // Set the calculated stats from backend
-  if (astroRes.data.reviewStats) {
-    setReviewStats(astroRes.data.reviewStats);
-  }
-} else {
+      if (astroRes.data.success) {
+        setAstrologer(astroRes.data.astrologer);
+        
+        // Set the calculated stats from backend
+        if (astroRes.data.reviewStats) {
+          setReviewStats(astroRes.data.reviewStats);
+        }
+      } else {
         setAstrologer(null);
       }
       
@@ -148,24 +163,71 @@ const isBusyNow =
     }
   }, [astroId, user]);
 
+  // Fetch reviews
+  const fetchReviews = useCallback(async () => {
+    try {
+      setReviewsLoading(true);
+      const response = await api.get(`/reviews/astrologer/${astroId}`);
+      if (response.data.success) {
+       
+        setReviews(response.data.reviews || []);
+        if (response.data.stats) {
+          setReviewStats(prev => ({
+            ...prev,
+            ...response.data.stats
+          }));
+        }
+        
+        // Check if current user has already reviewed
+        if (user) {
+          const userReview = response.data.reviews?.find(review => review.user?._id === user._id);
+          if (userReview) {
+            setHasUserReviewed(true);
+            setUserReview(userReview);
+          } else {
+            setHasUserReviewed(false);
+            setUserReview(null);
+          }
+        }
+      }
+    } catch (error) {
+      console.error("Error fetching reviews:", error);
+    } finally {
+      setReviewsLoading(false);
+    }
+  }, [astroId, user]);
+
+  // Check if user has consulted this astrologer before
+  const checkUserConsultation = useCallback(async () => {
+    if (!user) return;
+    
+    try {
+      // You can add a simple check here if needed
+      // For now, we'll allow any logged in user to review
+    } catch (error) {
+      console.error("Error checking user consultation:", error);
+    }
+  }, [user, astroId]);
+
   useEffect(() => {
     fetchAstrologerData();
-  }, [fetchAstrologerData]);
+    fetchReviews();
+    checkUserConsultation();
+  }, [fetchAstrologerData, fetchReviews, checkUserConsultation]);
 
   // Socket event listeners
   useEffect(() => {
     if (!socket) return;
 
-   socket.on("astrologerStatusUpdate", ({ astrologerId, isBusyChat, isBusyCall }) => {
-  if (astrologerId === astroId) {
-    setAstrologer(prev =>
-      prev
-        ? { ...prev, isBusyChat, isBusyCall }
-        : prev
-    );
-  }
-});
-
+    socket.on("astrologerStatusUpdate", ({ astrologerId, isBusyChat, isBusyCall }) => {
+      if (astrologerId === astroId) {
+        setAstrologer(prev =>
+          prev
+            ? { ...prev, isBusyChat, isBusyCall }
+            : prev
+        );
+      }
+    });
 
     socket.on("chatStarted", ({ chatId, astrologerId }) => {
       if (astrologerId === astroId) {
@@ -173,11 +235,169 @@ const isBusyNow =
       }
     });
 
+    // Listen for review updates
+    socket.on("reviewAdded", ({ astrologerId }) => {
+      if (astrologerId === astroId) {
+        fetchReviews();
+        fetchAstrologerData(); // Refresh astrologer data to update rating
+      }
+    });
+
+    socket.on("reviewUpdated", ({ astrologerId }) => {
+      if (astrologerId === astroId) {
+        fetchReviews();
+        fetchAstrologerData();
+      }
+    });
+
+    socket.on("reviewDeleted", ({ astrologerId }) => {
+      if (astrologerId === astroId) {
+        fetchReviews();
+        fetchAstrologerData();
+      }
+    });
+
     return () => {
       socket.off("astrologerStatusUpdate");
       socket.off("chatStarted");
+      socket.off("reviewAdded");
+      socket.off("reviewUpdated");
+      socket.off("reviewDeleted");
     };
-  }, [socket, astroId]);
+  }, [socket, astroId, fetchReviews, fetchAstrologerData]);
+
+  // Review Functions
+  const openReviewModal = () => {
+    if (!user) {
+      toast.error("Please login to submit a review");
+      router.push("/login");
+      return;
+    }
+    
+    if (hasUserReviewed && userReview) {
+      // If user already reviewed, pre-fill with their existing review for editing
+      setReviewForm({
+        rating: userReview.rating,
+        comment: userReview.comment || "",
+      });
+    } else {
+      setReviewForm({
+        rating: 0,
+        comment: "",
+      });
+    }
+    
+    setShowReviewModal(true);
+  };
+
+  const closeReviewModal = () => {
+    setShowReviewModal(false);
+    setReviewForm({
+      rating: 0,
+      comment: "",
+    });
+  };
+
+  const handleReviewSubmit = async (e) => {
+    e.preventDefault();
+    
+    if (!reviewForm.rating || reviewForm.rating < 1 || reviewForm.rating > 5) {
+      toast.error("Please select a rating between 1 and 5 stars");
+      return;
+    }
+
+    setReviewLoading(true);
+
+    try {
+      let response;
+      
+      if (hasUserReviewed && userReview) {
+        // Update existing review
+        response = await api.put(`/reviews/${userReview._id}`, {
+          rating: reviewForm.rating,
+          comment: reviewForm.comment.trim()
+        });
+        
+        if (response.data.success) {
+          toast.success("Review updated successfully!");
+        }
+      } else {
+        // Submit new review directly for astrologer
+        response = await api.post('/reviews/user/submit', {
+          astrologerId: astroId,
+          rating: reviewForm.rating,
+          comment: reviewForm.comment.trim()
+        });
+        
+        if (response.data.success) {
+          toast.success("Review submitted successfully!");
+        }
+      }
+      
+      if (response.data.success) {
+        closeReviewModal();
+        
+        // Refresh reviews and astrologer data
+        fetchReviews();
+        fetchAstrologerData();
+        
+        // Emit socket event
+        if (socket) {
+          if (hasUserReviewed) {
+            socket.emit("reviewUpdated", { astrologerId: astroId });
+          } else {
+            socket.emit("reviewAdded", { astrologerId: astroId });
+          }
+        }
+      } else {
+        toast.error(response.data.message || "Failed to submit review");
+      }
+    } catch (error) {
+      console.error("Review submission error:", error);
+      toast.error(error.response?.data?.message || "Failed to submit review");
+    } finally {
+      setReviewLoading(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (!window.confirm("Are you sure you want to delete this review?")) {
+      return;
+    }
+
+    try {
+      const response = await api.delete(`/review/${reviewId}`);
+      if (response.data.success) {
+        toast.success("Review deleted successfully!");
+        fetchReviews();
+        fetchAstrologerData();
+        
+        if (socket) {
+          socket.emit("reviewDeleted", { astrologerId: astroId });
+        }
+      }
+    } catch (error) {
+      console.error("Delete review error:", error);
+      toast.error(error.response?.data?.message || "Failed to delete review");
+    }
+  };
+
+  const renderStars = (rating, size = "text-base") => {
+    return (
+      <div className="flex items-center">
+        {[1, 2, 3, 4, 5].map((star) => (
+          <FaStar
+            key={star}
+            className={`${size} ${
+              star <= rating
+                ? "text-yellow-500 fill-current"
+                : "text-gray-300"
+            }`}
+          />
+        ))}
+      </div>
+    );
+  };
 
   const handleWalletRecharge = async () => {
     const amount = prompt("Enter recharge amount (₹):", "500");
@@ -289,27 +509,27 @@ const isBusyNow =
   };
 
   const handleStartCall = async () => {
-  if (!user) {
-    toast.error("Please login to start a call");
-    router.push("/login");
-    return;
-  }
-
-  if (astrologer.isBusyCall) {
-    toast.error("Astrologer is busy on another call");
-    return;
-  }
-
-  try {
-    const callData = await startCall(astroId);
-    if (callData) {
-      toast.success("Call request sent!");
+    if (!user) {
+      toast.error("Please login to start a call");
+      router.push("/login");
+      return;
     }
-  } catch (error) {
-    console.error("Start call error:", error);
-    // Error is already shown in the hook
-  }
-};
+
+    if (astrologer.isBusyCall) {
+      toast.error("Astrologer is busy on another call");
+      return;
+    }
+
+    try {
+      const callData = await startCall(astroId);
+      if (callData) {
+        toast.success("Call request sent!");
+      }
+    } catch (error) {
+      console.error("Start call error:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-[#F7F3E9] flex items-center justify-center px-4">
@@ -320,8 +540,6 @@ const isBusyNow =
       </div>
     );
   }
-
-
 
   if (!astrologer) {
     return (
@@ -346,6 +564,7 @@ const isBusyNow =
       </div>
     );
   }
+
   // Meet Modal Functions
   const openMeetModal = (astrologer) => {
     if (!user) {
@@ -355,7 +574,6 @@ const isBusyNow =
     }
     
     setSelectedAstrologer(astrologer);
-    // Pre-fill form with user data if available
     if (user) {
       setMeetForm(prev => ({
         ...prev,
@@ -391,7 +609,6 @@ const isBusyNow =
     
     if (!selectedAstrologer) return;
     
-    // Validate form
     if (!meetForm.name.trim() || !meetForm.email.trim() || !meetForm.phone.trim()) {
       toast.error("Please fill all required fields");
       return;
@@ -425,12 +642,10 @@ const isBusyNow =
     }
   };
 
-
-
   return (
     <div className="min-h-screen pt-[100px] bg-[#F7F3E9]">
       {/* Mobile Header - Sticky */}
-      <div className="sticky  top-0 z-50 bg-white border-b border-[#B2C5B2] shadow-sm lg:static lg:bg-transparent lg:border-none lg:shadow-none">
+      <div className="sticky top-0 z-50 bg-white border-b border-[#B2C5B2] shadow-sm lg:static lg:bg-transparent lg:border-none lg:shadow-none">
         <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-3 lg:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 sm:gap-4">
@@ -453,7 +668,7 @@ const isBusyNow =
             
             {user && (
               <div className="flex items-center gap-2 sm:gap-4">
-                <div className=" sm:flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-[#F7F3E9] rounded-full">
+                <div className="sm:flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 sm:py-2 bg-[#F7F3E9] rounded-full">
                   <FaWallet className="text-xs sm:text-sm text-[#C06014]" />
                   <span className="font-medium text-[#003D33] text-xs sm:text-sm">₹{wallet}</span>
                 </div>
@@ -476,18 +691,16 @@ const isBusyNow =
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl sm:rounded-2xl border border-[#B2C5B2]/60 shadow-md sm:shadow-lg lg:sticky lg:top-24">
               {/* Status Badge */}
-              <div className=" flex justify-end top-3 right-3 sm:top-4 sm:right-4 z-10">
-            <span
-  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-    isBusyNow
-      ? "bg-red-100 text-red-700"
-      : "bg-green-100 text-green-700"
-  }`}
->
-  {isBusyNow ? "🔴 BUSY" : "🟢 AVAILABLE"}
-</span>
-
-
+              <div className="flex justify-end top-3 right-3 sm:top-4 sm:right-4 z-10">
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold ${
+                    isBusyNow
+                      ? "bg-red-100 text-red-700"
+                      : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {isBusyNow ? "🔴 BUSY" : "🟢 AVAILABLE"}
+                </span>
               </div>
 
               {/* Profile Image & Info */}
@@ -504,7 +717,7 @@ const isBusyNow =
                     />
                   </div>
                   {astrologer.isApproved && (
-                    <div className="absolute bottom-1  right-1 sm:bottom-2 sm:right-2 lg:bottom-4 lg:right-4 bg-[#C06014] text-white p-1 sm:p-1.5 lg:p-2 rounded-full shadow-lg">
+                    <div className="absolute bottom-1 right-1 sm:bottom-2 sm:right-2 lg:bottom-4 lg:right-4 bg-[#C06014] text-white p-1 sm:p-1.5 lg:p-2 rounded-full shadow-lg">
                       <FaCheckCircle className="text-xs sm:text-sm lg:text-base" />
                     </div>
                   )}
@@ -516,27 +729,28 @@ const isBusyNow =
                 
                 <div className="flex items-center justify-center gap-1 sm:gap-2 mt-2 sm:mt-3 lg:mt-4">
                   <div className="flex text-[#FFB74D]">
-                    {[...Array(5)].map((_, i) => (
-                      <FaStar
-                        key={i}
-                        className={`text-sm sm:text-base lg:text-xl ${
-                          i < Math.floor(reviewStats.averageRating || 0)
-                            ? "fill-current"
-                            : "text-gray-300"
-                        }`}
-                      />
-                    ))}
+                    {renderStars(reviewStats.averageRating, "text-sm sm:text-base lg:text-xl")}
                   </div>
                   <span className="text-sm sm:text-base lg:text-lg font-bold text-[#C06014]">
-                    {reviewStats.averageRating || "New"}
+                    {reviewStats?.averageRating || "New"}
                   </span>
                   <span className="text-gray-500 text-xs sm:text-sm hidden sm:inline">
-                    ({astrologer.totalConsultations || 0} sessions)
+                    ({reviewStats.totalReviews || 0} reviews)
                   </span>
                 </div>
                 <div className="text-gray-500 text-xs sm:hidden mt-1">
-                  {astrologer.totalConsultations || 0} sessions
+                  {reviewStats.totalReviews || 0} reviews
                 </div>
+                
+                {/* Review Button */}
+                {user && (
+                  <button
+                    onClick={openReviewModal}
+                    className="mt-4 px-4 py-2 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-full text-sm font-medium hover:from-[#D47C3A] hover:to-[#C06014] transition-all"
+                  >
+                    {hasUserReviewed ? "Edit Your Review" : "Write a Review"}
+                  </button>
+                )}
               </div>
 
               {/* Quick Stats */}
@@ -563,105 +777,100 @@ const isBusyNow =
 
               {/* Connection Buttons */}
               <div className="p-3 sm:p-4 lg:p-6 border-t border-[#B2C5B2]/40 space-y-3 sm:space-y-4">
+                {/* RESUME CHAT */}
+                {activeChat && canChat && (
+                  <button
+                    onClick={() => router.push(`/astrologers/chat/${activeChat._id}`)}
+                    className="w-full py-3 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white rounded-xl flex items-center justify-center gap-2"
+                  >
+                    <FaHistory />
+                    Resume Chat
+                  </button>
+                )}
 
-  {/* RESUME CHAT */}
-  {activeChat && canChat && (
-    <button
-      onClick={() => router.push(`/astrologers/chat/${activeChat._id}`)}
-      className="w-full py-3 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white rounded-xl flex items-center justify-center gap-2"
-    >
-      <FaHistory />
-      Resume Chat
-    </button>
-  )}
+                {/* CHAT */}
+                {!activeChat && canChat && (
+                  <button
+                    onClick={handleStartChat}
+                    disabled={isBusyChat || !user}
+                    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 ${
+                      isBusyChat || !user
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white"
+                    }`}
+                  >
+                    <IoMdChatbubbles />
+                    {isBusyChat ? "Busy on Chat" : !user ? "Login to Chat" : "Start Chat"}
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+                      ₹{astrologer.pricing?.chatPerMinute}/min
+                    </span>
+                  </button>
+                )}
 
-  {/* CHAT */}
- {!activeChat && canChat && (
-  <button
-    onClick={handleStartChat}
-    disabled={isBusyChat || !user}
-    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 ${
-      isBusyChat || !user
-        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-        : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white"
-    }`}
-  >
-    <IoMdChatbubbles />
-    {isBusyChat ? "Busy on Chat" : !user ? "Login to Chat" : "Start Chat"}
-    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
-      ₹{astrologer.pricing?.chatPerMinute}/min
-    </span>
-  </button>
-)}
+                {/* CALL */}
+                {canCall && (
+                  <button
+                    onClick={handleStartCall}
+                    disabled={isBusyCall || callConnecting || !user}
+                    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 ${
+                      isBusyCall || callConnecting || !user
+                        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
+                        : "bg-gradient-to-r from-[#00695C] to-[#003D33] text-white hover:from-[#003D33] hover:to-[#00695C]"
+                    }`}
+                  >
+                    {callConnecting ? (
+                      <>
+                        <FaSpinner className="animate-spin" />
+                        Starting...
+                      </>
+                    ) : isBusyCall ? (
+                      <>
+                        <FaPhoneSlash />
+                        Busy
+                      </>
+                    ) : !user ? (
+                      <>
+                        <FaPhone />
+                        Login to Call
+                      </>
+                    ) : (
+                      <>
+                        <FaPhone />
+                        Start Voice Call
+                      </>
+                    )}
+                    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+                      ₹{astrologer.pricing?.callPerMinute}/min
+                    </span>
+                  </button>
+                )}
 
+                {/* MEET */}
+                {canMeet && (
+                  <button
+                    onClick={() => openMeetModal(astrologer)}
+                    className="w-full py-3 rounded-xl bg-purple-600 text-white flex items-center justify-center gap-2"
+                  >
+                    <FaCalendarAlt />
+                    Book Meet
+                  </button>
+                )}
 
-  {/* CALL */}
- {canCall && (
-  <button
-    onClick={handleStartCall}
-    disabled={isBusyCall || callConnecting || !user}
-    className={`w-full py-3 rounded-xl font-semibold flex items-center justify-center gap-2 ${
-      isBusyCall || callConnecting || !user
-        ? "bg-gray-200 text-gray-400 cursor-not-allowed"
-        : "bg-gradient-to-r from-[#00695C] to-[#003D33] text-white hover:from-[#003D33] hover:to-[#00695C]"
-    }`}
-  >
-    {callConnecting ? (
-      <>
-        <FaSpinner className="animate-spin" />
-        Starting...
-      </>
-    ) : isBusyCall ? (
-      <>
-        <FaPhoneSlash />
-        Busy
-      </>
-    ) : !user ? (
-      <>
-        <FaPhone />
-        Login to Call
-      </>
-    ) : (
-      <>
-        <FaPhone />
-        Start Voice Call
-      </>
-    )}
-    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
-      ₹{astrologer.pricing?.callPerMinute}/min
-    </span>
-  </button>
-)}
-
-
-  {/* MEET */}
-  {canMeet && (
-  <button
-    onClick={() => openMeetModal(astrologer)}
-    className="w-full py-3 rounded-xl bg-purple-600 text-white flex items-center justify-center gap-2"
-  >
-    <FaCalendarAlt />
-    Book Meet
-  </button>
-)}
-
-
-  {/* LOGIN CTA */}
-  {!user && (
-    <div className="text-center">
-      <p className="text-xs text-gray-500 mb-2">
-        Login to connect with astrologer
-      </p>
-      <button
-        onClick={() => router.push("/login")}
-        className="px-4 py-2 bg-[#F7F3E9] border border-[#B2C5B2] rounded-full text-sm"
-      >
-        Login / Sign Up
-      </button>
-    </div>
-  )}
-</div>
-
+                {/* LOGIN CTA */}
+                {!user && (
+                  <div className="text-center">
+                    <p className="text-xs text-gray-500 mb-2">
+                      Login to connect with astrologer
+                    </p>
+                    <button
+                      onClick={() => router.push("/login")}
+                      className="px-4 py-2 bg-[#F7F3E9] border border-[#B2C5B2] rounded-full text-sm"
+                    >
+                      Login / Sign Up
+                    </button>
+                  </div>
+                )}
+              </div>
             </div>
           </div>
 
@@ -736,6 +945,169 @@ const isBusyNow =
                   </span>
                 ))}
               </div>
+            </div>
+
+            {/* Rating Distribution Section */}
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-[#B2C5B2]/60 shadow-md sm:shadow-lg p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold text-[#003D33] mb-3 sm:mb-4 flex items-center gap-2">
+                <FaStar className="text-[#C06014] text-sm sm:text-base lg:text-lg" />
+                Customer Reviews
+              </h2>
+              
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+                {/* Overall Rating */}
+                <div className="bg-[#F7F3E9]/50 rounded-xl p-4 sm:p-6 text-center">
+                  <div className="text-3xl sm:text-4xl font-bold text-[#C06014] mb-2">
+                    {reviewStats.averageRating}
+                  </div>
+                  <div className="flex justify-center mb-2">
+                    {renderStars(reviewStats.averageRating, "text-xl")}
+                  </div>
+                  <div className="text-gray-600 text-sm">
+                    {reviewStats.totalReviews} reviews
+                  </div>
+                </div>
+                
+                {/* Rating Breakdown */}
+                <div className="lg:col-span-2">
+                  <h3 className="font-semibold text-[#003D33] mb-3">Rating Breakdown</h3>
+                  <div className="space-y-2">
+                    {[5, 4, 3, 2, 1].map((rating) => {
+                      const count = reviewStats.ratingDistribution[rating] || 0;
+                      const percentage = reviewStats.totalReviews > 0 ? (count / reviewStats.totalReviews) * 100 : 0;
+                      return (
+                        <div key={rating} className="flex items-center gap-2">
+                          <div className="w-16 sm:w-20 text-sm text-gray-600 flex items-center gap-1">
+                            {rating} <FaStar className="text-yellow-500 text-xs" />
+                          </div>
+                          <div className="flex-1 h-2 bg-gray-200 rounded-full overflow-hidden">
+                            <div 
+                              className="h-full bg-yellow-500 rounded-full"
+                              style={{ width: `${percentage}%` }}
+                            />
+                          </div>
+                          <div className="w-10 text-sm text-gray-600 text-right">
+                            {count}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              </div>
+              
+              {/* Write Review Button */}
+              {user && (
+                <button
+                  onClick={openReviewModal}
+                  className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-lg font-medium hover:from-[#D47C3A] hover:to-[#C06014] transition-all flex items-center justify-center gap-2"
+                >
+                  <FaEdit />
+                  {hasUserReviewed ? "Edit Your Review" : "Write a Review"}
+                </button>
+              )}
+              
+              {!user && (
+                <div className="text-center py-4">
+                  <p className="text-gray-600 mb-3">Login to write a review</p>
+                  <button
+                    onClick={() => router.push("/login")}
+                    className="px-6 py-2 bg-[#F7F3E9] border border-[#B2C5B2] rounded-full text-sm hover:bg-[#E8E3CF] transition-colors"
+                  >
+                    Login / Sign Up
+                  </button>
+                </div>
+              )}
+            </div>
+
+            {/* Reviews List */}
+            <div className="bg-white rounded-xl sm:rounded-2xl border border-[#B2C5B2]/60 shadow-md sm:shadow-lg p-4 sm:p-6">
+              <h2 className="text-base sm:text-lg lg:text-xl font-bold text-[#003D33] mb-4 flex items-center gap-2">
+                <FaComments className="text-[#C06014] text-sm sm:text-base lg:text-lg" />
+                Recent Reviews
+              </h2>
+              
+              {reviewsLoading ? (
+                <div className="flex justify-center py-8">
+                  <FaSpinner className="animate-spin text-2xl text-[#C06014]" />
+                </div>
+              ) : reviews.length === 0 ? (
+                <div className="text-center py-8">
+                  <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <FaStar className="text-2xl text-gray-400" />
+                  </div>
+                  <h3 className="text-lg font-semibold text-gray-600 mb-2">No Reviews Yet</h3>
+                  <p className="text-gray-500">Be the first to review this astrologer</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reviews.map((review) => (
+                    <div key={review._id} className="border-b border-gray-100 pb-4 last:border-0">
+                      <div className="flex justify-between items-start mb-2">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 bg-[#F7F3E9] rounded-full flex items-center justify-center">
+                            {review.user?.profileImageUrl ? (
+                              <img
+                                src={`${process.env.NEXT_PUBLIC_API}${review.user.profileImageUrl}`}
+                                alt={review.user.name}
+                                className="w-full h-full object-cover rounded-full"
+                              />
+                            ) : (
+                              <FaUser className="text-[#C06014]" />
+                            )}
+                          </div>
+                          <div>
+                            <h4 className="font-medium text-[#003D33]">{review.user?.username || "Anonymous"}</h4>
+                            <div className="flex items-center gap-1">
+                              {renderStars(review.rating, "text-sm")}
+                              <span className="text-xs text-gray-500 ml-1">
+                                {new Date(review.createdAt).toLocaleDateString()}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        
+                        {review.serviceType && (
+                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                            review.serviceType === 'CHAT' 
+                              ? 'bg-blue-100 text-blue-700'
+                              : 'bg-green-100 text-green-700'
+                          }`}>
+                            {review.serviceType}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {review.comment && (
+                        <p className="text-gray-700 mt-2 pl-13">{review.comment}</p>
+                      )}
+                      
+                      {/* Action buttons for user's own reviews */}
+                      {user && review.user?._id === user._id && (
+                        <div className="flex justify-end mt-2 gap-3">
+                          <button
+                            onClick={() => {
+                              setUserReview(review);
+                              openReviewModal();
+                            }}
+                            className="text-xs text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                          >
+                            <FaEdit className="text-xs" />
+                            Edit
+                          </button>
+                          <button
+                            onClick={() => handleDeleteReview(review._id)}
+                            className="text-xs text-red-600 hover:text-red-800 flex items-center gap-1"
+                          >
+                            <FaTrash className="text-xs" />
+                            Delete
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
 
             {/* Achievements Section */}
@@ -814,166 +1186,251 @@ const isBusyNow =
                 Availability
               </h2>
               <div className="flex items-center gap-4">
-         <div
-  className={`px-4 py-2 rounded-lg font-medium ${
-    isBusyNow
-      ? "bg-red-100 text-red-700"
-      : "bg-green-100 text-green-700"
-  }`}
->
-  {isBusyNow
-    ? isBusyChat
-      ? "Busy on Chat"
-      : "Busy on Call"
-    : "Available for Consultation"}
-</div>
-
-<div className="text-gray-600 flex items-center gap-3 flex-wrap">
-  {canChat && (
-    <span className="flex items-center gap-1">
-      <FaComments className="text-[#C06014]" /> Chat
-    </span>
-  )}
-  {canCall && (
-    <span className="flex items-center gap-1">
-      <FaPhone className="text-[#00695C]" /> Call
-    </span>
-  )}
-  {canMeet && (
-    <span className="flex items-center gap-1">
-      <FaUserCheck className="text-purple-600" /> Meet
-    </span>
-  )}
-</div>
-
+                <div
+                  className={`px-4 py-2 rounded-lg font-medium ${
+                    isBusyNow
+                      ? "bg-red-100 text-red-700"
+                      : "bg-green-100 text-green-700"
+                  }`}
+                >
+                  {isBusyNow
+                    ? isBusyChat
+                      ? "Busy on Chat"
+                      : "Busy on Call"
+                    : "Available for Consultation"}
+                </div>
+                <div className="text-gray-600 flex items-center gap-3 flex-wrap">
+                  {canChat && (
+                    <span className="flex items-center gap-1">
+                      <FaComments className="text-[#C06014]" /> Chat
+                    </span>
+                  )}
+                  {canCall && (
+                    <span className="flex items-center gap-1">
+                      <FaPhone className="text-[#00695C]" /> Call
+                    </span>
+                  )}
+                  {canMeet && (
+                    <span className="flex items-center gap-1">
+                      <FaUserCheck className="text-purple-600" /> Meet
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
           </div>
         </div>
       </div>
-        {/* Meet Booking Modal */}
-            {showMeetModal && selectedAstrologer && (
-              <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-                <div className="bg-white rounded-2xl w-full max-w-md p-6 animate-fadeIn">
-                  <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-bold text-[#003D33] flex items-center gap-2">
-                      <FaUserCheck className="text-[#C06014]" />
-                      Book Meeting with {selectedAstrologer.fullName}
-                    </h3>
-                    <button
-                      onClick={closeMeetModal}
-                      className="text-gray-500 hover:text-gray-700 text-xl"
-                    >
-                      <FaTimes />
-                    </button>
+
+      {/* Meet Booking Modal */}
+      {showMeetModal && selectedAstrologer && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 animate-fadeIn">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-[#003D33] flex items-center gap-2">
+                <FaUserCheck className="text-[#C06014]" />
+                Book Meeting with {selectedAstrologer.fullName}
+              </h3>
+              <button
+                onClick={closeMeetModal}
+                className="text-gray-500 hover:text-gray-700 text-xl"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <form onSubmit={handleMeetSubmit}>
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-[#00695C] mb-1">
+                    Your Name *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaUser className="text-gray-400" />
+                    </div>
+                    <input
+                      type="text"
+                      name="name"
+                      value={meetForm.name}
+                      onChange={handleMeetFormChange}
+                      required
+                      className="w-full pl-10 pr-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none"
+                      placeholder="Enter your full name"
+                    />
                   </div>
-                  
-                  <form onSubmit={handleMeetSubmit}>
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-[#00695C] mb-1">
-                          Your Name *
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FaUser className="text-gray-400" />
-                          </div>
-                          <input
-                            type="text"
-                            name="name"
-                            value={meetForm.name}
-                            onChange={handleMeetFormChange}
-                            required
-                            className="w-full pl-10 pr-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none"
-                            placeholder="Enter your full name"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-[#00695C] mb-1">
-                          Email Address *
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FaEnvelope className="text-gray-400" />
-                          </div>
-                          <input
-                            type="email"
-                            name="email"
-                            value={meetForm.email}
-                            onChange={handleMeetFormChange}
-                            required
-                            className="w-full pl-10 pr-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none"
-                            placeholder="Enter your email"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-[#00695C] mb-1">
-                          Phone Number *
-                        </label>
-                        <div className="relative">
-                          <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <FaPhoneAlt className="text-gray-400" />
-                          </div>
-                          <input
-                            type="tel"
-                            name="phone"
-                            value={meetForm.phone}
-                            onChange={handleMeetFormChange}
-                            required
-                            className="w-full pl-10 pr-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none"
-                            placeholder="Enter your phone number"
-                          />
-                        </div>
-                      </div>
-                      
-                      <div>
-                        <label className="block text-sm font-medium text-[#00695C] mb-1">
-                          Message (Optional)
-                        </label>
-                        <textarea
-                          name="message"
-                          value={meetForm.message}
-                          onChange={handleMeetFormChange}
-                          rows="3"
-                          className="w-full px-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none resize-none"
-                          placeholder="Any specific concerns or preferred time for meeting..."
-                        />
-                      </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-[#00695C] mb-1">
+                    Email Address *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaEnvelope className="text-gray-400" />
                     </div>
-                    
-                    <div className="mt-8 flex gap-3">
-                      <button
-                        type="button"
-                        onClick={closeMeetModal}
-                        className="flex-1 py-3 border border-[#B2C5B2] text-[#00695C] rounded-lg font-medium hover:bg-gray-50 transition-colors"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={meetLoading}
-                        className="flex-1 py-3 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
-                      >
-                        {meetLoading ? (
-                          <span className="flex items-center justify-center gap-2">
-                            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            Sending...
-                          </span>
-                        ) : "Send Request"}
-                      </button>
+                    <input
+                      type="email"
+                      name="email"
+                      value={meetForm.email}
+                      onChange={handleMeetFormChange}
+                      required
+                      className="w-full pl-10 pr-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none"
+                      placeholder="Enter your email"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-[#00695C] mb-1">
+                    Phone Number *
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <FaPhoneAlt className="text-gray-400" />
                     </div>
-                    
-                    <p className="text-xs text-gray-500 mt-4 text-center">
-                      The astrologer will receive your details and contact you to schedule the meeting
-                    </p>
-                  </form>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={meetForm.phone}
+                      onChange={handleMeetFormChange}
+                      required
+                      className="w-full pl-10 pr-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none"
+                      placeholder="Enter your phone number"
+                    />
+                  </div>
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-[#00695C] mb-1">
+                    Message (Optional)
+                  </label>
+                  <textarea
+                    name="message"
+                    value={meetForm.message}
+                    onChange={handleMeetFormChange}
+                    rows="3"
+                    className="w-full px-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none resize-none"
+                    placeholder="Any specific concerns or preferred time for meeting..."
+                  />
                 </div>
               </div>
-            )}
+              
+              <div className="mt-8 flex gap-3">
+                <button
+                  type="button"
+                  onClick={closeMeetModal}
+                  className="flex-1 py-3 border border-[#B2C5B2] text-[#00695C] rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={meetLoading}
+                  className="flex-1 py-3 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {meetLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Sending...
+                    </span>
+                  ) : "Send Request"}
+                </button>
+              </div>
+              
+              <p className="text-xs text-gray-500 mt-4 text-center">
+                The astrologer will receive your details and contact you to schedule the meeting
+              </p>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Review Modal */}
+      {showReviewModal && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl w-full max-w-md p-6 animate-fadeIn">
+            <div className="flex justify-between items-center mb-6">
+              <h3 className="text-xl font-bold text-[#003D33] flex items-center gap-2">
+                <FaStar className="text-[#C06014]" />
+                {hasUserReviewed ? "Edit Your Review" : "Write a Review"}
+              </h3>
+              <button
+                onClick={closeReviewModal}
+                className="text-gray-500 hover:text-gray-700 text-xl"
+              >
+                <FaTimes />
+              </button>
+            </div>
+            
+            <form onSubmit={handleReviewSubmit}>
+              {/* Star Rating */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-[#00695C] mb-3">
+                  Your Rating *
+                </label>
+                <div className="flex items-center justify-center space-x-1">
+                  {[1, 2, 3, 4, 5].map((star) => (
+                    <button
+                      key={star}
+                      type="button"
+                      onClick={() => setReviewForm(prev => ({ ...prev, rating: star }))}
+                      className="text-3xl focus:outline-none"
+                    >
+                      <FaStar
+                        className={star <= reviewForm.rating ? "text-yellow-500 fill-current" : "text-gray-300"}
+                      />
+                    </button>
+                  ))}
+                </div>
+                <div className="text-center mt-2 text-sm text-gray-600">
+                  {reviewForm.rating === 0 ? "Select a rating" : `${reviewForm.rating} out of 5 stars`}
+                </div>
+              </div>
+              
+              {/* Comment */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-[#00695C] mb-2">
+                  Your Review (Optional)
+                </label>
+                <textarea
+                  value={reviewForm.comment}
+                  onChange={(e) => setReviewForm(prev => ({ ...prev, comment: e.target.value }))}
+                  rows="4"
+                  className="w-full px-3 py-2.5 border border-[#B2C5B2] rounded-lg focus:ring-2 focus:ring-[#C06014] focus:border-transparent outline-none resize-none"
+                  placeholder="Share your experience with this astrologer..."
+                  maxLength={500}
+                />
+                <div className="text-right text-xs text-gray-500 mt-1">
+                  {reviewForm.comment.length}/500 characters
+                </div>
+              </div>
+              
+              <div className="flex gap-3">
+                <button
+                  type="button"
+                  onClick={closeReviewModal}
+                  className="flex-1 py-3 border border-[#B2C5B2] text-[#00695C] rounded-lg font-medium hover:bg-gray-50 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={reviewLoading || !reviewForm.rating}
+                  className="flex-1 py-3 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-lg font-medium hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {reviewLoading ? (
+                    <span className="flex items-center justify-center gap-2">
+                      <FaSpinner className="animate-spin" />
+                      {hasUserReviewed ? "Updating..." : "Submitting..."}
+                    </span>
+                  ) : hasUserReviewed ? "Update Review" : "Submit Review"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

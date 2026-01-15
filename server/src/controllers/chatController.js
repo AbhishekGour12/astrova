@@ -53,7 +53,7 @@ export const startChat = async (req, res) => {
 
     // Populate chat for response
     const populatedChat = await Chat.findById(chat._id)
-      .populate('user', 'name profileImageUrl')
+      .populate('user', 'username profileImageUrl')
       .populate('astrologer', 'fullName profileImageUrl');
 
     // Notify astrologer via socket
@@ -86,7 +86,7 @@ export const acceptChatByAstrologer = async (req, res) => {
   try{
 
   const chat = await Chat.findById(chatId).populate("user");
-  console.log(chat)
+  
   if (!chat) return res.status(404).json({ message: "Chat not found" });
 
   if (String(chat.astrologer) !== astrologerId)

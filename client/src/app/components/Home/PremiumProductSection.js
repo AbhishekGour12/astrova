@@ -45,11 +45,11 @@ export default function PremiumProductSection() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="absolute  h-fit bottom-[-50px] left-[-20px] md:left-[40px] w-[55%] sm:w-[50%] md:w-[45%] lg:w-[40%] overflow-visible z-[10] max-sm:bottom-[30%] "
+          className="absolute  h-fit bottom-[-200px] left-[-20px] md:left-[40px] w-[55%] sm:w-[50%] md:w-[45%] lg:w-[40%] overflow-visible z-[10] max-sm:bottom-[30%] "
         >
           {/* Left Combo Image */}
           <Image
-            src="/leftcombo.png"
+            src="/left_combo.png"
             alt="Left Combo"
             width={900}
             height={600}

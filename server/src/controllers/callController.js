@@ -127,7 +127,7 @@ export const acceptCallByAstrologer = async (req, res) => {
     const { callId, astrologerId } = req.params;
    
     const call = await Call.findById(callId)
-      .populate("user", "walletBalance name")
+      .populate("user", "walletBalance username")
       .populate("astrologer", "fullName");
    
 
@@ -795,7 +795,7 @@ export const getAstrologerCallHistory = async (req, res) => {
     const skip = (parsedPage - 1) * parsedLimit;
 
     const calls = await Call.find({ astrologer: astrologerId })
-      .populate("user", "fullName")
+      .populate("user", "username")
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(parsedLimit)

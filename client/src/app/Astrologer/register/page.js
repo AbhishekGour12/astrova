@@ -197,6 +197,7 @@ const verifyOTP = async () => {
     setPhoneVerified(true);
     toast.success("Phone verified successfully");
   } catch (err) {
+    console.log(err)
     toast.error(err.response?.data?.message || "Invalid OTP");
   }
 };
@@ -296,7 +297,7 @@ const verifyOTP = async () => {
     Phone Number <span className="text-red-500">*</span>
   </label>
 
-  <div className="flex gap-2">
+  <div className="flex gap-2 max-sm:flex-wrap">
     <input
       name="phone"
       value={form.phone}

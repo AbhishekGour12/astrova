@@ -129,48 +129,29 @@ export const submitReview = async (req, res) => {
 export const getAstrologerReviews = async (req, res) => {
   try {
     const { astrologerId } = req.params;
-    const { page = 1, limit = 10, serviceType } = req.query;
+   
+   
 
-    const skip = (parseInt(page) - 1) * parseInt(limit);
+    
+    
 
-    // Build query
-    const query = { astrologer: astrologerId, isActive: true };
-    if (serviceType && ['CHAT', 'CALL'].includes(serviceType)) {
-      query.serviceType = serviceType;
-    }
+    const reviews = await Review.find({astrologer: astrologerId})
+      .populate('user', 'username ')
+      
+   
 
-    const reviews = await Review.find(query)
-      .populate('user', 'name profileImageUrl')
-      .sort({ createdAt: -1 })
-      .skip(skip)
-      .limit(parseInt(limit))
-      .lean();
+   
 
-    const totalReviews = await Review.countDocuments(query);
-
-    // Get average rating
-    const avgResult = await Review.aggregate([
-      { $match: { astrologer: mongoose.Types.ObjectId(astrologerId), isActive: true } },
-      { $group: { _id: null, averageRating: { $avg: "$rating" }, totalRatings: { $sum: 1 } } }
-    ]);
-
-    const stats = avgResult[0] || { averageRating: 0, totalRatings: 0 };
+   
 
     res.json({
       success: true,
-      reviews,
-      stats: {
-        averageRating: Math.round(stats.averageRating * 10) / 10 || 0,
-        totalRatings: stats.totalRatings || 0
-      },
-      pagination: {
-        currentPage: parseInt(page),
-        totalPages: Math.ceil(totalReviews / parseInt(limit)),
-        totalReviews
-      }
+      reviews
+     
+      
     });
   } catch (err) {
-    console.error("Get reviews error:", err);
+    console.log("Get reviews error:", err.message);
     res.status(500).json({
       success: false,
       message: "Failed to get reviews"
@@ -495,5 +476,66 @@ const updateAstrologerRating = async (astrologerId) => {
     }
   } catch (err) {
     console.error("Update astrologer rating error:", err);
+  }
+};
+
+
+// Simplified backend API for direct astrologer review
+export const submitUserReview = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { astrologerId, rating, comment } = req.body;
+
+    // Validate rating
+    if (!rating || rating < 1 || rating > 5) {
+      return res.status(400).json({
+        success: false,
+        message: "Rating must be between 1 and 5"
+      });
+    }
+
+    // Check if review already exists
+    const existingReview = await Review.findOne({
+      user: userId,
+      astrologer: astrologerId
+    });
+
+    if (existingReview) {
+      // Update existing review
+      existingReview.rating = parseInt(rating);
+      existingReview.comment = comment?.trim();
+      await existingReview.save();
+      
+      await updateAstrologerRating(astrologerId);
+      
+      return res.json({
+        success: true,
+        message: "Review updated successfully",
+        review: existingReview
+      });
+    }
+
+    // Create new review
+    const review = await Review.create({
+      user: userId,
+      astrologer: astrologerId,
+      rating: parseInt(rating),
+      comment: comment?.trim()
+    });
+
+    // Update astrologer's average rating
+    await updateAstrologerRating(astrologerId);
+
+    res.status(201).json({
+      success: true,
+      message: "Review submitted successfully",
+      review
+    });
+  } catch (err) {
+    console.error("Submit review error:", err);
+    res.status(500).json({
+      success: false,
+      message: "Failed to submit review"
+    });
   }
 };

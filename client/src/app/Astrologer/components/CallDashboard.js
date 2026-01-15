@@ -169,7 +169,7 @@ export default function AstrologerCallDashboard() {
     // Socket event listeners
   // Socket event listeners
     newSocket.on("incomingCall", (data) => {
-      console.log("📞 Incoming call:", data);
+     // console.log("📞 Incoming call:", data);
       const callData = data.call || data;
       const callId = callData._id || data.callId;
       
@@ -181,7 +181,8 @@ export default function AstrologerCallDashboard() {
           ...callData, 
           _id: callId,
           receivedAt: new Date(),
-          status: "WAITING"
+          status: "WAITING",
+          username: data.userName
         }];
       });
       
@@ -198,7 +199,7 @@ export default function AstrologerCallDashboard() {
             <div>
               <h3 className="font-bold text-gray-800">Incoming Call</h3>
               <p className="text-sm text-gray-600">
-                {callData?.username || "User"} wants to connect
+                {data?.userName || "User"} wants to connect
               </p>
               <p className="text-xs text-gray-500 mt-1">
                 Type: {callData.callType || "AUDIO"} Call
@@ -237,14 +238,14 @@ export default function AstrologerCallDashboard() {
 
     // When call ends
     newSocket.on("callEnded", (data) => {
-      console.log("Call ended:", data);
+     // console.log("Call ended:", data);
       handleCallEnd();
       toast.success(`Call ended. Earnings: ₹${data.totalAmount || 0}`);
     });
 
     // Listen for user ending call
     newSocket.on("callEndedByUser", (data) => {
-      console.log("User ended call:", data);
+     // console.log("User ended call:", data);
       if (activeCall && activeCall._id === data.callId) {
         handleCallEnd();
         toast.info("User ended the call");
@@ -253,12 +254,12 @@ export default function AstrologerCallDashboard() {
     
     // Listen for wallet updates
     newSocket.on("walletUpdated", (data) => {
-      console.log("Wallet updated:", data);
+    //  console.log("Wallet updated:", data);
     });
     
     // Add this new listener for user ending call specifically
     newSocket.on("userEndedCall", (data) => {
-      console.log("User ended call (direct event):", data);
+    //  console.log("User ended call (direct event):", data);
       if (activeCall && activeCall._id === data.callId) {
         handleCallEnd();
         toast.info("User ended the call");
@@ -267,7 +268,7 @@ export default function AstrologerCallDashboard() {
 
     // Listen for call activation (in case astrologer refreshes during active call)
     newSocket.on("callActivated", (data) => {
-      console.log("Call activated:", data);
+     // console.log("Call activated:", data);
       if (data.astrologerId === id) {
         // Update active call state
         fetchPendingAndActiveCalls();
@@ -312,30 +313,27 @@ export default function AstrologerCallDashboard() {
       
       if(history){
         setCallHistory(history.data.calls || []);
+      
       }
       
-      const [earningsRes, statsRes] = await Promise.all([
-        api.get(`/astrologer/earnings/summary`),
-        api.get(`/astrologer/stats/calls`)
-      ]);
-
+      const earningsRes = await 
+        api.get(`/astrologer/stats/${astrologerId}`)
+        
+    
+      
       // Earnings
       if (earningsRes.data.success) {
+       
         setEarnings({
-          today: earningsRes.data.today || 0,
-          weekly: earningsRes.data.weekly || 0,
-          monthly: earningsRes.data.monthly || 0
+          today: earningsRes.data.stats.todayEarnings || 0,
+         
         });
       }
 
-      // Stats
-      if (statsRes.data.success) {
-        setTotalCalls(statsRes.data.totalCalls || 0);
-        setAvgDuration(statsRes.data.averageDuration || "00:00");
-      }
+      
     } catch (error) {
       console.error("Error loading dashboard:", error);
-      toast.error("Failed to load dashboard data");
+     // toast.error("Failed to load dashboard data");
     } finally {
       setLoading(false);
     }
@@ -354,6 +352,7 @@ export default function AstrologerCallDashboard() {
       if (response.data.success) {
         const callData = response.data.call;
         setActiveCall(callData);
+        
         
         // Set Zego room ID
         const roomId = response.data.zegoRoomId || callData.zegoRoomId;
@@ -416,7 +415,7 @@ export default function AstrologerCallDashboard() {
 
     try {
       const response = await api.post(`/call/astrologer/end/${activeCall._id}/${astrologerId}`);
-      console.log(response);
+     // console.log(response);
       
       if (response.data.success) {
         // Emit socket event to notify user
@@ -494,30 +493,9 @@ export default function AstrologerCallDashboard() {
     toast.success(`Speaker ${isSpeakerOn ? "off" : "on"}`);
   };
 
-  // Toggle online status
-  const toggleOnlineStatus = async () => {
-    try {
-      const newStatus = !isOnline;
-      const response = await api.put(`/astrologer/availability/${astrologerId}`, {
-        isOnline: newStatus
-      });
-      
-      if (response.data.success) {
-        setIsOnline(newStatus);
-        toast.success(newStatus ? "You're now online" : "You're now offline");
-      }
-    } catch (error) {
-      console.error("Toggle status error:", error);
-      toast.error("Failed to update status");
-    }
-  };
+  
 
-  // Refresh dashboard
-  const refreshDashboard = () => {
-    loadDashboardData();
-    fetchPendingAndActiveCalls(); // Also refresh calls
-    toast.success("Dashboard refreshed");
-  };
+  
 
   // Cleanup missed calls
   const cleanupMissedCalls = async () => {
@@ -637,9 +615,9 @@ export default function AstrologerCallDashboard() {
       </div>
       */}
       <div className="container mx-auto px-4 py-8">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="flex w-full">
           {/* Left Column - Active Call & Incoming Calls */}
-          <div className="lg:col-span-2 space-y-6">
+          <div className=" space-y-6  w-full">
             {/* ACTIVE CALL INTERFACE */}
             {isCallConnected && activeCall ? (
               <div className="bg-white rounded-2xl p-6 shadow-sm">
@@ -667,7 +645,7 @@ export default function AstrologerCallDashboard() {
                       </div>
                       <div>
                         <h3 className="font-bold text-gray-800 text-lg">
-                          {activeCall.user?.name || "User"}
+                          {activeCall.user?.username || "User"}
                         </h3>
                         <p className="text-gray-600">
                           {activeCall.callType === "VIDEO" ? "Video Call" : "Audio Call"}
@@ -748,7 +726,7 @@ export default function AstrologerCallDashboard() {
                             </div>
                             <div>
                               <h4 className="font-bold text-gray-800">
-                                {call.user?.name || "Unknown User"}
+                                {call?.username || "Unknown User"}
                               </h4>
                               <p className="text-sm text-gray-500">
                                 {call.callType === "VIDEO" ? "Video Call" : "Audio Call"} • ₹{call.ratePerMinute || 100}/min
@@ -827,7 +805,7 @@ export default function AstrologerCallDashboard() {
                       <td className="py-3">
                         <div className="flex items-center gap-2">
                           <div className="w-8 h-8 bg-gray-200 rounded-full"></div>
-                          <span>{call.user?.name || "User"}</span>
+                          <span>{call.user?.username || "User"}</span>
                         </div>
                       </td>
                       <td className="py-3">
@@ -868,9 +846,9 @@ export default function AstrologerCallDashboard() {
         </div>
           </div>
 
-          {/* Right Column - Stats & Actions */}
+          {/**  Right Column - Stats & Actions 
           <div className="space-y-6">
-            {/* Earnings Stats */}
+            /* Earnings Stats 
             <div className="bg-white rounded-2xl p-6 shadow-sm">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="text-lg font-bold text-gray-800">Earnings Overview</h3>
@@ -900,7 +878,7 @@ export default function AstrologerCallDashboard() {
               </button>
             </div>
 
-            {/* Call Statistics */}
+            /* Call Statistics 
             <div className="bg-gradient-to-r from-[#003D33] to-[#00695C] rounded-2xl p-6 text-white">
               <h3 className="text-lg font-bold mb-6">Call Statistics</h3>
               <div className="space-y-4">
@@ -932,6 +910,7 @@ export default function AstrologerCallDashboard() {
 
            
           </div>
+          */}
         </div>
 
         

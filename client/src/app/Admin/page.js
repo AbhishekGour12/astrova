@@ -15,8 +15,8 @@ import { PageLoader } from './components/Loading';
 import { FaBars, FaTimes } from 'react-icons/fa';
 import CouponsTab from './components/CouponsTab';
 import CarouselTab from './components/CarouselTab';
-import RemediesTab from './components/RemediesTab'
-
+import RemediesTab from './components/RemediesTab';
+import AstrologerPayoutsTab from "./components/AstrologerPayoutsTab"
 // Dummy data (move to separate file if needed)
 const dummyData = {
   stats: {
@@ -178,7 +178,8 @@ const AdminDashboard = () => {
     coupon: <CouponsTab/>,
     settings: <SettingsTab />,
     carousel: <CarouselTab/>,
-    remedies: <RemediesTab/>
+    remedies: <RemediesTab/>,
+    astrologerPayout: <AstrologerPayoutsTab/>
   };
 
   return (

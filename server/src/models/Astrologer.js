@@ -63,6 +63,8 @@ const AstrologerProfileSchema = new mongoose.Schema({
   totalEarnings: { type: Number, default: 0 },
   pendingEarnings: { type: Number, default: 0 },
   paidEarnings: { type: Number, default: 0 },
+  razorpayContactId: {type: String},
+  razorpayFundAccountId: {type: String}
 
 }, { timestamps: true });
 

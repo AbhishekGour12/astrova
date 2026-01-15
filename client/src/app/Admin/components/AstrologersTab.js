@@ -35,13 +35,21 @@ export default function AstrologersTab() {
   /* ================= APPROVE ASTROLOGER ================= */
   const approveAstrologer = async (id) => {
     if (!confirm("Approve this astrologer? Password will be emailed.")) return;
-
+      const loadingToast = toast.loading("Approving astrologer...");
     try {
+     
       await api.patch(`/admin/astrologers/approve/${id}`);
-      toast.success("Astrologer approved & credentials sent");
+      // Replace loader with success
+    toast.success("Astrologer approved & credentials sent", {
+      id: loadingToast,
+    });
+     
       fetchAstrologers();
     } catch (err) {
-      toast.error(err.response?.data?.message || "Approval failed");
+      // Replace loader with error
+    toast.error(err.response?.data?.message || "Approval failed", {
+      id: loadingToast,
+    });
     }
   };
 
@@ -199,8 +207,8 @@ export default function AstrologersTab() {
               <div className="space-y-2 text-xs mb-4">
                 <InfoRow label="Email" value={ast.email} truncate={true} />
                 <InfoRow label="Phone" value={ast.phone} />
-                <InfoRow label="Chat Rate" value={`₹${ast.chatPerMinute || 0}/min`} />
-                <InfoRow label="Call Rate" value={`₹${ast.callPerMinute || 0}/min`} />
+                <InfoRow label="Chat Rate" value={`₹${ast.pricing.chatPerMinute || 0}/min`} />
+                <InfoRow label="Call Rate" value={`₹${ast.pricing.callPerMinute || 0}/min`} />
                 <div className="flex justify-between">
                   <span className="text-[#00695C]">Status</span>
                   <span className={`px-2 py-1 rounded-full text-xs ${ast.isApproved ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>
@@ -291,8 +299,8 @@ export default function AstrologersTab() {
                   </div>
                   
                   <div className="flex items-center gap-1">
-                    <FaStar className="text-amber-400" />
-                    <span className="font-semibold">{selectedAstrologer.averageRating || "0.0"}</span>
+
+                   
                     <span className="text-gray-600">({selectedAstrologer.totalConsultations || 0} consults)</span>
                   </div>
                 </div>
@@ -308,7 +316,7 @@ export default function AstrologersTab() {
                   </div>
                   <div className="flex items-center gap-2">
                     <FaRupeeSign className="text-gray-400" />
-                    <span className="text-sm">₹{selectedAstrologer.totalEarnings || 0} earned</span>
+                    <span className="text-sm">₹{selectedAstrologer.paidEarnings || 0} earned</span>
                   </div>
                 </div>
               </div>
@@ -340,10 +348,10 @@ export default function AstrologersTab() {
                 <Section title="Pricing Information">
                   <ProfileRow label="Availability" value={selectedAstrologer.availability} />
                   {(selectedAstrologer.availability === "CHAT" || selectedAstrologer.availability === "BOTH" || selectedAstrologer.availability === "ALL") && (
-                    <ProfileRow label="Chat Rate" value={`₹${selectedAstrologer.chatPerMinute || 0} per minute`} />
+                    <ProfileRow label="Chat Rate" value={`₹${selectedAstrologer.pricing.chatPerMinute || 0} per minute`} />
                   )}
                   {(selectedAstrologer.availability === "CALL" || selectedAstrologer.availability === "BOTH" || selectedAstrologer.availability === "ALL") && (
-                    <ProfileRow label="Call Rate" value={`₹${selectedAstrologer.callPerMinute || 0} per minute`} />
+                    <ProfileRow label="Call Rate" value={`₹${selectedAstrologer.pricing.callPerMinute || 0} per minute`} />
                   )}
                   {(selectedAstrologer.availability === "MEET" || selectedAstrologer.availability === "ALL") && (
                     <ProfileRow label="Meet Service" value="Available (Rate to be discussed directly)" />
