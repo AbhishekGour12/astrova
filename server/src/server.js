@@ -28,6 +28,7 @@ import callRoutes from "./routes/callRoutes.js"
 import payoutRoutes from "./routes/payoutRoutes.js"
 import reviewRoutes from "./routes/reviewRoutes.js"
 import adminPayoutRoutes from "./routes/adminPayoutRoutes.js"
+import contactRoutes from "./routes/contactRoutes.js"
 /* =======================
    INITIAL SETUP
 ======================= */
@@ -53,12 +54,13 @@ const __dirname = path.dirname(__filename);
 /* =======================
    GLOBAL MIDDLEWARES
 ======================= */
-app.use(
-  cors({
-    origin: "*", // 🔐 replace with frontend URL in prod
-    credentials: true,
-  })
-);
+app.use(cors({
+  origin: [
+    "http://localhost:3000",
+    "https://myastrova1236.netlify.app"
+  ],
+  credentials: true
+}));
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
@@ -91,7 +93,7 @@ app.use("/api/call", callRoutes);
 app.use("/api/payouts", payoutRoutes)
 app.use("/api/reviews", reviewRoutes)
 app.use("/api/admin-payout/astrologerpayouts", adminPayoutRoutes)
-
+app.use("/api/contact", contactRoutes)
 /* =======================
    HEALTH CHECK
 ======================= */

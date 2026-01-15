@@ -12,7 +12,8 @@ import {
   FaGift,
   FaTimes,
   FaAdversal,
-  FaMoneyBill, // Added Close Icon
+  FaMoneyBill,
+  FaPhone, // Added Close Icon
 } from 'react-icons/fa';
 
 const menuItems = [
@@ -25,6 +26,7 @@ const menuItems = [
   { id: 'coupon', label: 'Coupon', icon: FaGift },
   { id: 'carousel', label: 'Advsertisements', icon: FaAdversal },
   { id: 'remedies', label: 'Remedies', icon: FaAdversal },
+  {id: 'contact', label: 'Contact', icon: FaPhone},
   { id: 'settings', label: 'Settings', icon: FaCog },
   
 ];

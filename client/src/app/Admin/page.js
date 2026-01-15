@@ -17,6 +17,7 @@ import CouponsTab from './components/CouponsTab';
 import CarouselTab from './components/CarouselTab';
 import RemediesTab from './components/RemediesTab';
 import AstrologerPayoutsTab from "./components/AstrologerPayoutsTab"
+import ContactTab from "./components/ContactTab";
 // Dummy data (move to separate file if needed)
 const dummyData = {
   stats: {
@@ -179,7 +180,8 @@ const AdminDashboard = () => {
     settings: <SettingsTab />,
     carousel: <CarouselTab/>,
     remedies: <RemediesTab/>,
-    astrologerPayout: <AstrologerPayoutsTab/>
+    astrologerPayout: <AstrologerPayoutsTab/>,
+    contact: <ContactTab/>
   };
 
   return (

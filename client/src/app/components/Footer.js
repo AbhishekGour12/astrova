@@ -109,7 +109,7 @@ const meet = () => {
                 <Link href="/RefundPolicy" className="hover:underline">Refund Policy</Link>
               </li>
               <li className="border-b pb-3 border-white/30">
-                <Link href="/shipping-policy" className="hover:underline">Shipping Policy</Link>
+                <Link href="/ShippingPolicy" className="hover:underline">Shipping Policy</Link>
               </li>
             </ul>
           </div>

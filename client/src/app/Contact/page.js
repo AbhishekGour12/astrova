@@ -17,6 +17,8 @@ import {
   FaHeadset
 } from 'react-icons/fa';
 import toast from 'react-hot-toast';
+import axios from 'axios';
+import api from '../lib/api';
 
  const sacredEarthTheme = {
   colors: {
@@ -106,15 +108,32 @@ export default function ContactUsPage() {
     }));
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setIsSubmitting(true);
+ // In your ContactUsPage component, update the handleSubmit function:
+const handleSubmit = async (e) => {
+  
+  let token = localStorage.getItem("token")
+  if(!token){
+    toast.error("login first");
+    return
+  }
+  setIsSubmitting(true);
+  e.preventDefault();
+  try {
+    // Prepare form data exactly matching model
+    const contactData = {
+      name: formData.name,
+      email: formData.email,
+      phone: formData.phone,
+      subject: formData.subject,
+      message: formData.message,
+      astrologerInterest: formData.astrologerQuery // Note: using astrologerQuery from form
+    };
     
-    try {
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      toast.success('Message sent successfully! We\'ll get back to you soon.', {
+    // Call the API
+    const response = await api.post('/contact/submit', contactData)
+    
+    if (response.data.success) {
+      toast.success(response.data.message || 'Message sent successfully! We\'ll get back to you soon.', {
         duration: 5000,
         icon: '📨'
       });
@@ -128,12 +147,16 @@ export default function ContactUsPage() {
         message: '',
         astrologerQuery: false
       });
-    } catch (error) {
-      toast.error('Failed to send message. Please try again.');
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      toast.error(response.message || 'Failed to send message');
     }
-  };
+  } catch (error) {
+    console.error('Contact form error:', error);
+    toast.error(error.message || 'Failed to send message. Please try again.');
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   return (
     <div 
