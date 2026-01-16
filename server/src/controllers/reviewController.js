@@ -401,6 +401,7 @@ export const deleteReview = async (req, res) => {
   try {
     const userId = req.user.id;
     const { reviewId } = req.params;
+   
 
     const review = await Review.findById(reviewId);
     if (!review) {
@@ -419,8 +420,8 @@ export const deleteReview = async (req, res) => {
     }
 
     // Soft delete
-    review.isActive = false;
-    await review.save();
+    
+    await Review.findByIdAndDelete(reviewId);
 
     // Update astrologer's average rating
     await updateAstrologerRating(review.astrologer);

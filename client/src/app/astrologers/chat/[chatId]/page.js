@@ -22,6 +22,7 @@ import {
 import ReviewModal from "../../../components/ReviewModal";
 
 export default function ChatPage() {
+  
   const { chatId } = useParams();
   const router = useRouter();
   const user = useSelector((s) => s.auth.user);
@@ -45,7 +46,18 @@ export default function ChatPage() {
    const [redirectTimer, setRedirectTimer] = useState(null);
   // New State for Timer
   const [elapsedSeconds, setElapsedSeconds] = useState(0);
-
+    const [windowHeight, setWindowHeight] = useState(0);
+// Track window height for responsive design
+  useEffect(() => {
+    const updateHeight = () => {
+      setWindowHeight(window.innerHeight);
+    };
+    
+    updateHeight();
+    window.addEventListener('resize', updateHeight);
+    
+    return () => window.removeEventListener('resize', updateHeight);
+  }, []);
   // Initialize socket
   const initSocket = useCallback(() => {
     if (!user) return;
@@ -143,6 +155,7 @@ export default function ChatPage() {
     try {
       setHasCheckedForReview(true);
       const response = await api.get(`/reviews/check/CHAT/${chatId}`);
+      console.log(response)
       
       
       if (!response.data.canReview) {
@@ -411,116 +424,175 @@ export default function ChatPage() {
   
   
   return (
-    <div className="min-h-screen bg-[#F7F3E9] pt-20 lg:pt-24">
-      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-6 h-[calc(100vh-80px)]">
-        <div className="h-full flex flex-col">
-          
-          {/* Header */}
-          <div className="bg-white rounded-t-2xl border border-[#B2C5B2] px-4 py-3 mb-1 shadow-sm">
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-              <div className="flex items-center gap-3">
-                <button onClick={() => router.push("/astrologers")} className="p-2 hover:bg-gray-100 rounded-full">
-                  <FaChevronLeft />
-                </button>
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-[#C06014] flex items-center justify-center text-white">
-                    <FaUser />
-                  </div>
-                  <div>
-                    <h2 className="font-semibold text-[#003D33]">{chat.astrologer?.fullName}</h2>
-                    <div className="flex items-center gap-2 text-xs text-[#00695C]">
-                      <span className={`w-2 h-2 rounded-full ${chat.status === "ACTIVE" ? "bg-green-500" : "bg-yellow-500"}`}></span>
-                      <span>{chat.status === "ACTIVE" ? formatTime(elapsedSeconds) : "Waiting..."}</span>
-                    </div>
+    <div className="bg-[#F7F3E9]">
+      {/* Full screen container with dynamic height */}
+      <div 
+        className="flex flex-col"
+        style={{ 
+          height: windowHeight > 0 ? `${windowHeight}px` : '100vh',
+          maxHeight: windowHeight > 0 ? `${windowHeight}px` : '100vh'
+        }}
+      >
+        {/* Header - Fixed height */}
+        <div className="flex-shrink-0 bg-white border-b border-[#B2C5B2] px-3 sm:px-4 py-3 shadow-sm">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Left Section */}
+            <div className="flex items-center justify-between sm:justify-start gap-3">
+              <button 
+                onClick={() => router.push("/astrologers")} 
+                className="p-2 hover:bg-gray-100 rounded-full flex-shrink-0"
+              >
+                <FaChevronLeft />
+              </button>
+              
+              <div className="flex items-center gap-3 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-[#C06014] flex items-center justify-center text-white flex-shrink-0">
+                  <FaUser />
+                </div>
+                <div className="min-w-0">
+                  <h2 className="font-semibold text-[#003D33] truncate">
+                    {chat.astrologer?.fullName || "Astrologer"}
+                  </h2>
+                  <div className="flex items-center gap-2 text-xs text-[#00695C]">
+                    <span className={`w-2 h-2 rounded-full ${chat.status === "ACTIVE" ? "bg-green-500" : "bg-yellow-500"}`}></span>
+                    <span>{chat.status === "ACTIVE" ? formatTime(elapsedSeconds) : "Waiting..."}</span>
                   </div>
                 </div>
               </div>
-              
-              {/* Wallet Info Section */}
-              <div className="flex items-center gap-4">
-                <div className="text-right hidden sm:block">
-                  <div className="flex items-center justify-end gap-1 text-sm font-medium">
-                    <FaWallet className="text-[#C06014]" />
-                    <span>₹{wallet}</span>
-                  </div>
-                  
-                  {/* TIME REMAINING DISPLAY */}
-                  {chat.status === "ACTIVE" && (
-                    <div className={`flex items-center justify-end gap-1 text-xs ${remainingTimeInfo.color}`}>
-                      <FaHourglassHalf />
-                      <span>{remainingTimeInfo.text} left</span>
-                    </div>
-                  )}
+            </div>
+            
+            {/* Right Section */}
+            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4">
+              {/* Mobile Wallet Info */}
+              <div className="sm:hidden flex items-center gap-2">
+                <div className="flex items-center gap-1 text-sm font-medium">
+                  <FaWallet className="text-[#C06014] flex-shrink-0" />
+                  <span>₹{wallet}</span>
                 </div>
-
-                {graceSeconds > 0 && (
-                  <div className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded animate-pulse">
-                    End in: {graceSeconds}s
+                {chat.status === "ACTIVE" && (
+                  <div className={`flex items-center gap-1 text-xs ${remainingTimeInfo.color}`}>
+                    <FaHourglassHalf />
+                    <span>{remainingTimeInfo.minutes}m</span>
                   </div>
                 )}
-                
-                <button onClick={handleRecharge} className="px-3 py-1 bg-[#003D33] text-white rounded text-sm hover:bg-[#004D40]">
-                  + Add Money
-                </button>
-                
-                <button onClick={endChat} className="p-2 text-red-600 hover:bg-red-50 rounded-full">
-                  <FaTimes />
-                </button>
               </div>
-            </div>
-          </div>
-          
-          {/* Messages */}
-          <div className="flex-1 bg-white rounded-b-2xl border border-[#B2C5B2] flex flex-col min-h-0">
-            <div ref={messagesContainerRef} className="flex-1 overflow-y-auto p-4 space-y-3">
-              {messages.map((msg, i) => (
-                <div key={i} className={`flex ${msg.senderType === "user" ? "justify-end" : "justify-start"}`}>
-                  <div className={`max-w-[75%] rounded-2xl p-3 ${
-                    msg.senderType === "user" ? "bg-[#C06014] text-white rounded-br-none" : "bg-[#F7F3E9] text-black rounded-bl-none border"
-                  }`}>
-                    <p className="text-sm whitespace-pre-wrap">{msg.content}</p>
-                    <div className="text-[10px] opacity-70 text-right mt-1 flex justify-end gap-1 items-center">
-                      {new Date(msg.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
-                      {msg.senderType === "user" && (msg.seen ? <FaCheckDouble /> : <FaCheck />)}
-                    </div>
-                  </div>
+
+              {/* Desktop Wallet Info */}
+              <div className="hidden sm:block text-right">
+                <div className="flex items-center justify-end gap-1 text-sm font-medium">
+                  <FaWallet className="text-[#C06014]" />
+                  <span>₹{wallet}</span>
                 </div>
-              ))}
-              <div ref={bottomRef} />
-            </div>
-
-            {/* Typing & Input */}
-            {astrologerTyping && <div className="px-4 py-1 text-xs text-gray-500 italic">Astrologer is typing...</div>}
-            
-            <div className="p-3 border-t">
-              {/* Mobile Wallet View */}
-              <div className="sm:hidden flex justify-between text-xs text-gray-500 mb-2 px-1">
-                 <span>Bal: ₹{wallet}</span>
-                 <span className={remainingTimeInfo.color}>{remainingTimeInfo.text} left</span>
+                
+                {chat.status === "ACTIVE" && (
+                  <div className={`flex items-center justify-end gap-1 text-xs ${remainingTimeInfo.color}`}>
+                    <FaHourglassHalf />
+                    <span>{remainingTimeInfo.text} left</span>
+                  </div>
+                )}
               </div>
 
-              <form onSubmit={sendMessage} className="flex gap-2">
-                <input
-                  type="text"
-                  value={newMessage}
-                  onChange={handleTyping}
-                  disabled={chat.status !== "ACTIVE"}
-                  placeholder={chat.status === "ACTIVE" ? "Type a message..." : "Waiting for astrologer..."}
-                  className="flex-1 border rounded-full px-4 py-2 focus:outline-none focus:border-[#C06014]"
-                />
-                <button 
-                  type="submit" 
-                  disabled={!newMessage.trim() || chat.status !== "ACTIVE"}
-                  className="w-10 h-10 bg-[#C06014] text-white rounded-full flex items-center justify-center disabled:opacity-50"
-                >
-                  <FaPaperPlane />
-                </button>
-              </form>
+              {/* Grace Timer */}
+              {graceSeconds > 0 && (
+                <div className="px-2 py-1 bg-red-100 text-red-700 text-xs rounded animate-pulse flex-shrink-0">
+                  End in: {graceSeconds}s
+                </div>
+              )}
+              
+              {/* Buttons */}
+              <button 
+                onClick={handleRecharge}
+                disabled={isRecharging}
+                className="px-3 py-1.5 bg-[#003D33] text-white rounded text-sm hover:bg-[#004D40] disabled:opacity-50 flex-shrink-0 whitespace-nowrap"
+              >
+                {isRecharging ? "Processing..." : "+ Add Money"}
+              </button>
+              
+              <button 
+                onClick={endChat}
+                className="p-2 text-red-600 hover:bg-red-50 rounded-full flex-shrink-0"
+              >
+                <FaTimes />
+              </button>
             </div>
           </div>
         </div>
+
+        {/* Messages Container - Flexible height */}
+        <div className="flex-1 min-h-0 bg-white overflow-hidden">
+          <div 
+            ref={messagesContainerRef}
+            className="h-full overflow-y-auto p-3 sm:p-4 space-y-3"
+          >
+            {messages.length === 0 ? (
+              <div className="h-full flex flex-col items-center justify-center text-gray-500">
+                <div className="text-center">
+                  <div className="text-lg font-medium mb-2">No messages yet</div>
+                  <p className="text-sm">Start the conversation by sending a message</p>
+                </div>
+              </div>
+            ) : (
+              <>
+                {messages.map((msg, i) => (
+                  <div key={i} className={`flex ${msg.senderType === "user" ? "justify-end" : "justify-start"}`}>
+                    <div className={`max-w-[85%] sm:max-w-[75%] rounded-2xl p-3 ${
+                      msg.senderType === "user" 
+                        ? "bg-[#C06014] text-white rounded-br-none" 
+                        : "bg-[#F7F3E9] text-black rounded-bl-none border border-[#B2C5B2]"
+                    }`}>
+                      <p className="text-sm sm:text-base whitespace-pre-wrap break-words">{msg.content}</p>
+                      <div className="text-[10px] sm:text-xs opacity-70 text-right mt-1 flex justify-end gap-1 items-center">
+                        {new Date(msg.createdAt).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}
+                        {msg.senderType === "user" && (
+                          msg.seen ? <FaCheckDouble className="ml-1" /> : <FaCheck className="ml-1" />
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </>
+            )}
+            <div ref={bottomRef} />
+          </div>
+        </div>
+
+        {/* Typing Indicator */}
+        {astrologerTyping && (
+          <div className="flex-shrink-0 px-4 py-2 bg-white border-t border-[#B2C5B2]">
+            <div className="text-xs text-gray-500 italic flex items-center gap-2">
+              <div className="flex gap-1">
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.1s'}}></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{animationDelay: '0.2s'}}></div>
+              </div>
+              Astrologer is typing...
+            </div>
+          </div>
+        )}
+
+        {/* Input Area - Fixed height */}
+        <div className="flex-shrink-0 bg-white border-t border-[#B2C5B2] p-3">
+          <form onSubmit={sendMessage} className="flex gap-2">
+            <input
+              type="text"
+              value={newMessage}
+              onChange={handleTyping}
+              disabled={chat.status !== "ACTIVE"}
+              placeholder={chat.status === "ACTIVE" ? "Type your message here..." : "Waiting for astrologer to join..."}
+              className="flex-1 border border-[#B2C5B2] rounded-full px-4 py-3 focus:outline-none focus:border-[#C06014] focus:ring-1 focus:ring-[#C06014] disabled:bg-gray-50 disabled:text-gray-500"
+            />
+            <button 
+              type="submit" 
+              disabled={!newMessage.trim() || chat.status !== "ACTIVE"}
+              className="w-12 h-12 bg-[#C06014] text-white rounded-full flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed hover:bg-[#D07024] transition-colors flex-shrink-0"
+            >
+              <FaPaperPlane />
+            </button>
+          </form>
+        </div>
       </div>
-       {/* Review Modal */}
+
+      {/* Review Modal */}
       {showReviewModal && chat?.astrologer && (
         <ReviewModal
           serviceId={chatId}

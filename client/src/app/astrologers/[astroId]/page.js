@@ -366,7 +366,7 @@ export default function AstrologerProfile() {
     }
 
     try {
-      const response = await api.delete(`/review/${reviewId}`);
+      const response = await api.delete(`/reviews/${reviewId}`);
       if (response.data.success) {
         toast.success("Review deleted successfully!");
         fetchReviews();

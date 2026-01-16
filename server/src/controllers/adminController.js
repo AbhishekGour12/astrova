@@ -9,18 +9,19 @@ import sendEmail from "../utils/sendEmail.js";
 import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import axios from "axios";
+import dotenv from "dotenv";
 // ===================== //
 // 🔐 ADMIN DASHBOARD OPS //
 // ===================== //
 
 
 
-
+dotenv.config()
  const razorpayX = axios.create({
   baseURL: "https://api.razorpay.com/v1",
   auth: {
-    username: process.env.RAZORPAY_KEY || "rzp_test_RwXcLi65KXy3eV" ,
-    password: process.env.RAZORPAY_SECRET || "QMecJwhjnGFqqSfRr1dcfieJ",
+    username: process.env.RAZORPAY_KEY,
+    password: process.env.RAZORPAY_SECRET 
   },
   headers: {
     "Content-Type": "application/json",

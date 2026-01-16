@@ -2,11 +2,12 @@ import Razorpay from "razorpay";
 import crypto from "crypto";
 import Payment from "../models/Payment.js";
 import { console } from "inspector";
+import dotenv from "dotenv";
 
-
+dotenv.config()
 const razorpay = new Razorpay({
-  key_id: process.env.RAZORPAY_KEY || "rzp_test_RwXcLi65KXy3eV",
-  key_secret: process.env.RAZORPAY_SECRET ||"QMecJwhjnGFqqSfRr1dcfieJ",
+  key_id: process.env.RAZORPAY_KEY,
+  key_secret: process.env.RAZORPAY_SECRET 
 });
 
 export const createOrder = async (req, res) => {
@@ -52,7 +53,7 @@ export const verifyPayment = async (req, res) => {
     }
 
     const sign = crypto
-      .createHmac("sha256", process.env.RAZORPAY_SECRET || "YVC6HQFJ8OJGeFq6MNzCzjEN")
+      .createHmac("sha256", process.env.RAZORPAY_SECRET )
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest("hex");
 
