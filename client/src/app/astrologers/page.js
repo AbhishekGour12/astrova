@@ -256,6 +256,15 @@ const loadRazorpay = () => {
 };
 
   const handleWalletRecharge = async () => {
+    console.log(process.env.NEXT_PUBLIC_API);
+console.log(localStorage.getItem("token"));
+
+    const token = localStorage.getItem("token");
+if (!token) {
+  toast.error("Please login first");
+  router.push("/Login");
+  return;
+}
     const amount = prompt("Enter recharge amount (₹)");
     if (!amount || Number(amount) <= 0) {
       toast.error("Please enter a valid amount");
