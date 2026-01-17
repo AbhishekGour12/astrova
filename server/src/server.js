@@ -56,8 +56,8 @@ const __dirname = path.dirname(__filename);
 ======================= */
 app.use(cors({
   origin: [
-    "http://localhost:3000",
-    "https://myastrova1236.netlify.app"
+    "https://myastrova.com",
+    "https://www.myastrova.com"
   ],
   credentials: true
 }));
