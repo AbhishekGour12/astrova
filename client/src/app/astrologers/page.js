@@ -330,6 +330,15 @@ const loadRazorpay = () => {
         toast.error("login first");
         return;
       }
+      // --- NEW LOGIC: Check Balance ---
+      const selectedAstro = astrologers.find(a => a._id === astrologerId);
+      const chatRate = selectedAstro?.pricing?.chatPerMinute || 50; // Default fallback
+
+      if (wallet < chatRate) {
+        toast.error(`Insufficient balance! You need at least ₹${chatRate} to start a chat.`);
+        handleWalletRecharge(); // Optional: Automatically trigger recharge prompt
+        return;
+      }
       toast.loading("Starting chat...", { id: "start-chat" });
       
       const response = await api.post("/chat/user/start", {
@@ -405,6 +414,15 @@ const handleStartCall = async (astrologerId) => {
     toast.loading("Starting call...", { id: "start-call" });
     return;
   }
+  // --- NEW LOGIC: Check Balance ---
+    const selectedAstro = astrologers.find(a => a._id === astrologerId);
+    const callRate = selectedAstro?.pricing?.callPerMinute || 100; // Default fallback
+
+    if (wallet < callRate) {
+      toast.error(`Insufficient balance! You need at least ₹${callRate} to start a call.`);
+      handleWalletRecharge(); // Optional: Automatically trigger recharge prompt
+      return;
+    }
 
   try {
     toast.loading("Starting voice call...", { id: "start-call" });

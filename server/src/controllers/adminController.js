@@ -10,6 +10,8 @@ import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import axios from "axios";
 import dotenv from "dotenv";
+import * as XLSX from 'xlsx';
+
 // ===================== //
 // 🔐 ADMIN DASHBOARD OPS //
 // ===================== //
@@ -353,6 +355,83 @@ export const approveAstrologer = async (req, res) => {
     console.error("Approve astrologer error:", err.response?.data || err.message);
     res.status(500).json({
       message: err.response?.data?.error?.description || err.message,
+    });
+  }
+};
+
+
+
+
+
+
+// Simple fetch all payments
+export const getAllPayment = async (req, res) => {
+  try {
+    const payments = await Payment.find({})
+      .populate({
+        path: "orderId",
+        select: "orderNumber customerName"
+      })
+      .sort({ createdAt: -1 });
+
+    res.status(200).json({
+      success: true,
+      data: payments,
+      count: payments.length
+    });
+  } catch (error) {
+    console.error("Get payments error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to fetch payments"
+    });
+  }
+};
+
+// Export payments to Excel
+export const exportPayments = async (req, res) => {
+  try {
+    const payments = await Payment.find({})
+      .populate({
+        path: "orderId",
+        select: "orderNumber customerName"
+      })
+      .sort({ createdAt: -1 });
+
+    // Format data for Excel
+    const excelData = payments.map(payment => ({
+      "Order ID": payment.orderId?._id || "N/A",
+      "Order Number": payment.orderId?.orderNumber || "N/A",
+      "Customer": payment.orderId?.customerName || "N/A",
+      "Payment ID": payment.paymentId || "N/A",
+      "Amount": payment.amount,
+      "Method": payment.method,
+      "Status": payment.status,
+      "Date": new Date(payment.createdAt).toLocaleString()
+    }));
+
+    // Create workbook
+    const workbook = XLSX.utils.book_new();
+    const worksheet = XLSX.utils.json_to_sheet(excelData);
+    
+    // Add worksheet to workbook
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Payments");
+    
+    // Generate buffer
+    const excelBuffer = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' });
+
+    // Set response headers
+    res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    res.setHeader('Content-Disposition', 'attachment; filename=payments.xlsx');
+    
+    // Send Excel file
+    res.send(excelBuffer);
+
+  } catch (error) {
+    console.error("Export error:", error);
+    res.status(500).json({
+      success: false,
+      error: "Failed to export payments"
     });
   }
 };

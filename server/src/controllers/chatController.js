@@ -288,6 +288,15 @@ export const markMessageAsSeen = async (req, res) => {
 /* ======================================================
    END CHAT
 ====================================================== */
+/* ======================================================
+   END CHAT BY USER
+====================================================== */
+/* ======================================================
+   END CHAT BY USER
+====================================================== */
+/* ======================================================
+   END CHAT BY USER
+====================================================== */
 export const endChatByUser = async (req, res) => {
   const { chatId } = req.params;
   const userId = req.user.id;
@@ -296,159 +305,154 @@ export const endChatByUser = async (req, res) => {
   if (!chat || String(chat.user) !== userId)
     return res.status(403).json({ message: "Unauthorized" });
 
+  const startedAt = chat.startedAt || new Date();
+  const endedAt = new Date();
+
+  // 🔥 STEP 1: Calculate pending pause if chat ended DURING grace period
+  let pendingPause = 0;
+  if (chat.graceStartedAt) {
+    pendingPause = endedAt - new Date(chat.graceStartedAt);
+  }
+
+  // 🔥 STEP 2: Calculate Active Duration
+  // Formula: Total Time - (Saved Paused Time + Current Pending Pause)
+  const totalDurationMs = (endedAt - startedAt);
+  const totalPausedMs = (chat.totalPausedMs || 0) + pendingPause;
+  
+  // Ensure we don't get negative time
+  const activeMs = Math.max(0, totalDurationMs - totalPausedMs);
+  const activeSeconds = Math.floor(activeMs / 1000);
+
+  let minutes = 0;
+  let totalAmount = 0;
+
+  // 🔥 STEP 3: Billing Calculation (Using Floor for exact minutes)
+  if (activeSeconds >= 60) {
+    minutes = Math.floor(activeSeconds / 60); 
+    totalAmount = minutes * chat.ratePerMinute;
+  }
+
+  stopBillingInterval(chatId);
+
+  // Handle Earnings Database Record
+  if (totalAmount > 0) {
+    await AstrologerEarning.findOneAndUpdate(
+      { chat: chat._id },
+      { minutes: minutes, amount: totalAmount }
+    );
+  } else {
+    // If duration < 1 min active time, delete the 0 earning record
+    await AstrologerEarning.findOneAndDelete({ chat: chat._id });
+  }
+
+  // Update Chat Status
   chat.status = "ENDED";
-  chat.endedAt = new Date();
+  chat.endedAt = endedAt;
+  chat.totalMinutes = minutes;
+  chat.totalAmount = totalAmount;
+  
+  // Cleanup flags
+  chat.graceStartedAt = null; 
+  // We keep totalPausedMs in DB for history
+  
   await chat.save();
-  const endedBy = "user";
 
+  await Astrologer.findByIdAndUpdate(chat.astrologer, { isBusy: false });
 
-  // ✅ UPDATED: Reset busy status AND increment totalConsultations
-  await Astrologer.findByIdAndUpdate(chat.astrologer, { 
+  const io = getIO();
+  const socketData = {
+    chatId,
+    endedBy: "user",
+    totalMinutes: minutes,
+    totalAmount
+  };
+
+  io.to(`chat_${chatId}`).emit("chatEnded", socketData);
+  io.to(`user_${chat.user._id}`).emit("chatEnded", socketData);
+  io.to(`astrologer_${chat.astrologer}`).emit("chatEnded", socketData);
+
+  io.emit("astrologerStatusUpdate", {
+    astrologerId: chat.astrologer,
     isBusy: false
   });
-
-  // Calculate total minutes and amount
-    const startedAt = chat.startedAt || new Date();
-    const endedAt = new Date();
-    const diffMs = endedAt - startedAt;
-const diffSeconds = Math.floor(diffMs / 1000);
-
-let minutes = 0;
-let totalAmount = 0;
-
-// Only charge if at least 60 seconds passed
-if (diffSeconds >= 60) {
-  minutes = Math.ceil(diffSeconds / 60);
-  totalAmount = minutes * chat.ratePerMinute;
-}
-
-    // Update chat
-    chat.status = "ENDED";
-    chat.endedAt = endedAt;
-    chat.totalMinutes = minutes;
-    chat.totalAmount = totalAmount;
-    await chat.save();
-   stopBillingInterval(chatId);
-    // Create earning record
-    if (totalAmount > 0) {
-     await AstrologerEarning.findOneAndUpdate(
-  { chat: chat._id },
-  {
-    minutes: minutes,
-    amount: totalAmount
-  }
-);
-
-    }
-// Send real-time notifications
-    const io = getIO();
-    
-    io.to(`chat_${chatId}`).emit("chatEnded", {
-      chatId,
-      endedBy,
-      totalMinutes: minutes,
-      totalAmount
-    });
-
-    io.to(`user_${chat.user._id}`).emit("chatEnded", {
-      chatId,
-      endedBy,
-      totalMinutes: minutes,
-      totalAmount
-    });
-
-    io.to(`astrologer_${chat.astrologer}`).emit("chatEnded", {
-      chatId,
-      endedBy,
-      totalMinutes: minutes,
-      totalAmount
-    });
-
-    // Update astrologer status for all users
-    io.emit("astrologerStatusUpdate", {
-      astrologerId: chat.astrologer,
-      isBusy: false
-    });
 
   res.json({ success: true });
 };
 
+/* ======================================================
+   END CHAT BY ASTROLOGER
+====================================================== */
 export const endChatByAstrologer = async (req, res) => {
   const { chatId, astrologerId } = req.params;
-   const endedBy = "astrologer";
 
   const chat = await Chat.findById(chatId);
   if (!chat || String(chat.astrologer) !== astrologerId)
     return res.status(403).json({ message: "Unauthorized" });
 
+  const startedAt = chat.startedAt || new Date();
+  const endedAt = new Date();
+
+  // 🔥 STEP 1: Calculate pending pause
+  let pendingPause = 0;
+  if (chat.graceStartedAt) {
+    pendingPause = endedAt - new Date(chat.graceStartedAt);
+  }
+
+  // 🔥 STEP 2: Calculate Active Duration
+  const totalDurationMs = (endedAt - startedAt);
+  const totalPausedMs = (chat.totalPausedMs || 0) + pendingPause;
+  
+  const activeMs = Math.max(0, totalDurationMs - totalPausedMs);
+  const activeSeconds = Math.floor(activeMs / 1000);
+
+  let minutes = 0;
+  let totalAmount = 0;
+
+  // 🔥 STEP 3: Billing Calculation
+  if (activeSeconds >= 60) {
+    minutes = Math.floor(activeSeconds / 60);
+    totalAmount = minutes * chat.ratePerMinute;
+  }
+
+  stopBillingInterval(chatId);
+
+  if (totalAmount > 0) {
+    await AstrologerEarning.findOneAndUpdate(
+      { chat: chat._id },
+      { minutes: minutes, amount: totalAmount }
+    );
+  } else {
+    await AstrologerEarning.findOneAndDelete({ chat: chat._id });
+  }
+
   chat.status = "ENDED";
-  chat.endedAt = new Date();
+  chat.endedAt = endedAt;
+  chat.totalMinutes = minutes;
+  chat.totalAmount = totalAmount;
+  chat.graceStartedAt = null;
   await chat.save();
 
   await Astrologer.findByIdAndUpdate(astrologerId, { isBusy: false });
 
-  // Calculate total minutes and amount
-    const startedAt = chat.startedAt || new Date();
-    const endedAt = new Date();
-    const minutes = Math.max(
-      1,
-      Math.ceil((endedAt - startedAt) / (1000 * 60))
-    );
+  const io = getIO();
+  const socketData = {
+    chatId,
+    endedBy: "astrologer",
+    totalMinutes: minutes,
+    totalAmount
+  };
 
-    const totalAmount = minutes * chat.ratePerMinute;
+  io.to(`chat_${chatId}`).emit("chatEnded", socketData);
+  io.to(`user_${chat.user._id}`).emit("chatEnded", socketData);
+  io.to(`astrologer_${chat.astrologer}`).emit("chatEnded", socketData);
 
-    // Update chat
-    chat.status = "ENDED";
-    chat.endedAt = endedAt;
-    chat.totalMinutes = minutes;
-    chat.totalAmount = totalAmount;
-    await chat.save();
-    stopBillingInterval(chatId)
-    // Create earning record
-    if (totalAmount > 0) {
-      await AstrologerEarning.findOneAndUpdate(
-  { chat: chat._id },
-  {
-    minutes: minutes,
-    amount: totalAmount
-  }
-);
-
-    }
-// Send real-time notifications
-    const io = getIO();
-    
-    io.to(`chat_${chatId}`).emit("chatEnded", {
-      chatId,
-      endedBy,
-      totalMinutes: minutes,
-      totalAmount
-    });
-
-    io.to(`user_${chat.user._id}`).emit("chatEnded", {
-      chatId,
-      endedBy,
-      totalMinutes: minutes,
-      totalAmount
-    });
-
-    io.to(`astrologer_${chat.astrologer}`).emit("chatEnded", {
-      chatId,
-      endedBy,
-      totalMinutes: minutes,
-      totalAmount
-    });
-
-    // Update astrologer status for all users
-    io.emit("astrologerStatusUpdate", {
-      astrologerId: chat.astrologer,
-      isBusy: false
-    });
-
+  io.emit("astrologerStatusUpdate", {
+    astrologerId: chat.astrologer,
+    isBusy: false
+  });
 
   res.json({ success: true });
 };
-
 
 /* ======================================================
    GET MESSAGES
@@ -547,3 +551,139 @@ export const checkChatStatus = async (req, res) => {
   }
 };
 
+/* ======================================================
+   HANDLE WALLET RECHARGE DURING CHAT
+====================================================== */
+export const handleChatRecharge = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { amount, newBalance } = req.body;
+    const userId = req.user.id;
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Chat not found" 
+      });
+    }
+
+    // Verify user owns this chat
+    if (String(chat.user) !== userId) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Unauthorized" 
+      });
+    }
+
+    // If chat was in grace period, end it
+    if (chat.graceUntil) {
+      // Calculate paused time
+      let totalPausedMs = 0;
+      if (chat.graceStartedAt) {
+        totalPausedMs = Date.now() - new Date(chat.graceStartedAt).getTime();
+        chat.totalPausedMs = (chat.totalPausedMs || 0) + totalPausedMs;
+      }
+
+      // Clear grace period
+      chat.graceUntil = null;
+      chat.graceStartedAt = null;
+      chat.lastBillingAt = new Date(); // Resume billing from now
+      await chat.save();
+
+      // Notify via socket
+      const io = getIO();
+      io.to(`chat_${chatId}`).emit("gracePeriodEnded", {
+        chatId,
+        totalPausedTime: Math.floor(totalPausedMs / 1000),
+        message: "Wallet recharged successfully"
+      });
+
+      console.log(`✅ Grace period ended for chat ${chatId} after recharge`);
+    }
+
+    res.json({
+      success: true,
+      message: "Recharge processed successfully",
+      chat
+    });
+
+  } catch (err) {
+    console.error("Handle chat recharge error:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to process recharge" 
+    });
+  }
+};
+
+
+/* ======================================================
+   PROCESS RECHARGE DURING CHAT
+====================================================== */
+export const processChatRecharge = async (req, res) => {
+  try {
+    const { chatId } = req.params;
+    const { amount, newBalance } = req.body;
+    const userId = req.user.id;
+
+    const chat = await Chat.findById(chatId);
+    if (!chat) {
+      return res.status(404).json({ 
+        success: false, 
+        message: "Chat not found" 
+      });
+    }
+
+    // Verify user owns this chat
+    if (String(chat.user) !== userId) {
+      return res.status(403).json({ 
+        success: false, 
+        message: "Unauthorized" 
+      });
+    }
+
+    console.log(`💰 Processing recharge for chat ${chatId}: ₹${amount}, new balance: ₹${newBalance}`);
+
+    // If chat was in grace period, end it
+    if (chat.graceUntil && new Date(chat.graceUntil) > new Date()) {
+      // Calculate paused time during grace
+      let pausedDuration = 0;
+      if (chat.graceStartedAt) {
+        pausedDuration = Date.now() - new Date(chat.graceStartedAt).getTime();
+        chat.totalPausedMs = (chat.totalPausedMs || 0) + pausedDuration;
+      }
+
+      // Clear grace period
+      chat.graceUntil = null;
+      chat.graceStartedAt = null;
+      chat.billingPausedAt = null;
+      chat.lastWalletCheckAt = new Date();
+      await chat.save();
+
+      // Notify via socket
+      const io = getIO();
+      io.to(`chat_${chatId}`).emit("gracePeriodEnded", {
+        chatId,
+        totalPausedTime: Math.floor(pausedDuration / 1000),
+        newBalance: newBalance,
+        message: "Recharge successful. Chat resumed."
+      });
+
+      console.log(`✅ Grace ended for chat ${chatId} after recharge. Paused for ${Math.floor(pausedDuration/1000)}s`);
+    }
+
+    res.json({
+      success: true,
+      message: "Recharge processed successfully",
+      chat: chat
+    });
+
+  } catch (err) {
+    console.error("❌ Process chat recharge error:", err);
+    res.status(500).json({ 
+      success: false, 
+      message: "Failed to process recharge" 
+    });
+  }
+};

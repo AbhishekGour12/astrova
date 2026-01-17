@@ -146,18 +146,36 @@ socket.on("messageSeenUpdate", ({ messageId, seen }) => {
 });
 
 
-    socket.on("chatEnded", ({ chatId, endedBy, reason }) => {
+    socket.on("chatEnded", ({ chatId, endedBy, reason, totalAmount }) => {
       console.log(chatId)
       setChats(prev => prev.filter(chat => chat._id !== chatId));
       setActiveChat(null)
       if (activeChat?._id === chatId) {
         setActiveChat(null);
         setMessages([]);
-        toast.info(`Chat ended by ${endedBy}: ${reason}`);
+        setUserProfileInfo(null);
+        // ✨ LOGIC FIX: Check if amount is greater than 0
+        if (totalAmount && totalAmount > 0) {
+            toast.success(`Chat completed! Earnings: ₹${totalAmount}`);
+            
+            // Stats ko manually update karein taaki refresh na karna pade
+            setStats(prev => ({
+                ...prev,
+                todayEarnings: prev.todayEarnings + totalAmount,
+                activeChats: Math.max(0, prev.activeChats - 1)
+            }));
+        } else {
+            // Agar 1 min se kam tha ya 0 charge hua
+            toast.success(`Chat ended by ${endedBy} (No earnings - Short duration)`);
+             setStats(prev => ({
+                ...prev,
+                activeChats: Math.max(0, prev.activeChats - 1)
+            }));
+       }
       }
-      
+          
       if (endedBy === "system" && reason.includes("balance")) {
-        toast.warning("User's balance was insufficient");
+        toast.error("User's balance was insufficient");
       }
     });
 

@@ -3,6 +3,7 @@ import { startBillingInterval, stopBillingInterval } from "./chatBilling.js";
 import { Message } from "../models/Message.js";
 import Call from "../models/Call.js";
 import Astrologer from "../models/Astrologer.js"; // Add this import
+import Chat from "../models/Chat.js";
 
 let io;
 
@@ -49,7 +50,161 @@ export const initSocket = (server) => {
 
   io.on("connection", (socket) => {
     console.log("🟢 Socket connected:", socket.id);
+    // In socket.js, add these event handlers inside io.on("connection"):
 
+// Listen for wallet recharge events
+socket.on("walletRecharged", async ({ callId, amount, newBalance }) => {
+  try {
+    console.log(`💰 Wallet recharged for call ${callId}: ₹${amount}, new balance: ₹${newBalance}`);
+    
+    const call = await Call.findById(callId);
+    if (!call) return;
+    
+    // Emit wallet update to all concerned
+    io.to(`call_${callId}`).emit("walletUpdated", {
+      walletBalance: newBalance,
+      amountAdded: amount,
+      message: "Wallet recharged successfully",
+      timestamp: new Date()
+    });
+    
+    io.to(`user_${call.user}`).emit("walletUpdated", {
+      walletBalance: newBalance
+    });
+    
+  } catch (err) {
+    console.error("Wallet recharged socket error:", err);
+  }
+});
+
+// Listen for manual balance check requests
+socket.on("checkBalance", async ({ callId }) => {
+  try {
+    const call = await Call.findById(callId)
+      .populate('user', 'walletBalance');
+    
+    if (!call) return;
+    
+    // Send current balance to user
+    socket.emit("balanceUpdate", {
+      callId,
+      walletBalance: call.user.walletBalance,
+      ratePerMinute: call.ratePerMinute,
+      minutesLeft: Math.floor(call.user.walletBalance / call.ratePerMinute)
+    });
+    
+  } catch (err) {
+    console.error("Check balance socket error:", err);
+  }
+});
+       // 🔥 1. When Grace Period Starts -> Record the Timestamp
+    socket.on("gracePeriodTriggered", async ({ chatId }) => {
+      try {
+        console.log(`⏸️ Grace period started for chat ${chatId}`);
+        await Chat.findByIdAndUpdate(chatId, { 
+          graceStartedAt: new Date() 
+        });
+      } catch (err) {
+        console.error("Error handling grace start:", err);
+      }
+    });
+
+    // 🔥 2. When Grace Period Ends -> Calculate Duration & Add to Total Paused
+    socket.on("gracePeriodEnded", async ({ chatId }) => {
+      try {
+        const chat = await Chat.findById(chatId);
+        
+        if (chat && chat.graceStartedAt) {
+          const now = new Date();
+          const graceStart = new Date(chat.graceStartedAt);
+          
+          // Calculate how long it was paused (in milliseconds)
+          const pauseDuration = now - graceStart;
+          
+          console.log(`▶️ Grace period ended. Paused for: ${pauseDuration}ms`);
+
+          // Update DB: Add to totalPausedMs and clear start time
+          await Chat.findByIdAndUpdate(chatId, {
+            $inc: { totalPausedMs: pauseDuration },
+            graceStartedAt: null
+          });
+        }
+      } catch (err) {
+        console.error("Error handling grace end:", err);
+      }
+    });
+
+    // In socket.js, add this to the connection handler:
+
+socket.on("requestImmediateGrace", async ({ chatId, userId, currentBalance }) => {
+  try {
+    console.log(`⚠️ Immediate grace requested for chat ${chatId}, balance: ₹${currentBalance}`);
+    
+    const chat = await Chat.findById(chatId);
+    if (!chat || chat.status !== "ACTIVE") return;
+    
+    // Check if already in grace
+    if (chat.graceUntil && new Date(chat.graceUntil) > new Date()) {
+      return; // Already in grace
+    }
+    
+    // Start grace period immediately
+    const graceUntil = new Date(Date.now() + 5 * 60 * 1000);
+    chat.graceUntil = graceUntil;
+    chat.graceStartedAt = new Date();
+    chat.billingPausedAt = new Date();
+    await chat.save();
+    
+    // Calculate remaining seconds
+    const secondsRemaining = Math.floor((graceUntil - Date.now()) / 1000);
+    
+    // Emit grace period started
+    socket.to(`chat_${chatId}`).emit("gracePeriodStarted", {
+      chatId,
+      graceUntil: graceUntil,
+      secondsRemaining: secondsRemaining,
+      currentBalance: currentBalance,
+      message: "Chat paused due to insufficient balance"
+    });
+    
+    socket.to(`user_${userId}`).emit("gracePeriodStarted", {
+      chatId,
+      graceUntil: graceUntil,
+      secondsRemaining: secondsRemaining
+    });
+    
+    console.log(`⏸️ Immediate grace started for chat ${chatId}. Remaining: ${secondsRemaining}s`);
+    
+  } catch (err) {
+    console.error("Immediate grace error:", err);
+  }
+});
+
+socket.on("graceExpired", async ({ chatId }) => {
+  try {
+    console.log(`❌ Grace expired for chat ${chatId}`);
+    
+    const chat = await Chat.findById(chatId);
+    if (!chat) return;
+    
+    // End chat due to grace expiration
+    chat.status = "ENDED";
+    chat.endedAt = new Date();
+    chat.endReason = "grace_period_expired";
+    await chat.save();
+    
+    // Emit chat ended
+    socket.to(`chat_${chatId}`).emit("chatEnded", {
+      chatId,
+      endedBy: "system",
+      reason: "Grace period expired",
+      totalAmount: 0
+    });
+    
+  } catch (err) {
+    console.error("Grace expired error:", err);
+  }
+});
     // User joins
     socket.on("joinUser", ({ userId }) => {
       socket.join(`user_${userId}`);

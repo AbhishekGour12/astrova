@@ -14,6 +14,9 @@ import {
   getAllAdmins,
   addSubAdmin,
   deleteSubAdmin,
+  getAllPayment,
+  exportPayments,
+ 
 } from "../controllers/adminController.js";
 import {
 
@@ -104,5 +107,12 @@ router.delete("/chats/:id", deleteChat);
 router.get("/admins", getAllAdmins);
 router.post("/add-admin", addSubAdmin);
 router.delete("/admins/:id", deleteSubAdmin);
+
+
+// Get all payments
+router.get("/payment", getAllPayment);
+
+// Export to Excel
+router.get("/export", exportPayments);
 
 export default router;

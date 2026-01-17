@@ -340,15 +340,20 @@ export const endCallByUser = async (req, res) => {
       });
     }
 
-    // Calculate total minutes and amount
+   // 🔥 CHANGE 1: Precise Duration Calculation (Remove Math.max)
     const startedAt = call.startedAt || new Date();
     const endedAt = new Date();
-    const minutes = Math.max(
-      1,
-      Math.ceil((endedAt - startedAt) / (1000 * 60))
-    );
+    const diffMs = endedAt - startedAt;
+    const diffSeconds = Math.floor(diffMs / 1000);
 
-    const totalAmount = minutes * call.ratePerMinute;
+    let minutes = 0;
+    let totalAmount = 0;
+
+    // 🔥 CHANGE 2: Only charge if duration >= 60 seconds
+    if (diffSeconds >= 60) {
+      minutes = Math.floor(diffSeconds / 60);
+      totalAmount = minutes * call.ratePerMinute;
+    }
 
     // Update call
     call.status = "ENDED";
@@ -361,16 +366,15 @@ export const endCallByUser = async (req, res) => {
     // Stop billing interval
     stopCallBillingInterval(callId);
 
-    // Create earning record
+    // 🔥 CHANGE 3: Logic to DELETE earning if amount is 0
     if (totalAmount > 0) {
       await AstrologerEarning.findOneAndUpdate(
-  { call: call._id },
-  {
-    minutes: minutes,
-    amount: totalAmount
-  }
-);
-
+        { call: call._id },
+        { minutes: minutes, amount: totalAmount }
+      );
+    } else {
+      // Delete the empty record so it doesn't show as ₹0 in dashboard
+      await AstrologerEarning.findOneAndDelete({ call: call._id });
     }
 
     // Free astrologer
@@ -378,38 +382,23 @@ export const endCallByUser = async (req, res) => {
 
     // Send real-time notifications
     const io = getIO();
-    
-    io.to(`call_${callId}`).emit("callEnded", {
+    const socketData = {
       callId,
       endedBy: "user",
       totalMinutes: minutes,
       totalAmount
-    });
+    };
 
-    io.to(`user_${call.user}`).emit("callEnded", {
-      callId,
-      endedBy: "user",
-      totalMinutes: minutes,
-      totalAmount
-    });
+    io.to(`call_${callId}`).emit("callEnded", socketData);
+    io.to(`user_${call.user}`).emit("callEnded", socketData);
+    io.to(`astrologer_${call.astrologer}`).emit("callEnded", socketData);
 
-    io.to(`astrologer_${call.astrologer}`).emit("callEnded", {
-      callId,
-      endedBy: "user",
-      totalMinutes: minutes,
-      totalAmount
-    });
-
-    // Update astrologer status for all users
     io.emit("astrologerStatusUpdate", {
       astrologerId: call.astrologer,
       isBusy: false
     });
 
-    res.json({ 
-      success: true,
-      call: call
-    });
+    res.json({ success: true, call });
   } catch (err) {
     console.error("End call by user error:", err);
     res.status(500).json({ 
@@ -441,15 +430,20 @@ export const endCallByAstrologer = async (req, res) => {
       });
     }
 
-    // Calculate total minutes and amount
+    // 🔥 CHANGE 1: Precise Duration Calculation
     const startedAt = call.startedAt || new Date();
     const endedAt = new Date();
-    const minutes = Math.max(
-      1,
-      Math.ceil((endedAt - startedAt) / (1000 * 60))
-    );
+    const diffMs = endedAt - startedAt;
+    const diffSeconds = Math.floor(diffMs / 1000);
 
-    const totalAmount = minutes * call.ratePerMinute;
+    let minutes = 0;
+    let totalAmount = 0;
+
+    // 🔥 CHANGE 2: Only charge if duration >= 60 seconds
+    if (diffSeconds >= 60) {
+      minutes = Math.floor(diffSeconds / 60);
+      totalAmount = minutes * call.ratePerMinute;
+    }
 
     // Update call
     call.status = "ENDED";
@@ -462,16 +456,15 @@ export const endCallByAstrologer = async (req, res) => {
     // Stop billing interval
     stopCallBillingInterval(callId);
 
-    // Create earning record
+    // 🔥 CHANGE 3: Logic to DELETE earning if amount is 0
     if (totalAmount > 0) {
       await AstrologerEarning.findOneAndUpdate(
-  { call: call._id },
-  {
-    minutes: minutes,
-    amount: totalAmount
-  }
-);
-
+        { call: call._id },
+        { minutes: minutes, amount: totalAmount }
+      );
+    } else {
+      // Delete the empty record
+      await AstrologerEarning.findOneAndDelete({ call: call._id });
     }
 
     // Free astrologer
@@ -479,38 +472,23 @@ export const endCallByAstrologer = async (req, res) => {
 
     // Send real-time notifications
     const io = getIO();
-    
-    io.to(`call_${callId}`).emit("callEnded", {
+    const socketData = {
       callId,
       endedBy: "astrologer",
       totalMinutes: minutes,
       totalAmount
-    });
+    };
 
-    io.to(`user_${call.user}`).emit("callEnded", {
-      callId,
-      endedBy: "astrologer",
-      totalMinutes: minutes,
-      totalAmount
-    });
+    io.to(`call_${callId}`).emit("callEnded", socketData);
+    io.to(`user_${call.user}`).emit("callEnded", socketData);
+    io.to(`astrologer_${call.astrologer}`).emit("callEnded", socketData);
 
-    io.to(`astrologer_${call.astrologer}`).emit("callEnded", {
-      callId,
-      endedBy: "astrologer",
-      totalMinutes: minutes,
-      totalAmount
-    });
-
-    // Update astrologer status for all users
     io.emit("astrologerStatusUpdate", {
       astrologerId: call.astrologer,
       isBusy: false
     });
 
-    res.json({ 
-      success: true,
-      call: call
-    });
+    res.json({ success: true, call });
   } catch (err) {
     console.error("End call by astrologer error:", err);
     res.status(500).json({ 

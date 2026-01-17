@@ -1,4 +1,3 @@
-
 import Call from "../models/Call.js";
 import User from "../models/User.js";
 import AstrologerEarning from "../models/AstrologerEarning.js";
@@ -8,7 +7,7 @@ import { getIO } from "./socket.js";
 const activeCallBillingIntervals = new Map();
 
 /* ======================================================
-   START BILLING FOR CALL
+   START BILLING FOR CALL (FIXED WITH SOCKET EVENTS)
 ====================================================== */
 export const startCallBilling = async (callId) => {
   try {
@@ -16,16 +15,23 @@ export const startCallBilling = async (callId) => {
       .populate("user", "walletBalance")
       .populate("astrologer", "_id");
 
-    if (!call || call.status !== "ACTIVE") return;
+    if (!call || call.status !== "ACTIVE") {
+      console.log(`❌ Call ${callId} not active, skipping billing`);
+      return;
+    }
 
     // find earning record
     const earning = await AstrologerEarning.findOne({ call: callId });
-    if (!earning) return;
+    if (!earning) {
+      console.log(`❌ No earning record found for call ${callId}`);
+      return;
+    }
 
     const user = await User.findById(call.user._id);
 
     // check balance for 1 minute only
     if (user.walletBalance < call.ratePerMinute) {
+      console.log(`⚠️ Insufficient balance: ₹${user.walletBalance} < ₹${call.ratePerMinute}`);
       await endCallDueToInsufficientBalance(callId);
       return;
     }
@@ -41,37 +47,103 @@ export const startCallBilling = async (callId) => {
 
     const io = getIO();
 
-    io.to(`call_${callId}`).emit("walletUpdated", {
+    // 🔥 CRITICAL FIX: Emit detailed wallet update events
+    const billingData = {
+      callId,
       walletBalance: user.walletBalance,
+      amountDeducted: call.ratePerMinute,
       minutes: earning.minutes,
-      totalAmount: earning.amount
+      totalAmount: earning.amount,
+      timestamp: new Date()
+    };
+
+    console.log(`✅ Billed call ${callId}: ₹${call.ratePerMinute} deducted. New balance: ₹${user.walletBalance}`);
+
+    // Emit to call room
+    io.to(`call_${callId}`).emit("walletUpdated", billingData);
+    
+    // Emit to user specifically
+    io.to(`user_${call.user._id}`).emit("walletUpdated", {
+      walletBalance: user.walletBalance,
+      amountDeducted: call.ratePerMinute,
+      timestamp: new Date()
     });
 
-    io.to(`user_${call.user._id}`).emit("walletUpdated", {
-      walletBalance: user.walletBalance
+    // 🔥 ALSO EMIT minuteBilled event for frontend tracking
+    io.to(`call_${callId}`).emit("minuteBilled", {
+      callId,
+      amount: call.ratePerMinute,
+      minutes: 1,
+      walletBalance: user.walletBalance,
+      totalMinutes: earning.minutes,
+      timestamp: new Date()
     });
+
+    // 🔥 Check for low balance warning AFTER deduction
+    if (user.walletBalance < call.ratePerMinute) {
+      console.log(`⚠️ Low balance warning for call ${callId}: ₹${user.walletBalance} left`);
+      
+      const minutesLeft = Math.floor(user.walletBalance / call.ratePerMinute);
+      
+      io.to(`user_${call.user._id}`).emit("lowBalanceWarning", {
+        callId,
+        currentBalance: user.walletBalance,
+        requiredForNextMinute: call.ratePerMinute,
+        minutesLeft: minutesLeft,
+        message: `Only ₹${user.walletBalance} left. ${minutesLeft} minute(s) remaining.`
+      });
+    }
 
   } catch (err) {
-    console.error("Call billing error:", err.message);
+    console.error("❌ Call billing error:", err.message);
   }
 };
 
-
 /* ======================================================
-   END CALL DUE TO INSUFFICIENT BALANCE
+   END CALL DUE TO INSUFFICIENT BALANCE (FIXED)
 ====================================================== */
 const endCallDueToInsufficientBalance = async (callId) => {
   try {
     const call = await Call.findById(callId)
-      .populate('user', '_id')
-      .populate('astrologer', '_id');
+      .populate('user', '_id name')
+      .populate('astrologer', '_id fullName');
 
-    if (!call) return;
+    if (!call) {
+      console.log(`❌ Call ${callId} not found for ending due to insufficient balance`);
+      return;
+    }
 
+    console.log(`❌ Ending call ${callId} due to insufficient balance`);
+
+    // Calculate total minutes and amount
+    const startedAt = call.startedAt || new Date();
+    const endedAt = new Date();
+    const diffMs = endedAt - startedAt;
+    const diffSeconds = Math.floor(diffMs / 1000);
+    
+    let minutes = 0;
+    let totalAmount = 0;
+    
+    if (diffSeconds >= 60) {
+      minutes = Math.floor(diffSeconds / 60);
+      totalAmount = minutes * call.ratePerMinute;
+    }
+
+    // Update call
     call.status = "ENDED";
-    call.endedAt = new Date();
+    call.endedAt = endedAt;
+    call.totalMinutes = minutes;
+    call.totalAmount = totalAmount;
     call.endReason = "insufficient_balance";
     await call.save();
+
+    // Update earning if any
+    if (totalAmount > 0) {
+      await AstrologerEarning.findOneAndUpdate(
+        { call: call._id },
+        { minutes: minutes, amount: totalAmount }
+      );
+    }
 
     // Mark astrologer as free
     await Astrologer.findByIdAndUpdate(call.astrologer._id, {
@@ -81,23 +153,25 @@ const endCallDueToInsufficientBalance = async (callId) => {
     const io = getIO();
     
     // Notify both parties
-    io.to(`call_${callId}`).emit("callEnded", {
+    const endData = {
       callId,
       endedBy: "system",
       reason: "Insufficient balance",
-      totalMinutes: Math.floor((call.endedAt - call.startedAt) / (1000 * 60))
-    });
+      totalMinutes: minutes,
+      totalAmount: totalAmount,
+      timestamp: new Date()
+    };
 
-    io.to(`user_${call.user._id}`).emit("callEnded", {
-      callId,
-      endedBy: "system",
-      reason: "Insufficient balance"
-    });
+    io.to(`call_${callId}`).emit("callEnded", endData);
+    io.to(`user_${call.user._id}`).emit("callEnded", endData);
+    io.to(`astrologer_${call.astrologer._id}`).emit("callEnded", endData);
 
-    io.to(`astrologer_${call.astrologer._id}`).emit("callEnded", {
+    // 🔥 ALSO EMIT insufficient balance event
+    io.to(`user_${call.user._id}`).emit("insufficientBalance", {
       callId,
-      endedBy: "system",
-      reason: "User insufficient balance"
+      currentBalance: 0,
+      requiredAmount: call.ratePerMinute,
+      message: "Call ended due to insufficient balance"
     });
 
     // Update astrologer status
@@ -112,8 +186,10 @@ const endCallDueToInsufficientBalance = async (callId) => {
       activeCallBillingIntervals.delete(callId);
     }
 
+    console.log(`✅ Call ${callId} ended due to insufficient balance. Total: ${minutes} min, ₹${totalAmount}`);
+
   } catch (err) {
-    console.error("End call due to balance error:", err.message);
+    console.error("❌ End call due to balance error:", err.message);
   }
 };
 
@@ -125,6 +201,8 @@ export const startCallBillingInterval = (callId) => {
   if (activeCallBillingIntervals.has(callId)) {
     clearInterval(activeCallBillingIntervals.get(callId));
   }
+
+  console.log(`▶️ Starting billing interval for call ${callId}`);
 
   // Start new interval (every minute)
   const interval = setInterval(() => {
@@ -141,6 +219,7 @@ export const stopCallBillingInterval = (callId) => {
   if (activeCallBillingIntervals.has(callId)) {
     clearInterval(activeCallBillingIntervals.get(callId));
     activeCallBillingIntervals.delete(callId);
+    console.log(`⏹️ Stopped billing interval for call ${callId}`);
   }
 };
 
@@ -149,4 +228,28 @@ export const stopCallBillingInterval = (callId) => {
 ====================================================== */
 export const getActiveBillingCalls = () => {
   return Array.from(activeCallBillingIntervals.keys());
+};
+
+/* ======================================================
+   MANUAL BALANCE CHECK (For frontend to call)
+====================================================== */
+export const checkCallBalance = async (callId) => {
+  try {
+    const call = await Call.findById(callId)
+      .populate('user', 'walletBalance')
+      .populate('astrologer', '_id');
+    
+    if (!call) return null;
+    
+    return {
+      callId,
+      walletBalance: call.user.walletBalance,
+      ratePerMinute: call.ratePerMinute,
+      minutesLeft: Math.floor(call.user.walletBalance / call.ratePerMinute),
+      isSufficient: call.user.walletBalance >= call.ratePerMinute
+    };
+  } catch (err) {
+    console.error("Check call balance error:", err);
+    return null;
+  }
 };

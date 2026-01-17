@@ -18,6 +18,7 @@ import {
   FaArrowLeft,
   FaSpinner,
   FaTimes,
+  FaExclamationTriangle,
 } from "react-icons/fa";
 import toast from "react-hot-toast";
 import api from "../../../lib/api";
@@ -46,6 +47,11 @@ export default function UserCallPage() {
   const durationIntervalRef = useRef(null);
   const localStartRef = useRef(null);
 
+  // Low Balance Warning State
+  const [lowBalanceWarning, setLowBalanceWarning] = useState(false);
+  const [showRechargePrompt, setShowRechargePrompt] = useState(false);
+  const lowBalanceCheckRef = useRef(null);
+
   // Review Modal States
   const [showReviewModal, setShowReviewModal] = useState(false);
   const [hasCheckedForReview, setHasCheckedForReview] = useState(false);
@@ -69,7 +75,20 @@ export default function UserCallPage() {
   } = useCall(callId, identity);
 
   const [isLeaving, setIsLeaving] = useState(false);
-
+// Add this debug effect to see wallet balance changes
+useEffect(() => {
+  console.log(`🔍 WALLET BALANCE UPDATE: ₹${walletBalance} | Call Status: ${callStatus}`);
+  
+  // Debug: Check if call exists and has rate
+  if (call && walletBalance !== undefined) {
+    console.log(`📊 Call Rate: ₹${call.ratePerMinute}/min | Balance: ₹${walletBalance}`);
+    
+    // Check if balance is sufficient
+    if (call.ratePerMinute && walletBalance < call.ratePerMinute) {
+      console.log(`⚠️ INSUFFICIENT BALANCE: ₹${walletBalance} < ₹${call.ratePerMinute}`);
+    }
+  }
+}, [walletBalance, callStatus, call]);
   useEffect(() => {
     setIsClient(true);
   }, []);
@@ -208,7 +227,58 @@ export default function UserCallPage() {
     setSocket(newSocket);
     newSocket.emit("joinUser", { userId: user._id });
     newSocket.emit("joinCallRoom", { callId });
+      // 🔥 ADD THESE NEW LISTENERS:
+  newSocket.on("walletUpdated", (data) => {
+    console.log("💰 Wallet updated via socket:", data);
+    // The useCall hook should handle this via its own listener
+  });
 
+  newSocket.on("minuteBilled", (data) => {
+    console.log("⏰ Minute billed via socket:", data);
+    // This should trigger balance update in useCall
+  });
+
+  newSocket.on("lowBalanceWarning", (data) => {
+    console.log("⚠️ Low balance warning via socket:", data);
+    setLowBalanceWarning(true);
+    setShowRechargePrompt(true);
+    
+    toast.error(
+      <div className="flex flex-col gap-1">
+        <div className="flex items-center gap-2">
+          <FaExclamationTriangle className="text-yellow-500" />
+          <span>Low Balance Warning!</span>
+        </div>
+        <div className="text-sm">
+          Only ₹{data.currentBalance} left. {data.minutesLeft} minute(s) remaining.
+        </div>
+      </div>,
+      { duration: 5000 }
+    );
+  });
+
+  newSocket.on("insufficientBalance", (data) => {
+    console.log("❌ Insufficient balance via socket:", data);
+    toast.error(
+      <div className="flex items-center gap-2">
+        <FaExclamationTriangle className="text-red-500" />
+        <span>Insufficient balance! Call will end.</span>
+      </div>,
+      { duration: 4000 }
+    );
+    
+    // Auto-end call
+    setTimeout(() => {
+      if (!callEndedByAstrologer) {
+        handleEndCall();
+      }
+    }, 2000);
+  });
+
+  newSocket.on("balanceUpdate", (data) => {
+    console.log("📊 Balance update via socket:", data);
+    // This comes from manual checkBalance request
+  });
     newSocket.on("callActivated", (data) => {
       console.log("🎉 Call activated received:", data);
       if (data.zegoRoomId) {
@@ -347,7 +417,7 @@ export default function UserCallPage() {
   });
 
   // Handle End Call
-  const handleEndCall = async () => {
+  const handleEndCall = useCallback(async () => {
     if (isLeaving) return;
     setIsLeaving(true);
     try {
@@ -378,8 +448,170 @@ export default function UserCallPage() {
     } finally {
       setIsLeaving(false);
     }
+  },[isLeaving, endCall, socket, callId, user, call, checkReviewEligibility]);
+
+  // ==========================================
+  //  🔥 CRITICAL: AUTO END CALL ON LOW BALANCE
+  // ==========================================
+  useEffect(() => {
+    // Clear any existing check
+    if (lowBalanceCheckRef.current) {
+      clearInterval(lowBalanceCheckRef.current);
+    }
+
+    // Only check if call is connected/active
+    if ((callStatus === "CONNECTED" || isVideoMode) && call && walletBalance !== undefined && walletBalance !== null) {
+      const ratePerMinute = call.ratePerMinute || 0;
+      
+      // Function to check balance and handle auto-end
+      const checkAndHandleLowBalance = () => {
+        console.log(`💰 Balance check: ₹${walletBalance} | Rate: ₹${ratePerMinute} per minute`);
+        
+        // If balance is less than required for 1 minute
+        if (walletBalance < ratePerMinute) {
+          if (walletBalance <= 0) {
+            // 🔥 CRITICAL: Balance is ZERO or NEGATIVE - END CALL IMMEDIATELY
+            console.log(`❌ Balance is ₹${walletBalance}. Ending call immediately.`);
+            
+            // Show final warning
+            toast.error(
+              <div className="flex items-center gap-2">
+                <FaExclamationTriangle className="text-red-500" />
+                <span>Insufficient balance! Call ended.</span>
+              </div>,
+              { duration: 5000 }
+            );
+            
+            // Auto-end the call
+            if (!isLeaving && !callEndedByAstrologer) {
+              handleEndCall();
+            }
+            
+          } else if (!lowBalanceWarning) {
+            // 🔥 Warning: Balance is LOW (but not zero)
+            console.log(`⚠️ Low balance warning: ₹${walletBalance} < ₹${ratePerMinute}`);
+            setLowBalanceWarning(true);
+            
+            // Show recharge prompt
+            setShowRechargePrompt(true);
+            
+            toast.error(
+              <div className="flex flex-col gap-1">
+                <div className="flex items-center gap-2">
+                  <FaExclamationTriangle className="text-yellow-500" />
+                  <span className="font-bold">Low Balance!</span>
+                </div>
+                <div className="text-sm">
+                  Only ₹{walletBalance} left. Recharge now or call will end automatically.
+                </div>
+              </div>,
+              { 
+                duration: 6000,
+                icon: '⚠️'
+              }
+            );
+            
+            // Auto-hide recharge prompt after 10 seconds
+            setTimeout(() => {
+              setShowRechargePrompt(false);
+            }, 10000);
+          }
+        } else {
+          // Balance is sufficient
+          if (lowBalanceWarning) {
+            setLowBalanceWarning(false);
+            setShowRechargePrompt(false);
+          }
+        }
+      };
+
+      // Check immediately
+      checkAndHandleLowBalance();
+      
+      // Set up interval to check every 10 seconds
+      lowBalanceCheckRef.current = setInterval(checkAndHandleLowBalance, 10000);
+    }
+
+    // Cleanup
+    return () => {
+      if (lowBalanceCheckRef.current) {
+        clearInterval(lowBalanceCheckRef.current);
+        lowBalanceCheckRef.current = null;
+      }
+      setLowBalanceWarning(false);
+      setShowRechargePrompt(false);
+    };
+  }, [walletBalance, callStatus, isVideoMode, call, isLeaving, callEndedByAstrologer, handleEndCall]);
+
+  // ==========================================
+  //  RECHARGE WALLET FUNCTION
+  // ==========================================
+  const handleRecharge = async () => {
+    const amount = prompt("Enter amount to recharge (₹):", "500");
+    if (!amount || isNaN(amount) || Number(amount) < 10) { 
+      toast.error("Please enter a valid amount (minimum ₹10)");
+      return; 
+    }
+
+    try {
+      const orderRes = await api.post("/payment/create-order", { amount: Number(amount) });
+      
+      const options = {
+        key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
+        amount: orderRes.data.amount,
+        currency: "INR",
+        name: "Astro Call",
+        order_id: orderRes.data.id,
+        handler: async (response) => {
+          try {
+            // Verify payment
+            await api.post("/payment/verify", {
+              razorpay_order_id: orderRes.data.id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
+            
+            // Add to wallet
+            await api.post("/auth/addMoneyToWallet", { amount: Number(amount) });
+            
+            toast.success(`₹${amount} added successfully!`);
+            setShowRechargePrompt(false);
+            
+            // Refresh wallet balance
+            if (socket) {
+              socket.emit("walletUpdated", { callId });
+            }
+            
+          } catch (error) {
+            console.error("Payment error:", error);
+            toast.error("Payment failed. Please try again.");
+          }
+        },
+        modal: { 
+          ondismiss: () => {
+            toast.info("Recharge cancelled");
+          }
+        },
+        prefill: {
+          name: user?.name || "User",
+          email: user?.email || "",
+          contact: user?.phone || ""
+        },
+        theme: { color: "#C06014" }
+      };
+      
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+      
+    } catch (error) {
+      console.error("Recharge error:", error);
+      toast.error("Failed to initiate recharge");
+    }
   };
 
+  // ==========================================
+  //  GET STATUS MESSAGE
+  // ==========================================
   const getStatusMessage = () => {
     if (callEndedByAstrologer || callStatus === "ENDED") {
       return { title: "Call Ended", message: "Call has ended", showControls: false };
@@ -406,6 +638,9 @@ export default function UserCallPage() {
       if (redirectTimer) {
         clearTimeout(redirectTimer);
       }
+      if (lowBalanceCheckRef.current) {
+        clearInterval(lowBalanceCheckRef.current);
+      }
     };
   }, [redirectTimer]);
 
@@ -414,10 +649,42 @@ export default function UserCallPage() {
   return (
     <div className="fixed inset-0 w-full h-full overflow-hidden bg-black">
       
+      {/* LOW BALANCE WARNING BANNER */}
+      {showRechargePrompt && !callEndedByAstrologer && callStatus !== "ENDED" && (
+        <div className="fixed top-0 left-0 right-0 z-[100] bg-gradient-to-r from-red-600 to-orange-600 text-white py-3 px-4 shadow-lg animate-slideDown">
+          <div className="max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <FaExclamationTriangle className="text-xl animate-pulse" />
+              <div>
+                <p className="font-bold">LOW BALANCE WARNING!</p>
+                <p className="text-sm opacity-90">
+                  Only ₹{walletBalance} left. Recharge now or call will end automatically.
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={() => setShowRechargePrompt(false)}
+                className="bg-transparent border border-white text-white px-4 py-2 rounded-full font-medium hover:bg-white/10 transition-all"
+              >
+                Dismiss
+              </button>
+              <button
+                onClick={handleRecharge}
+                className="bg-white text-red-600 font-bold px-5 py-2 rounded-full hover:bg-gray-100 transition-all transform hover:scale-105 active:scale-95 shadow-md"
+              >
+                Recharge Now
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* LAYER 1: ZEGO INTERFACE */}
       <div 
         className={`fixed inset-x-0 top-0 transition-all duration-300 ease-in-out bg-gray-900
         ${isVideoMode ? 'h-[88dvh] z-40 opacity-100' : 'h-0 z-[-1] opacity-0'}
+        ${showRechargePrompt ? 'mt-16' : ''}
         `}
       >
         {isClient && zegoEnabled && (
@@ -430,8 +697,15 @@ export default function UserCallPage() {
             <h3 className="text-white font-bold text-lg drop-shadow-md bg-black/30 px-4 py-1 rounded-full backdrop-blur-sm mb-2">
               {call?.astrologer?.fullName}
             </h3>
-            <div className="bg-red-600/90 text-white px-6 py-1 rounded-full font-mono text-xl shadow-lg backdrop-blur-md">
-              {formatDuration(displayDuration)}
+            <div className="flex items-center gap-2">
+              <div className="bg-red-600/90 text-white px-6 py-1 rounded-full font-mono text-xl shadow-lg backdrop-blur-md">
+                {formatDuration(displayDuration)}
+              </div>
+              {lowBalanceWarning && (
+                <div className="bg-yellow-600/90 text-white px-3 py-1 rounded-full text-sm animate-pulse">
+                  ⚠️ Low Balance
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -439,14 +713,19 @@ export default function UserCallPage() {
 
       {/* LAYER 2: CONNECTING UI */}
       {!isVideoMode && (
-        <div className="absolute inset-0 z-30 bg-gradient-to-b from-[#003D33] to-[#001F1A] flex flex-col pt-20 px-4">
+        <div className={`absolute inset-0 z-30 bg-gradient-to-b from-[#003D33] to-[#001F1A] flex flex-col pt-20 px-4 ${showRechargePrompt ? 'pt-32' : 'pt-20'}`}>
           <div className="flex items-center justify-between mb-10">
             <button onClick={() => router.push("/astrologers")} className="p-2 bg-white/10 rounded-full">
                <FaArrowLeft className="text-white" />
             </button>
-            <div className="flex items-center gap-2 bg-black/20 px-4 py-2 rounded-full">
-               <FaWallet className="text-yellow-400" />
-               <span className="text-white font-bold">₹{walletBalance}</span>
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-full ${lowBalanceWarning ? 'bg-red-600/80' : 'bg-black/20'}`}>
+               <FaWallet className={lowBalanceWarning ? "text-yellow-400 animate-pulse" : "text-yellow-400"} />
+               <span className={`font-bold ${lowBalanceWarning ? 'text-white animate-pulse' : 'text-white'}`}>
+                 ₹{walletBalance}
+               </span>
+               {lowBalanceWarning && (
+                 <FaExclamationTriangle className="text-yellow-400 animate-pulse" />
+               )}
             </div>
           </div>
           <div className="bg-white/10 backdrop-blur-md border border-white/5 rounded-3xl p-8 flex flex-col items-center shadow-2xl">
@@ -466,6 +745,24 @@ export default function UserCallPage() {
             <p className={`text-lg font-medium mb-6 ${callStatus === 'RINGING' ? 'text-green-400' : 'text-gray-300'}`}>
               {statusInfo.message}
             </p>
+            
+            {/* Low Balance Warning in Connecting UI */}
+            {lowBalanceWarning && (
+              <div className="bg-yellow-600/80 text-white px-6 py-3 rounded-xl mb-4 animate-pulse">
+                <div className="flex items-center gap-2">
+                  <FaExclamationTriangle />
+                  <span className="font-bold">Low Balance Warning!</span>
+                </div>
+                <p className="text-sm mt-1">Only ₹{walletBalance} left. Recharge now to continue call.</p>
+                <button
+                  onClick={handleRecharge}
+                  className="mt-2 bg-white text-yellow-700 px-4 py-1 rounded-full text-sm font-bold hover:bg-gray-100"
+                >
+                  Recharge Now
+                </button>
+              </div>
+            )}
+            
             {callStatus === "CONNECTED" && !zegoConnected && (
                <div className="flex items-center gap-3 text-yellow-400">
                   <FaSpinner className="animate-spin text-xl" />
@@ -511,6 +808,24 @@ export default function UserCallPage() {
           <p className="text-gray-400 mb-8">
             Duration: {formatDuration(localDuration)}
           </p>
+          
+          {/* Show reason if call ended due to low balance */}
+          {walletBalance !== undefined && walletBalance <= 0 && (
+            <div className="bg-red-600/80 text-white px-6 py-3 rounded-xl mb-4">
+              <div className="flex items-center gap-2">
+                <FaExclamationTriangle />
+                <span className="font-bold">Call ended due to insufficient balance</span>
+              </div>
+              <p className="text-sm mt-1">Please recharge your wallet for future calls.</p>
+              <button
+                onClick={handleRecharge}
+                className="mt-2 bg-white text-red-700 px-4 py-1 rounded-full text-sm font-bold hover:bg-gray-100"
+              >
+                Recharge Wallet
+              </button>
+            </div>
+          )}
+          
           {!callRejected && (
             <p className="text-gray-300 mb-4">Thank you for your call!</p>
           )}

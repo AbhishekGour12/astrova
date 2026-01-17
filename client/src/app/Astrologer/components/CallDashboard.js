@@ -240,7 +240,20 @@ export default function AstrologerCallDashboard() {
     newSocket.on("callEnded", (data) => {
      // console.log("Call ended:", data);
       handleCallEnd();
-      toast.success(`Call ended. Earnings: ₹${data.totalAmount || 0}`);
+     //✨ LOGIC FIX: Check if totalAmount exists and is greater than 0
+      if (data.totalAmount && data.totalAmount > 0) {
+          toast.success(`Call ended. Earnings: ₹${data.totalAmount}`);
+          
+          // Optimistically update earnings state
+          setEarnings(prev => ({
+              ...prev,
+              today: prev.today + data.totalAmount
+          }));
+      } else {
+          // Agar 0 amount hai (Short duration logic)
+          toast.info("Call ended (Short duration - No earnings)");
+          // Yahan hum earnings update NAHI karenge
+      }
     });
 
     // Listen for user ending call

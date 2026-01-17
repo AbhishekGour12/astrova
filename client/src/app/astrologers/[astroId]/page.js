@@ -466,7 +466,13 @@ export default function AstrologerProfile() {
       router.push("/login");
       return;
     }
-
+    // --- NEW LOGIC: Check Balance ---
+    const chatRate = astrologer.pricing?.chatPerMinute || 50;
+    if (wallet < chatRate) {
+      toast.error(`Insufficient balance! You need at least ₹${chatRate} to start a chat.`);
+      handleWalletRecharge(); // Prompt to recharge
+      return;
+    }
     if (activeChat) {
       router.push(`/astrologers/chat/${activeChat._id}`);
       return;
@@ -519,7 +525,13 @@ export default function AstrologerProfile() {
       toast.error("Astrologer is busy on another call");
       return;
     }
-
+    // --- NEW LOGIC: Check Balance ---
+    const callRate = astrologer.pricing?.callPerMinute || 100;
+    if (wallet < callRate) {
+      toast.error(`Insufficient balance! You need at least ₹${callRate} to start a call.`);
+      handleWalletRecharge(); // Prompt to recharge
+      return;
+    }
     try {
       const callData = await startCall(astroId);
       if (callData) {

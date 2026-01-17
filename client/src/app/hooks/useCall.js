@@ -22,8 +22,10 @@ export const useCall = (callId, identity) => {
   const [zegoToken, setZegoToken] = useState(null);
   const [zegoRoomId, setZegoRoomId] = useState(null);
   const [appId, setAppId] = useState(null);
+  
   const durationIntervalRef = useRef(null);
   const socketRef = useRef(null);
+  const walletCheckIntervalRef = useRef(null);
   const callStartedAtRef = useRef(null);
 
   // Check if component is mounted and client-side
@@ -33,6 +35,55 @@ export const useCall = (callId, identity) => {
     setIsMounted(true);
     return () => setIsMounted(false);
   }, []);
+
+  // ==============================================
+  // 🔥 CRITICAL: FETCH WALLET BALANCE REGULARLY
+  // ==============================================
+  const fetchWalletBalance = useCallback(async () => {
+    if (!user || !isMounted) return;
+    
+    try {
+      const response = await api.get('/auth/wallet');
+      if (response.data.balance !== undefined) {
+        const newBalance = response.data.balance;
+        setWalletBalance(newBalance);
+        return newBalance;
+      }
+    } catch (error) {
+      console.error('Error fetching wallet balance:', error);
+    }
+    return null;
+  }, [user, isMounted]);
+
+  // ==============================================
+  // 🔥 SETUP WALLET BALANCE MONITORING
+  // ==============================================
+  useEffect(() => {
+    // Initial fetch
+    if (user && isMounted) {
+      fetchWalletBalance();
+    }
+
+    // Clear any existing interval
+    if (walletCheckIntervalRef.current) {
+      clearInterval(walletCheckIntervalRef.current);
+    }
+
+    // Set up interval to check wallet balance regularly during active calls
+    if ((callStatus === 'CONNECTED' || callStatus === 'ACTIVE') && isMounted) {
+      // Check immediately and then every 10 seconds
+      walletCheckIntervalRef.current = setInterval(() => {
+        fetchWalletBalance();
+      }, 10000); // Every 10 seconds
+    }
+
+    return () => {
+      if (walletCheckIntervalRef.current) {
+        clearInterval(walletCheckIntervalRef.current);
+        walletCheckIntervalRef.current = null;
+      }
+    };
+  }, [callStatus, user, isMounted, fetchWalletBalance]);
 
   // Initialize socket only on client side
   useEffect(() => {
@@ -93,6 +144,10 @@ export const useCall = (callId, identity) => {
       }
       
       startCallTimer();
+      
+      // 🔥 Update wallet balance when call starts
+      fetchWalletBalance();
+      
       toast.success("Call connected!");
     });
 
@@ -114,6 +169,9 @@ export const useCall = (callId, identity) => {
       } else {
         toast.success(`Call ended. Duration: ${formatDuration(duration)}`);
       }
+      
+      // 🔥 Fetch final wallet balance when call ends
+      setTimeout(() => fetchWalletBalance(), 1000);
     });
 
     socketRef.current.on('callRejected', (data) => {
@@ -132,6 +190,55 @@ export const useCall = (callId, identity) => {
       setCallStatus('ENDED');
       stopCallTimer();
       toast.success("Astrologer ended the call");
+      
+      // 🔥 Fetch final wallet balance
+      setTimeout(() => fetchWalletBalance(), 1000);
+    });
+
+    // 🔥 CRITICAL: LISTEN FOR WALLET UPDATES DURING CALL
+    socketRef.current.on('walletUpdated', (data) => {
+      console.log("💰 Wallet updated via socket:", data);
+      if (data.walletBalance !== undefined) {
+        setWalletBalance(data.walletBalance);
+        
+        // Show notification for deductions
+        if (data.amountDeducted) {
+          console.log(`💸 Deducted ₹${data.amountDeducted}. New balance: ₹${data.walletBalance}`);
+        }
+      }
+    });
+
+    // 🔥 Listen for minute billed events
+    socketRef.current.on('minuteBilled', (data) => {
+      console.log("⏰ Minute billed:", data);
+      if (data.walletBalance !== undefined) {
+        setWalletBalance(data.walletBalance);
+        
+        // Show toast for deduction
+        toast.success(
+          <div className="flex items-center gap-2">
+            <span>₹{data.amount} deducted</span>
+            <span className="text-sm">(Balance: ₹{data.walletBalance})</span>
+          </div>,
+          { duration: 3000 }
+        );
+      }
+    });
+
+    // 🔥 Listen for low balance warnings
+    socketRef.current.on('lowBalanceWarning', (data) => {
+      console.log("⚠️ Low balance warning:", data);
+      toast.warning(
+        <div className="flex flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <span>⚠️ Low Balance!</span>
+          </div>
+          <div className="text-sm">
+            Only ₹{data.currentBalance} left. {data.minutesLeft} minute(s) remaining.
+          </div>
+        </div>,
+        { duration: 5000 }
+      );
     });
   };
 
@@ -190,6 +297,9 @@ export const useCall = (callId, identity) => {
             setCall(callData);
             setCallStatus(callData.status);
             
+            // 🔥 Fetch wallet balance when loading call
+            fetchWalletBalance();
+            
             if (callData.status === 'ACTIVE' && callData.startedAt) {
               callStartedAtRef.current = new Date(callData.startedAt);
               const initialDuration = calculateDurationFromBackend(callData);
@@ -204,7 +314,7 @@ export const useCall = (callId, identity) => {
       
       fetchCallData();
     }
-  }, [callId, isMounted]);
+  }, [callId, isMounted, fetchWalletBalance]);
 
   const fetchZegoTokenForRoom = async (roomId) => {
     try {
@@ -273,6 +383,9 @@ export const useCall = (callId, identity) => {
         setCall(newCall);
         setCallStatus('WAITING');
         
+        // 🔥 Fetch wallet balance when starting call
+        fetchWalletBalance();
+        
         toast.success('Call request sent! Waiting for astrologer...');
         router.push(`/astrologers/call/${newCall._id}`);
         return newCall;
@@ -322,6 +435,9 @@ export const useCall = (callId, identity) => {
         setCallStatus('ENDED');
         stopCallTimer();
         
+        // 🔥 Fetch final wallet balance
+        setTimeout(() => fetchWalletBalance(), 1000);
+        
         // Emit socket event
         if (socketRef.current && identity?.startsWith('user_')) {
           socketRef.current.emit("userEndedCall", {
@@ -349,19 +465,6 @@ export const useCall = (callId, identity) => {
     return false;
   };
 
-  // Fetch wallet balance on mount
-  useEffect(() => {
-    if (user && isMounted) {
-      api.get('/auth/wallet')
-        .then(response => {
-          if (response.data.balance) {
-            setWalletBalance(response.data.balance);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [user, isMounted]);
-
   return {
     // State
     call,
@@ -388,6 +491,7 @@ export const useCall = (callId, identity) => {
     setPeerJoined,
     setZegoToken,
     setZegoRoomId,
-    setAppId
+    setAppId,
+    fetchWalletBalance // 🔥 Export for manual refresh if needed
   };
 };

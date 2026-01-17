@@ -11,7 +11,9 @@ import {
   getUserActiveChats,
   getAstrologerActiveChats,
   checkChatStatus,
-  acceptChatByAstrologer
+  acceptChatByAstrologer,
+ 
+  processChatRecharge
 } from "../controllers/chatController.js";
 
 import { authMiddleware, onlyUser } from "../middleware/authMiddleware.js";
@@ -35,6 +37,8 @@ router.post("/user/message/seen/:messageId", authMiddleware, onlyUser, markMessa
 
 // end chat
 router.post("/user/end/:chatId", authMiddleware, onlyUser, endChatByUser);
+// Add this route
+router.post("/recharge/:chatId", authMiddleware, onlyUser, processChatRecharge);
 
 /* ================= ASTROLOGER ROUTES ================= */
 
