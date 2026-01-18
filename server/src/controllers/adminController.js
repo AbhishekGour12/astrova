@@ -96,7 +96,7 @@ export const deleteUser = async (req, res) => {
  */
 export const getAllAstrologers = async (req, res) => {
   try {
-    const astrologers = await Astrologer.find().sort({ createdAt: -1 });
+    const astrologers = await Astrologer.find({isApproved: true}).sort({ createdAt: -1 });
     res.json(astrologers);
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -589,7 +589,7 @@ useEffect(() => {
         },
         modal: { 
           ondismiss: () => {
-            toast.info("Recharge cancelled");
+            toast.success("Recharge cancelled");
           }
         },
         prefill: {

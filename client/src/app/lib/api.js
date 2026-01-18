@@ -4,7 +4,7 @@ import toast from "react-hot-toast";
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API
     ? `${process.env.NEXT_PUBLIC_API}/api`
-    : "https://astrova.onrender.com/api",
+    : "https://api.myastrova.com/api",
 });
 
 // Attach token in every request

@@ -57,7 +57,8 @@ const __dirname = path.dirname(__filename);
 app.use(cors({
   origin: [
     "https://myastrova.com",
-    "https://www.myastrova.com"
+    "https://www.myastrova.com",
+    "http://localhost:3000"
   ],
   credentials: true
 }));

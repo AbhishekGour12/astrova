@@ -161,7 +161,7 @@ newSocket.on("callEndedByUser", (data) => {
   console.log("User ended call:", data);
   if (activeCall && activeCall._id === data.callId) {
     handleCallEnd();
-    toast.info("User ended the call");
+    toast.success("User ended the call");
   }
 });
 
