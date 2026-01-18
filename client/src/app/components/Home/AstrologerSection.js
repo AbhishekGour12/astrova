@@ -32,7 +32,7 @@ export default function AstrologerListSection() {
     const fetchAstrologers = async () => {
       try {
         const { data } = await axios.get(
-          `${process.env.NEXT_PUBLIC_API}/api/admin/astrologers/?service=ALL`
+          `${process.env.NEXT_PUBLIC_API}/api/astrologer/?service=ALL`
         );
         setAstrologers(data);
       } catch (error) {

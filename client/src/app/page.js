@@ -500,7 +500,7 @@ export default function AstroHeroPage() {
       try{
         const {products, totalPages} = await productAPI.getProducts(filters);
         setProducts(products);
-        console.log(products)
+       
       }catch(err){
         console.log(err.message);
       }
@@ -510,7 +510,7 @@ export default function AstroHeroPage() {
   },[productType]);
   const handleCategoryClick = (cat) => {
     setProductType(cat);
-    console.log(cat)
+   
     setFilters((prev) => ({
       ...prev,
       page: 1,        // Reset to first page
