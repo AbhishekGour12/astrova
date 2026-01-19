@@ -350,7 +350,7 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
         .filter((f) => f.type.startsWith("image/"))
         .forEach((file) => formData.append("productImages", file));
 
-      const response = await fetch(`${api}/admin/bulk-upload`, {
+      const response = await fetch("https://api.myastrova.com/admin/bulk-upload", {
         method: "POST",
         body: formData,
       });
