@@ -41,7 +41,6 @@ export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
       origin: [
-        "https://myastrova.com",
         "https://www.myastrova.com"
       ],
       methods: ["GET", "POST"],

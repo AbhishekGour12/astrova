@@ -54,22 +54,8 @@ const __dirname = path.dirname(__filename);
 /* =======================
    GLOBAL MIDDLEWARES
 ======================= */
-app.use(cors({
-  origin: (origin, callback) => {
-    const allowedOrigins = [
-      "https://myastrova.com",
-      "https://www.myastrova.com"
-    ];
-    if (!origin || allowedOrigins.includes(origin)) {
-      callback(null, true);
-    } else {
-      callback(new Error("Not allowed by CORS"));
-    }
-  },
-  credentials: true,
-  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-  allowedHeaders: ["Content-Type", "Authorization"]
-}));
+app.use(cors());
+
 
 
 app.use(express.json());
