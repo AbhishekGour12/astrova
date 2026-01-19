@@ -554,7 +554,7 @@ const HeroSection = () => {
   >
     <div className="relative w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[450px] md:h-[450px] lg:w-[500px] lg:h-[500px] xl:w-[500px] xl:h-[600px]">
       <Image
-        src="/pandit.png"
+        src="/panditbg.png"
         alt="Astrologer"
         fill
         className="object-contain drop-shadow-xl"

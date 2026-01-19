@@ -316,15 +316,7 @@ useEffect(() =>{
       </Swiper>
       )}
 
-      {/* Scroll Indicator */}
-      <div className="absolute left-1/2 -translate-x-1/2 z-10 bottom-10">
-        <div className="flex flex-col items-center text-white">
-          <span className="text-xs sm:text-sm mb-1 opacity-80">Scroll Down</span>
-          <div className="w-5 h-8 sm:w-6 sm:h-10 border-2 border-white rounded-full flex justify-center">
-            <div className="w-1 h-3 bg-white rounded-full mt-1 animate-bounce"></div>
-          </div>
-        </div>
-      </div>
+     
     </section>
 
         {/* 🟢 SHOP BY PURPOSE */}
