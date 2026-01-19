@@ -255,6 +255,9 @@ useEffect(() => {
       </div>,
       { duration: 5000 }
     );
+   
+
+    
   });
 
   newSocket.on("insufficientBalance", (data) => {
@@ -266,7 +269,7 @@ useEffect(() => {
       </div>,
       { duration: 4000 }
     );
-    
+  
     // Auto-end call
     setTimeout(() => {
       if (!callEndedByAstrologer) {
@@ -453,6 +456,7 @@ useEffect(() => {
   // ==========================================
   //  🔥 CRITICAL: AUTO END CALL ON LOW BALANCE
   // ==========================================
+  /** 
   useEffect(() => {
     // Clear any existing check
     if (lowBalanceCheckRef.current) {
@@ -470,8 +474,9 @@ useEffect(() => {
         // If balance is less than required for 1 minute
         if (walletBalance < ratePerMinute) {
           if (walletBalance <= 0) {
+
             // 🔥 CRITICAL: Balance is ZERO or NEGATIVE - END CALL IMMEDIATELY
-            console.log(`❌ Balance is ₹${walletBalance}. Ending call immediately.`);
+           // console.log(`❌ Balance is ₹${walletBalance}. Ending call immediately.`);
             
             // Show final warning
             toast.error(
@@ -485,6 +490,7 @@ useEffect(() => {
             // Auto-end the call
             if (!isLeaving && !callEndedByAstrologer) {
               handleEndCall();
+              
             }
             
           } else if (!lowBalanceWarning) {
@@ -542,7 +548,7 @@ useEffect(() => {
       setShowRechargePrompt(false);
     };
   }, [walletBalance, callStatus, isVideoMode, call, isLeaving, callEndedByAstrologer, handleEndCall]);
-
+*/
   // ==========================================
   //  RECHARGE WALLET FUNCTION
   // ==========================================
@@ -783,17 +789,13 @@ useEffect(() => {
           }`}
         >
           <div className="flex items-center gap-8">
-            <button onClick={toggleMute} className={`p-4 rounded-full transition-all ${isMuted ? 'bg-white text-black' : 'bg-gray-700 text-white'}`}>
-              {isMuted ? <FaMicrophoneSlash size={24} /> : <FaMicrophone size={24} />}
-            </button>
+            
 
             <button onClick={handleEndCall} className="w-16 h-16 bg-red-600 rounded-full flex items-center justify-center text-white shadow-lg shadow-red-600/30 hover:bg-red-700 hover:scale-105 transition-all">
                {isLeaving ? <FaSpinner className="animate-spin" size={28} /> : <FaPhoneSlash size={28} />}
             </button>
 
-            <button onClick={toggleSpeaker} className={`p-4 rounded-full transition-all ${isSpeakerOn ? 'bg-white text-black' : 'bg-gray-700 text-white'}`}>
-              {isSpeakerOn ? <FaVolumeUp size={24} /> : <FaVolumeMute size={24} />}
-            </button>
+           
           </div>
         </div>
       )}

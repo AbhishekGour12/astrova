@@ -245,7 +245,7 @@ const acceptCall = async (callId) => {
     
     const response = await api.post(`/call/astrologer/accept/${callId}/${astrologerId}`);
     
-    toast.dismiss("accept-call");
+    toast.success("accept-call");
     
     if (response.data.success) {
       const callData = response.data.call;
@@ -559,18 +559,7 @@ const acceptCall = async (callId) => {
 
                 {/* Call Controls */}
                 <div className="flex justify-center gap-4">
-                  <button
-                    onClick={toggleMute}
-                    className={`p-4 rounded-full ${isMuted ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-700'} hover:bg-gray-200 transition-colors`}
-                  >
-                    {isMuted ? <FaMicrophoneSlash size={20} /> : <FaMicrophone size={20} />}
-                  </button>
-                  <button
-                    onClick={toggleSpeaker}
-                    className={`p-4 rounded-full ${isSpeakerOn ? 'bg-blue-100 text-blue-600' : 'bg-gray-100 text-gray-700'} hover:bg-gray-200 transition-colors`}
-                  >
-                    {isSpeakerOn ? <FaVolumeUp size={20} /> : <FaVolumeMute size={20} />}
-                  </button>
+                 
                   <button
                     onClick={endActiveCall}
                     className="p-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full hover:from-red-600 hover:to-red-700 transition-all"

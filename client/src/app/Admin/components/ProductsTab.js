@@ -19,6 +19,7 @@ import {
 import * as XLSX from "xlsx";
 import { adminAPI } from "../../lib/admin";
 import { productAPI } from "../../lib/product";
+import api from "../../lib/api";
 
 
 
@@ -349,7 +350,7 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
         .filter((f) => f.type.startsWith("image/"))
         .forEach((file) => formData.append("productImages", file));
 
-      const response = await fetch("http://localhost:5000/api/admin/bulk-upload", {
+      const response = await fetch(`${api}/admin/bulk-upload`, {
         method: "POST",
         body: formData,
       });
