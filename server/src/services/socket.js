@@ -40,7 +40,10 @@ const getCallData = async (callId) => {
 export const initSocket = (server) => {
   io = new Server(server, {
     cors: {
-      origin: "*",
+      origin: [
+        "https://myastrova.com",
+        "https://www.myastrova.com"
+      ],
       methods: ["GET", "POST"],
       credentials: true
     },
