@@ -1560,7 +1560,7 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
                         className="w-20 h-20 rounded-2xl overflow-hidden border border-[#B2C5B2]"
                       >
                         <img
-                          src={`http://localhost:5000${url}`}
+                          src={`${api}${url}`}
                           alt={`Product ${index + 1}`}
                           className="w-20 h-20 object-cover"
                         />

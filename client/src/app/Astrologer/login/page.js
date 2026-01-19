@@ -4,7 +4,7 @@ import { FiMail, FiLock, FiLogIn } from "react-icons/fi";
 import toast from "react-hot-toast";
 import api from "../../lib/api";
 import { useRouter } from "next/navigation";
-
+import Image from "next/image";
 export default function AstrologerLogin() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -47,8 +47,21 @@ export default function AstrologerLogin() {
   };
 
   return (
-    <div className="min-h-screen bg-[#F7F3E9] flex items-center justify-center px-4">
-      <div className="bg-white w-full max-w-md rounded-2xl shadow-lg border border-[#B2C5B2]/40 overflow-hidden">
+    <div className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
+      
+      {/* 3. Add Background Image Component */}
+      <div className="absolute inset-0 z-0">
+        <Image
+          src="/astrologerbg.jpg" // Replace with your actual image path
+          alt="Astrology Background"
+          fill
+          className="object-cover brightness-[0.4]" // Darkens the image so the form is readable
+          priority
+        />
+      </div>
+
+      {/* 4. Add relative z-10 to your form container so it sits on top */}
+      <div className="relative z-10 bg-white w-full max-w-md rounded-2xl shadow-2xl border border-[#B2C5B2]/40 overflow-hidden backdrop-blur-sm bg-white/95">
         
         {/* Header */}
         <div className="bg-[#003D33] p-6 text-center">
@@ -60,7 +73,7 @@ export default function AstrologerLogin() {
           </p>
         </div>
 
-        {/* Form */}
+        {/* Form - (The rest of your form code remains unchanged) */}
         <div className="p-6 space-y-4">
           {/* Email */}
           <div>

@@ -46,7 +46,7 @@ const meet = () => {
             </p>
             <div className="mt-4">
               <Link 
-                href="/Astrologer/register" 
+                href="/AstrologerOnboarding" 
                 className="text-sm hover:underline font-medium"
               >
                 Register as Astrologer

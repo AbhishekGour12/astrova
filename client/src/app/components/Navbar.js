@@ -5,7 +5,7 @@ import { FaShoppingCart, FaUser, FaTimes } from "react-icons/fa";
 import { motion, AnimatePresence } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { useDispatch, useSelector } from "react-redux";
 import { loginSuccess } from "../store/features/authSlice";
 import toast from "react-hot-toast";
@@ -27,16 +27,21 @@ const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const toggleMobileMenu = () => setIsMobileMenuOpen(!isMobileMenuOpen);
-  
+  const pathname = usePathname()
   // This logic is correct: it locks the BODY scroll
   useEffect(() => {
     if (isMobileMenuOpen) {
       document.body.style.overflow = "hidden";
     } else {
-      document.body.style.overflow = "auto";
+      document.body.style.overflow = "unset";
     }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
   }, [isMobileMenuOpen]);
-
+useEffect(() => {
+    setIsMobileMenuOpen(false);
+  }, [pathname]);
   const logout = () => {
     localStorage.removeItem("token");
     dispatch(loginSuccess(""));
@@ -87,9 +92,9 @@ ${
         {/* LOGO FIXED RESPONSIVE */}
         <div
           onClick={() => router.push("/")}
-          className="cursor-pointer flex items-center"
+          className="cursor-pointer flex items-center "
         >
-          <div className="relative w-[56px] h-[56px] lg:w-[100px] lg:h-[100px]">
+          <div className="relative w-[56px] h-[56px] lg:w-[100px] lg:h-[100px]  ">
             <Image
               src="/logo2.png"
               alt="MyAstrova Logo"
@@ -118,7 +123,7 @@ ${
 
     max-w-[640px]
     flex-shrink-0
-    mr-32 xl:mr-40
+    mr-32 xl:mr-42
     
     
     pr-4 
@@ -155,22 +160,7 @@ ${
             </div>
           </li>
         </ul>
-
-        {/* MOBILE MENU BUTTON */}
-        <div className="hidden" id="menu-button">
-          <button className="text-[#E9C164]" onClick={toggleMobileMenu}>
-            <svg className="w-6 h-6" fill="none" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M4 6h16M4 12h16M4 18h16"
-              />
-            </svg>
-          </button>
-        </div>
-
-        {/* RIGHT SIDE BUTTONS */}
+         {/* RIGHT SIDE BUTTONS */}
         <div className="flex items-center space-x-4 lg:space-x-6">
           {/* CART BUTTON */}
 
@@ -185,7 +175,7 @@ ${
 
           {/* USER LOGIN/PROFILE */}
           {user ? (
-            <div className="flex items-center space-x-3">
+            <div className="flex items-center space-x-3 max-[328px]:hidden">
               {/* USER ICON + FIRST LETTER FOR SM & MD */}
               <div className="flex items-center justify-center bg-[#F6F3E4] w-9 h-9 rounded-full shadow lg:hidden">
                 <span className="text-[#E9C164] font-bold">
@@ -210,14 +200,29 @@ ${
               </button>
             </div>
           ) : (
-            <Link href="/Login">
-              <button className="px-3 py-1.5 lg:px-5 lg:py-2 bg-[#F6F3E4] text-[#E9C164] rounded-lg shadow hover:bg-[#E8E3CF] transition flex items-center space-x-2">
+            <Link href="/Login" className="max-[328px]:hidden">
+              <button className="px-3 py-1.5 lg:px-3 lg:py-2 bg-[#F6F3E4] text-[#E9C164] rounded-lg shadow hover:bg-[#E8E3CF] transition flex items-center space-x-2 max-sm:space-x-0">
                 <FaUser />
                 <span className="hidden sm:inline">Login</span>
               </button>
             </Link>
           )}
         </div>
+        {/* MOBILE MENU BUTTON */}
+        <div className="hidden" id="menu-button">
+          <button className="text-[#E9C164]" onClick={toggleMobileMenu}>
+            <svg className="w-6 h-6" fill="none" stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4 6h16M4 12h16M4 18h16"
+              />
+            </svg>
+          </button>
+        </div>
+
+       
 
         {/* MOBILE SIDEBAR MENU */}
         <AnimatePresence>

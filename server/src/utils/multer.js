@@ -44,6 +44,7 @@ console.log(excelAndImageFileFilter)
 export const uploadImages = multer({
   storage,
   fileFilter: imageFileFilter,
+  limits: { fileSize: 500 * 1024 * 1024 }, // 100MB Limit
 });
 
 export const uploadExcelAndImages = multer({
