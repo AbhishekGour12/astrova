@@ -54,7 +54,7 @@ const __dirname = path.dirname(__filename);
 /* =======================
    GLOBAL MIDDLEWARES
 ======================= */
-app.use(cors());
+
 
 
 
