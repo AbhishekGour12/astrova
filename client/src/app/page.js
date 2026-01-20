@@ -462,108 +462,91 @@ const HeroSection = () => {
         </div>
 
         {/* Right Side - Pandit Image */}
-      {/* Right Side - Pandit Image */}
-<div className="w-full lg:w-1/2 relative flex justify-center items-center mt-6 sm:mt-8 md:mt-10 lg:mt-0 px-4 sm:px-6 md:px-8 lg:px-0 pb-8 sm:pb-10 md:pb-12 lg:pb-0">
-  {/* Halo + Rings */}
-  <motion.div
-    initial={{ opacity: 0, scale: 0.8 }}
-    animate={{ opacity: 1, scale: 1 }}
-    transition={{ duration: 1 }}
-    className="absolute inset-0 flex justify-center items-center pointer-events-none"
-  >
-    {/* Glow */}
-    <motion.div
-      animate={{ rotate: 360 }}
-      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-      className="
-        rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-500/20 blur-xl
-        w-[280px] h-[280px]
-        sm:w-[350px] sm:h-[350px]
-        md:w-[450px] md:h-[450px]
-        lg:w-[500px] lg:h-[500px]
-        xl:w-[650px] xl:h-[650px]
-      "
-    />
+{/* Right Side - Pandit Image */}
+        <div className="w-full  lg:w-1/2 relative flex justify-center items-center mt-6 sm:mt-8 md:mt-10 lg:mt-0 px-4 sm:px-6 md:px-8 lg:px-0 pb-8 sm:pb-10 md:pb-12 lg:pb-0">
+          {/* Halo + Rings */}
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 1 }}
+            className="absolute inset-0 flex justify-center items-center pointer-events-none"
+          >
+            {/* Glow */}
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+              className="
+                rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-500/20 blur-xl
+                w-[280px] h-[280px]
+                sm:w-[350px] sm:h-[350px]
+                md:w-[450px] md:h-[450px]
+                lg:w-[500px] lg:h-[500px]
+                xl:w-[650px] xl:h-[650px]
+              "
+            />
 
-    {/* Halo Outline */}
-    <motion.div
-      animate={{ rotate: -360 }}
-      transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-      className="
-        absolute rounded-full border border-yellow-300/25
-        w-[320px] h-[320px]
-        sm:w-[400px] sm:h-[400px]
-        md:w-[500px] md:h-[500px]
-        lg:w-[550px] lg:h-[550px]
-        xl:w-[700px] xl:h-[700px]
-      "
-    />
+            {/* Halo Outline */}
+            <motion.div
+              animate={{ rotate: -360 }}
+              transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+              className="
+                absolute rounded-full  -yellow-300/25
+                w-[320px] h-[320px]
+                sm:w-[400px] sm:h-[400px]
+                md:w-[500px] md:h-[500px]
+                lg:w-[550px] lg:h-[550px]
+                xl:w-[700px] xl:h-[700px]
+              "
+            />
 
-    {/* Zodiac Signs Ring */}
-    <motion.div
-      animate={{ rotate: 180 }}
-      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-      className="
-        absolute rounded-full
-        w-[360px] h-[360px]
-        sm:w-[450px] sm:h-[450px]
-        md:w-[550px] md:h-[550px]
-        lg:w-[600px] lg:h-[600px]
-        xl:w-[750px] xl:h-[750px]
-      "
-    >
-      {/* 12 Zodiac Signs */}
-      {["♈", "♉", "♊", "♋", "♌", "♍", "♎", "♏", "♐", "♑", "♒", "♓"].map((sign, i) => (
-        <motion.div
-          key={i}
-          className="absolute text-lg sm:text-xl md:text-2xl text-[#FFD700]] font-bold drop-shadow-[0_0_6px_gold] "
-          style={{
-            left: `${50 + 46 * Math.cos((i * 30 * Math.PI) / 180)}%`,
-            top: `${50 + 46 * Math.sin((i * 30 * Math.PI) / 180)}%`,
-            transform: "translate(-50%, -50%)",
-            textShadow: '0 0 15px rgba(255, 215, 0, 0.9), 0 0 30px rgba(255, 215, 0, 0.4)'
-            
-          }}
-          animate={{ 
-            scale: [1, 1.3, 1],
-            rotate: [0, 360]
-          }}
-          transition={{ 
-            duration: 3, 
-            repeat: Infinity, 
-            delay: i * 0.2,
-            rotate: {
-              duration: 20,
-              repeat: Infinity,
-              ease: "linear"
-            }
-          }}
-        >
-          {sign}
-        </motion.div>
-      ))}
-    </motion.div>
-  </motion.div>
+            {/* Sparkles */}
+            <motion.div
+              animate={{ rotate: 180 }}
+              transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+              className="
+                absolute rounded-full
+                w-[360px] h-[360px]
+                sm:w-[450px] sm:h-[450px]
+                md:w-[550px] md:h-[550px]
+                lg:w-[600px] lg:h-[600px]
+                xl:w-[750px] xl:h-[750px]
+              "
+            >
+              {[...Array(10)].map((_, i) => (
+                <motion.div
+                  key={i}
+                  className="absolute w-1.5 h-1.5 sm:w-2 sm:h-2 bg-yellow-300 rounded-full"
+                  style={{
+                    left: `${50 + 46 * Math.cos((i * 36 * Math.PI) / 180)}%`,
+                    top: `${50 + 46 * Math.sin((i * 36 * Math.PI) / 180)}%`,
+                  }}
+                  animate={{ scale: [1, 1.6, 1] }}
+                  transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.2 }}
+                />
+              ))}
+            </motion.div>
+          </motion.div>
 
-  {/* Pandit Image */}
-  <motion.div
-    initial={{ opacity: 0, y: 25 }}
-    animate={{ opacity: 1, y: 0 }}
-    transition={{ duration: 1 }}
-    className="relative z-10"
-  >
-    <div className="relative w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[450px] md:h-[450px] lg:w-[500px] lg:h-[500px] xl:w-[500px] xl:h-[600px]">
-      <Image
-        src="/panditbg.png"
-        alt="Astrologer"
-        fill
-        className="object-contain drop-shadow-xl"
-        priority
-      />
-    </div>
-  </motion.div>
-</div>
+          {/* Pandit Image */}
+          <motion.div
+            initial={{ opacity: 0, y: 25 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 1 }}
+            className="relative z-10"
+          >
+            <div className="relative w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[450px] md:h-[450px] lg:w-[500px] lg:h-[500px] xl:w-[500px] xl:h-[600px]">
+              <Image
+                src="/pandit.png"
+                alt="Astrologer"
+                fill
+                className="object-contain drop-shadow-xl"
+                priority
+              />
+            </div>
+          </motion.div>
+        </div>
       </div>
+
     </section>
   );
 };

@@ -23,7 +23,7 @@ import AstroProfileModal from "./components/AstroprofileModal";
       try{
         const response = await adminAPI.getProductTypes();
          dispatch(productsType(response))
-        console.log(response)
+        
     const token = localStorage.getItem('token');
     if (!token) return;
    

@@ -85,11 +85,15 @@ export const startCall = async (req, res) => {
     // Notify astrologer via socket
     const io = getIO();
     io.to(`astrologer_${astrologerId}`).emit("incomingCall", {
-      call: populatedCall,
-      type: callType,
-      zegoRoomId: zegoRoomId,
-      timestamp: new Date(),
-      userName: user.username
+       call: {
+    ...call.toObject(),
+    user: {
+      _id: user._id,
+      username: user.username || user.fullName || "User",
+      name: user.fullName || user.username || "User"
+    }
+  }
+
     });
 
     io.emit("astrologerStatusUpdate", {
@@ -534,7 +538,8 @@ export const getAstrologerActiveCall = async (req, res) => {
     const call = await Call.findOne({
       astrologer: astrologerId,
       status: { $in: ["WAITING", "ACTIVE"] }
-    })
+    }).populate('user', 'username  walletBalance') 
+    .populate('astrologer', 'fullName');
     //const call1 = await Call.find();
 
     console.log(astrologerId, call)
@@ -815,7 +820,7 @@ export const getAstrologerWaitingCalls = async (req, res) => {
       astrologer: astrologerId,
       status: "WAITING"
     })
-    .populate('user', 'name profileImageUrl')
+    .populate('user', 'username ')
     .populate('astrologer', 'fullName profileImageUrl pricing')
     .sort({ createdAt: -1 })
     .limit(10); // Limit to 10 most recent waiting calls

@@ -86,8 +86,8 @@ const Login = async (req, res) => {
       
             // SUCCESS: Generate JWT and return response
             // Assuming 'User' model is imported and used for authentication
-            const token = jwt.sign({ id: user._id, role: "user" }, process.env.JWT_SECRET, { expiresIn: '6h' });
-            console.log(token)
+            const token = jwt.sign({ id: user._id, role: "user" }, process.env.JWT_SECRET, { expiresIn: '10d' });
+           // console.log(token)
             // You should return the user role here for frontend routing
             res.status(200).json({ message: "Login successful", token, data: user }); 
         

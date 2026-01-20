@@ -50,18 +50,25 @@ export default function AstrologerLogin() {
     <div className="relative min-h-screen flex items-center justify-center px-4 overflow-hidden">
       
       {/* 3. Add Background Image Component */}
+      {/* 3. Add Background Image Component */}
       <div className="absolute inset-0 z-0">
-        <Image
-          src="/astrologerbg.jpg" // Replace with your actual image path
-          alt="Astrology Background"
-          fill
-          className="object-cover brightness-[0.4]" // Darkens the image so the form is readable
-          priority
-        />
-      </div>
+  <video
+    autoPlay
+    loop
+    muted
+    playsInline
+    className="w-full h-full object-cover"
+  >
+    {/* CHANGE: Yaha apni video file ka path dalein (public folder me honi chahiye) */}
+    <source src="/astrology-bg.mp4" type="video/mp4" />
+  </video>
+
+  {/* Overlay - Same as before to darken the video */}
+  <div className="absolute inset-0 bg-black/50" />
+</div>
 
       {/* 4. Add relative z-10 to your form container so it sits on top */}
-      <div className="relative z-10 bg-white w-full max-w-md rounded-2xl shadow-2xl border border-[#B2C5B2]/40 overflow-hidden backdrop-blur-sm bg-white/95">
+      <div className="relative z-10 bg-white/90 w-full max-w-md rounded-2xl shadow-2xl border border-[#B2C5B2]/40 overflow-hidden backdrop-blur-sm bg-white/95">
         
         {/* Header */}
         <div className="bg-[#003D33] p-6 text-center">

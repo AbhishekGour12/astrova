@@ -64,11 +64,10 @@ const service = searchParams?.get("service") || "ALL";
  // Use the call hook
   
 // ✅ UPDATED: Use the new useCall hook for Zego
-  const { 
-    startCall, 
-    isConnecting: callConnecting,
-    zegoReady
-  } = useCall(null, user ? `user_${user._id}` : null);
+ const { 
+  startCall, 
+  isConnecting: callConnecting // This tracks the API loading state
+} = useCall(null, user ? `user_${user._id}` : null); // Pass null for callId since we don't have one yet
 
   // Initialize socket
   useEffect(() => {
@@ -419,41 +418,46 @@ const handleStartCall = async (astrologerId) => {
     return;
   }
 
-  if (callConnecting) {
-    toast.loading("Starting call...", { id: "start-call" });
+  // Prevent double clicks
+  if (callConnecting) return;
+
+  // 1. Check Balance (UI Side Check)
+  const selectedAstro = astrologers.find(a => a._id === astrologerId);
+  const callRate = selectedAstro?.pricing?.callPerMinute || 100;
+
+  if (wallet < callRate) {
+    toast.error(`Insufficient balance! You need ₹${callRate}.`);
+    handleWalletRecharge(); 
     return;
   }
-  // --- NEW LOGIC: Check Balance ---
-    const selectedAstro = astrologers.find(a => a._id === astrologerId);
-    const callRate = selectedAstro?.pricing?.callPerMinute || 100; // Default fallback
-
-    if (wallet < callRate) {
-      toast.error(`Insufficient balance! You need at least ₹${callRate} to start a call.`);
-      handleWalletRecharge(); // Optional: Automatically trigger recharge prompt
-      return;
-    }
 
   try {
     toast.loading("Starting voice call...", { id: "start-call" });
     
-    const callData = await startCall(astrologerId);
+    // 2. Call the Hook function
+    // The hook handles the API call and returns the call object if successful
+    const callData = await startCall(astrologerId, "AUDIO");
     
-    if (callData) {
-      toast.success("Call request sent! Waiting for astrologer...");
+    toast.dismiss("start-call");
+
+    if (callData && callData._id) {
+      toast.success("Request sent!");
+      // 3. Redirect to the Call Page
+      router.push(`/astrologers/call/${callData._id}`);
     }
+
   } catch (error) {
+    toast.dismiss("start-call");
     console.error("Start call error:", error);
     
-    // Handle specific errors
+    // Handle "Already Exists" error to redirect user to the existing call
     if (error.response?.data?.message?.includes("already exists")) {
       const existingCallId = error.response.data.call?._id;
       if (existingCallId) {
         router.push(`/astrologers/call/${existingCallId}`);
       }
-    } else if (error.message?.includes("balance")) {
-      toast.error("Insufficient balance to start call");
     } else {
-      toast.error("Failed to start call. Please try again.");
+      toast.error(error.response?.data?.message || "Failed to start call");
     }
   }
 };
@@ -884,10 +888,10 @@ const testToken = async () => {
   {showChatBtn(astrologer) && !resumeChat && (
   <button
     onClick={() => handleStartChat(astrologer._id)}
-    disabled={astrologer.isBusyChat || !astrologer.isAvailable}
+    disabled={!astrologer.isAvailable}
     className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 ${
       astrologer.isBusyChat
-        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+        ? "bg-gray-100 text-gray-400 "
         : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white"
     }`}
   >

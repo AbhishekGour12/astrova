@@ -330,24 +330,22 @@ export const getAstrologerStats = async (req, res) => {
   try {
     const { id } = req.params;
     
-    // 1. Check if ID exists and is a valid MongoDB ObjectId
     if (!id || !mongoose.Types.ObjectId.isValid(id)) {
       return res.status(400).json({
         success: false,
         message: "Invalid or missing Astrologer ID"
       });
     }
+    
     const astrologerId = new mongoose.Types.ObjectId(id);
-  
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
+    // Fetch earnings stats
     const earnings = await AstrologerEarning.aggregate([
       {
         $match: { astrologer: astrologerId }
       },
-
-      // Create a single session id for chat or call
       {
         $project: {
           amount: 1,
@@ -362,8 +360,6 @@ export const getAstrologerStats = async (req, res) => {
           }
         }
       },
-
-      // One row per chat/call
       {
         $group: {
           _id: "$sessionId",
@@ -372,8 +368,6 @@ export const getAstrologerStats = async (req, res) => {
           createdAt: { $max: "$createdAt" }
         }
       },
-
-      // Global totals
       {
         $group: {
           _id: null,
@@ -386,38 +380,17 @@ export const getAstrologerStats = async (req, res) => {
                 0
               ]
             }
-          },
-
-          callEarnings: {
-            $sum: {
-              $cond: [
-                { $eq: ["$serviceType", "CALL"] },
-                "$totalForSession",
-                0
-              ]
-            }
-          },
-
-          chatEarnings: {
-            $sum: {
-              $cond: [
-                { $eq: ["$serviceType", "CHAT"] },
-                "$totalForSession",
-                0
-              ]
-            }
           }
         }
       }
     ]);
-   
+
     const stats = earnings[0] || {
       totalEarnings: 0,
-      todayEarnings: 0,
-      callEarnings: 0,
-      chatEarnings: 0
+      todayEarnings: 0
     };
 
+    // Get chat stats
     const activeChats = await Chat.countDocuments({
       astrologer: astrologerId,
       status: "ACTIVE"
@@ -428,12 +401,25 @@ export const getAstrologerStats = async (req, res) => {
       status: "WAITING"
     });
 
+    // Get call stats - ADD THIS
+    const waitingCalls = await Call.countDocuments({
+      astrologer: astrologerId,
+      status: "WAITING"
+    });
+
+    const activeCalls = await Call.countDocuments({
+      astrologer: astrologerId,
+      status: "ACTIVE"
+    });
+
     res.json({
       success: true,
       stats: {
         ...stats,
         activeChats,
-        waitingChats
+        waitingChats,
+        waitingCalls,  // Add this
+        activeCalls    // Add this
       }
     });
 

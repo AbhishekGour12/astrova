@@ -1,0 +1,13 @@
+/* Zego force fullscreen fix */
+#zego-container video,
+#zego-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: cover !important;
+  position: relative !important;
+}
+
+#zego-container {
+  position: relative !important;
+  inset: auto !important;
+}

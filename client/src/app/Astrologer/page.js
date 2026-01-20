@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import apiAstrologer from "../lib/apiAstrologer";
@@ -41,121 +41,184 @@ export default function AstrologerDashboard() {
     waitingChats: 0
   });
  const socketRef = useRef(null);
-  // Initialize Socket Connection
-  useEffect(() => {
+
+ // 1. FETCH LATEST STATS (The Source of Truth)
+  const fetchRealTimeStats = useCallback(async () => {
     const astrologerId = localStorage.getItem("astrologer_id");
     if (!astrologerId) return;
 
-    const socket = io(process.env.NEXT_PUBLIC_API, {
-      transports: ["websocket", "polling"],
-      query: { astrologerId }
-    });
+    try {
+        const { data } = await apiAstrologer.get(`/astrologer/stats/${astrologerId}`);
+        if (data.success) {
+            setStats(prev => ({
+                ...prev,
+                ...data.stats,
+                // Ensure specific counters are synced from DB, not just local +1
+                activeChats: data.stats.activeChats || 0,
+                waitingCalls: data.stats.waitingCalls || 0
+            }));
+        }
+    } catch (error) {
+        console.error("Stats sync error", error);
+    }
+  }, []);
+ // 2. SOCKET SETUP
+ // Update your main dashboard useEffect for socket
+useEffect(() => {
+  const astrologerId = localStorage.getItem("astrologer_id");
+  if (!astrologerId) return;
 
-    socketRef.current = socket;
+  const socket = io(process.env.NEXT_PUBLIC_API, {
+    transports: ["websocket", "polling"],
+    query: { astrologerId }
+  });
 
-    socket.on("connect", () => {
-      console.log("Dashboard socket connected");
-      socket.emit("joinAstrologer", { astrologerId });
-    });
+  socketRef.current = socket;
 
-    // Listen for new chat requests
-    socket.on("newChat", (chat) => {
-      console.log("New chat received:", chat);
-      setStats(prev => ({
-        ...prev,
-        waitingChats: prev.waitingChats + 1
-      }));
-      
-      // Show notification
-      toast.success(`New chat request from ${chat.user?.username || "User"}`, {
-        duration: 3000
-      });
-    });
+  socket.on("connect", () => {
+    console.log("🟢 Dashboard Socket Connected");
+    socket.emit("joinAstrologer", { astrologerId });
+  });
 
-    // Listen for chat activated
-    socket.on("chatActivated", (chat) => {
-      console.log("Chat activated:", chat);
-      setStats(prev => ({
-        ...prev,
-        waitingChats: Math.max(0, prev.waitingChats - 1),
-        activeChats: prev.activeChats + 1
-      }));
-    });
+  // --- REAL-TIME STATS SYNC ---
+  const syncAllStats = async () => {
+    await fetchRealTimeStats();
+  };
 
-    // Listen for chat ended
-    socket.on("chatEnded", (data) => {
-      console.log("Chat ended:", data);
-      setStats(prev => ({
-        ...prev,
-        activeChats: Math.max(0, prev.activeChats - 1)
-      }));
-      
-      // Update earnings
-      if (data.totalAmount) {
-        setStats(prev => ({
-          ...prev,
-          totalEarnings: prev.totalEarnings + data.totalAmount,
-          todayEarnings: prev.todayEarnings + data.totalAmount
-        }));
-      }
-    });
+  // --- CALL EVENTS ---
+  socket.on("incomingCall", (data) => {
+    const call = data.call || data;
+    const userName = call.user?.name || call.user?.username || "User";
+    
+    // Play sound if not muted
+    if (!isSoundMuted) {
+      const audio = new Audio('/sounds/ringtone.mp3');
+      audio.play().catch(e => console.log("Audio play failed", e));
+    }
 
-    // Listen for new calls
-    socket.on("incomingCall", (data) => {
-      console.log("New incoming call:", data);
-      const call = data.call || data;
-      setStats(prev => ({
-        ...prev,
-        waitingCalls: prev.waitingCalls + 1
-      }));
-      
-      toast.info(`Incoming call from ${call.user?.name || "User"}`, {
-        duration: 3000
-      });
-    });
+    // Show notification
+    toast.custom((t) => (
+      <div className="bg-white p-4 rounded-xl shadow-2xl border-l-4 border-blue-500 flex items-center gap-4 cursor-pointer" 
+           onClick={() => { 
+             toast.dismiss(t.id); 
+             setActiveTab("call");
+             // Force refresh calls when switching to call tab
+             if (typeof window.refreshCalls === 'function') {
+               window.refreshCalls();
+             }
+           }}>
+         <div className="bg-blue-100 p-2 rounded-full">
+           <FaPhone className="text-blue-600"/>
+         </div>
+         <div>
+           <h4 className="font-bold text-gray-800">Incoming Call</h4>
+           <p className="text-sm text-gray-600">{userName} is calling...</p>
+         </div>
+         <button className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm">
+           Go to Calls
+         </button>
+      </div>
+    ), { duration: 10000 });
 
-    // Listen for call activated
-    socket.on("callActivated", (data) => {
-      console.log("Call activated:", data);
-      setStats(prev => ({
-        ...prev,
-        waitingCalls: Math.max(0, prev.waitingCalls - 1)
-      }));
-    });
+    // Sync stats from database
+    syncAllStats();
+  });
 
-    // Listen for call ended
-    socket.on("callEnded", (data) => {
-      console.log("Call ended:", data);
-      
-      // Update earnings
-      if (data.totalAmount) {
-        setStats(prev => ({
-          ...prev,
-          totalEarnings: prev.totalEarnings + data.totalAmount,
-          todayEarnings: prev.todayEarnings + data.totalAmount,
-          waitingCalls: data.endedBy === "user" ? prev.waitingCalls : Math.max(0, prev.waitingCalls - 1)
-        }));
-      }
-    });
+  socket.on("callActivated", (data) => {
+    syncAllStats();
+  });
 
-    // Listen for astrologer status updates
-    socket.on("availabilityUpdated", (data) => {
-      console.log("Availability updated:", data);
-      if (astrologer) {
-        setAstrologer(prev => ({
-          ...prev,
-          isAvailable: data.isAvailable
-        }));
-      }
-    });
+  socket.on("callEnded", (data) => {
+  // Update stats immediately
+  setStats(prev => ({
+    ...prev,
+    waitingCalls: Math.max(0, prev.waitingCalls - 1)
+  }));
+  
+  // Then sync with database
+  setTimeout(() => fetchRealTimeStats(), 500);
+});
 
-    return () => {
-      if (socketRef.current) {
-        socketRef.current.disconnect();
-      }
+socket.on("chatEnded", (data) => {
+  // Update stats immediately
+  setStats(prev => ({
+    ...prev,
+    activeChats: Math.max(0, prev.activeChats - 1)
+  }));
+  
+  // Update earnings if amount > 0
+  if (data.totalAmount > 0) {
+    setStats(prev => ({
+      ...prev,
+      totalEarnings: prev.totalEarnings + data.totalAmount,
+      todayEarnings: prev.todayEarnings + data.totalAmount
+    }));
+  }
+  // Sync with database
+  setTimeout(() => fetchRealTimeStats(), 500);
+})
+  
+
+  // --- CHAT EVENTS ---
+  socket.on("newChat", (chat) => {
+    const userName = chat.user?.username || "User";
+    
+    // Show notification with click handler
+    toast.custom((t) => (
+      <div className="bg-white p-4 rounded-xl shadow-2xl border-l-4 border-green-500 flex items-center gap-4 cursor-pointer"
+           onClick={() => { 
+             toast.dismiss(t.id); 
+             setActiveTab("chat");
+           }}>
+        <div className="bg-green-100 p-2 rounded-full">
+          <FaComments className="text-green-600"/>
+        </div>
+        <div>
+          <h4 className="font-bold text-gray-800">New Chat Request</h4>
+          <p className="text-sm text-gray-600">{userName} wants to chat</p>
+        </div>
+        <button className="bg-green-600 text-white px-3 py-1 rounded-lg text-sm">
+          Go to Chat
+        </button>
+      </div>
+    ), { duration: 5000 });
+    
+    syncAllStats();
+  });
+
+  
+  // --- WALLET UPDATES ---
+  socket.on("walletUpdated", (data) => {
+    syncAllStats();
+  });
+
+  return () => {
+    socket.disconnect();
+  };
+}, [fetchRealTimeStats]);
+
+  // 3. INITIAL LOAD
+  useEffect(() => {
+    const loadData = async () => {
+        const id = localStorage.getItem("astrologer_id");
+        const token = localStorage.getItem("astrologer_token");
+        if(!id || !token) { router.push("/astrologer/login"); return; }
+
+        apiAstrologer.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+        
+        try {
+            const { data } = await apiAstrologer.get(`/astrologer/profile/${id}`);
+            if(data.success) setAstrologer(data.astrologer);
+            
+            await fetchRealTimeStats(); // Get initial counts
+        } catch(e) {
+            console.error(e);
+        } finally {
+            setLoading(false);
+        }
     };
-  }, [astrologer?._id]);
-
+    loadData();
+  }, [fetchRealTimeStats, router]);
   // Load astrologer data
   useEffect(() => {
     
@@ -261,15 +324,22 @@ export default function AstrologerDashboard() {
     if (!astrologer) return;
     
     try {
-      const statsRes = await apiAstrologer.get(`/astrologer/stats/${astrologer._id}`);
-      if (statsRes.data.success) {
-       setStats(prev => ({
-          ...prev,
-          ...statsRes.data.stats,
-          waitingChats: statsRes.data.stats.waitingChats || prev.waitingChats
-        }));
-      }
-    } catch (error) {
+     const astrologerId = localStorage.getItem("astrologer_id");
+    if (!astrologerId) return;
+
+    
+        const { data } = await apiAstrologer.get(`/astrologer/stats/${astrologerId}`);
+        if (data.success) {
+            setStats(prev => ({
+                ...prev,
+                ...data.stats,
+                // Ensure specific counters are synced from DB, not just local +1
+                activeChats: data.stats.activeChats || 0,
+                waitingCalls: data.stats.waitingCalls || 0
+            }));
+          }
+        
+          }catch (error) {
       console.error("Refresh stats error:", error);
     }
   };
@@ -384,13 +454,18 @@ export default function AstrologerDashboard() {
               label="Chat"
               active={activeTab === "chat"}
               onClick={() => setActiveTab("chat")}
-              badge={stats.activeChats}
+              badge={stats.activeChats + stats.waitingChats} // Sum of both
             />
             <NavItem
               icon={<FaPhone />}
               label="Calls"
               active={activeTab === "call"}
-              onClick={() => setActiveTab("call")}
+              onClick={() => {
+                setActiveTab("call");
+                if (typeof window.refreshCalls === 'function') {
+                 window.refreshCalls()
+              }
+            }}
               badge={stats.waitingCalls}
             />
             <NavItem

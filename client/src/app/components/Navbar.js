@@ -124,6 +124,7 @@ ${
     max-w-[640px]
     flex-shrink-0
     mr-32 xl:mr-42
+    max-[1280px]:mr-16
     
     
     pr-4 
