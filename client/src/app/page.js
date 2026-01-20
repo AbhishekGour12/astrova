@@ -460,91 +460,219 @@ const HeroSection = () => {
           </motion.div>
        
         </div>
-
-        {/* Right Side - Pandit Image */}
 {/* Right Side - Pandit Image */}
-        <div className="w-full  lg:w-1/2 relative flex justify-center items-center mt-6 sm:mt-8 md:mt-10 lg:mt-0 px-4 sm:px-6 md:px-8 lg:px-0 pb-8 sm:pb-10 md:pb-12 lg:pb-0">
-          {/* Halo + Rings */}
+<div className="w-full lg:w-1/2 relative flex justify-center items-center mt-16 sm:mt-8 md:mt-40 lg:mt-0 px-4 sm:px-6 md:px-8 lg:px-0 pb-8 sm:pb-10 md:pb-12 lg:pb-0">
+  {/* Halo + Rings */}
+  <motion.div
+    initial={{ opacity: 0, scale: 0.8 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ duration: 1 }}
+    className="absolute inset-0 flex justify-center items-center pointer-events-none"
+  >
+    {/* Glow */}
+    <motion.div
+      animate={{ rotate: 360 }}
+      transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+      className="
+        rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-500/20 blur-xl
+        w-[280px] h-[280px]
+        sm:w-[350px] sm:h-[350px]
+        md:w-[450px] md:h-[450px]
+        lg:w-[500px] lg:h-[500px]
+        xl:w-[650px] xl:h-[650px]
+      "
+    />
+
+    {/* Halo Outline */}
+    <motion.div
+      animate={{ rotate: -360 }}
+      transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
+      className="
+        absolute rounded-full border-2 border-yellow-300/25
+        w-[330px] h-[330px]
+        sm:w-[350px] sm:h-[350px]
+        md:w-[500px] md:h-[500px]
+        lg:w-[550px] lg:h-[550px]
+        xl:w-[650px] xl:h-[650px]
+      "
+    />
+
+    {/* Single Zodiac Ring - All signs positioned consistently */}
+    <motion.div
+      animate={{ rotate: 360 }}
+      transition={{ duration: 40, repeat: Infinity, ease: "linear" }}
+      className="
+        absolute rounded-full
+        w-[330px] h-[330px]
+        sm:w-[350px] sm:h-[350px]
+        md:w-[550px] md:h-[550px]
+        lg:w-[550px] lg:h-[550px]
+        xl:w-[650px] xl:h-[650px]
+      "
+    >
+      {[
+        { symbol: "♈", name: "Aries" },
+        { symbol: "♉", name: "Taurus" },
+        { symbol: "♊", name: "Gemini" },
+        { symbol: "♋", name: "Cancer" },
+        { symbol: "♌", name: "Leo" },
+        { symbol: "♍", name: "Virgo" },
+        { symbol: "♎", name: "Libra" },
+        { symbol: "♏", name: "Scorpio" },
+        { symbol: "♐", name: "Sagittarius" },
+        { symbol: "♑", name: "Capricorn" },
+        { symbol: "♒", name: "Aquarius" },
+        { symbol: "♓", name: "Pisces" }
+      ].map((zodiac, index) => {
+        // Calculate angle for each sign (12 signs, 30 degrees apart)
+        const angle = (index * 30 * Math.PI) / 180;
+        // Consistent radius for all signs
+        const radius = 48; // percentage from center
+        
+        return (
           <motion.div
-            initial={{ opacity: 0, scale: 0.8 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ duration: 1 }}
-            className="absolute inset-0 flex justify-center items-center pointer-events-none"
+            key={zodiac.name}
+            className="absolute flex items-center justify-center"
+            style={{
+              left: `calc(50% + ${radius * Math.cos(angle)}% - 1.5rem)`,
+              top: `calc(50% + ${radius * Math.sin(angle)}% - 1.5rem)`,
+              transform: 'translate(-50%, -50%)',
+            }}
+            animate={{
+              scale: [1, 1.15, 1],
+              rotate: [0, 5, 0, -5, 0],
+            }}
+            transition={{
+              scale: {
+                duration: 3,
+                repeat: Infinity,
+                delay: index * 0.2,
+                ease: "easeInOut"
+              },
+              rotate: {
+                duration: 4,
+                repeat: Infinity,
+                delay: index * 0.15,
+                ease: "easeInOut"
+              }
+            }}
+            whileHover={{
+              scale: 1.3,
+              transition: { duration: 0.3 }
+            }}
           >
-            {/* Glow */}
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-              className="
-                rounded-full bg-gradient-to-r from-yellow-400/20 to-orange-500/20 blur-xl
-                w-[280px] h-[280px]
-                sm:w-[350px] sm:h-[350px]
-                md:w-[450px] md:h-[450px]
-                lg:w-[500px] lg:h-[500px]
-                xl:w-[650px] xl:h-[650px]
-              "
-            />
-
-            {/* Halo Outline */}
-            <motion.div
-              animate={{ rotate: -360 }}
-              transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-              className="
-                absolute rounded-full  -yellow-300/25
-                w-[320px] h-[320px]
-                sm:w-[400px] sm:h-[400px]
-                md:w-[500px] md:h-[500px]
-                lg:w-[550px] lg:h-[550px]
-                xl:w-[700px] xl:h-[700px]
-              "
-            />
-
-            {/* Sparkles */}
-            <motion.div
-              animate={{ rotate: 180 }}
-              transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-              className="
-                absolute rounded-full
-                w-[360px] h-[360px]
-                sm:w-[450px] sm:h-[450px]
-                md:w-[550px] md:h-[550px]
-                lg:w-[600px] lg:h-[600px]
-                xl:w-[750px] xl:h-[750px]
-              "
-            >
-              {[...Array(10)].map((_, i) => (
-                <motion.div
-                  key={i}
-                  className="absolute w-1.5 h-1.5 sm:w-2 sm:h-2 bg-yellow-300 rounded-full"
-                  style={{
-                    left: `${50 + 46 * Math.cos((i * 36 * Math.PI) / 180)}%`,
-                    top: `${50 + 46 * Math.sin((i * 36 * Math.PI) / 180)}%`,
-                  }}
-                  animate={{ scale: [1, 1.6, 1] }}
-                  transition={{ duration: 1.8, repeat: Infinity, delay: i * 0.2 }}
-                />
-              ))}
-            </motion.div>
-          </motion.div>
-
-          {/* Pandit Image */}
-          <motion.div
-            initial={{ opacity: 0, y: 25 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 1 }}
-            className="relative z-10"
-          >
-            <div className="relative w-[280px] h-[280px] sm:w-[350px] sm:h-[350px] md:w-[450px] md:h-[450px] lg:w-[500px] lg:h-[500px] xl:w-[500px] xl:h-[600px]">
-              <Image
-                src="/pandit.png"
-                alt="Astrologer"
-                fill
-                className="object-contain drop-shadow-xl"
-                priority
-              />
+            <div className="
+              w-6 h-6
+              sm:w-9 sm:h-9 
+              md:w-9 md:h-9
+              lg:w-9 lg:h-9 
+              xl:w-9 xl:h-9
+              flex items-center justify-center
+              bg-gradient-to-br from-yellow-400/30 via-yellow-300/20 to-orange-500/30
+              rounded-full backdrop-blur-sm
+              border-2 border-yellow-400/40
+              shadow-lg shadow-yellow-500/30
+              transition-all duration-300
+              hover:shadow-xl hover:shadow-yellow-500/40
+              hover:border-yellow-300/60
+              group
+            ">
+              <span className="
+                text-sm sm:text-lg md:text-xl lg:text-xl xl:text-2xl
+                text-yellow-300 font-bold
+                drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]
+                group-hover:drop-shadow-[0_0_12px_rgba(255,215,0,0.8)]
+                transition-all duration-300
+                
+              ">
+                {zodiac.symbol}
+              </span>
+              
+              {/* Zodiac name tooltip on hover */}
+              <div className="
+                absolute -bottom-8 left-1/2 transform -translate-x-1/2
+                px-2 py-1 bg-black/80 backdrop-blur-sm rounded-md
+                border border-yellow-500/30
+                text-xs sm:text-sm text-yellow-200 font-medium
+                opacity-0 group-hover:opacity-100
+                transition-opacity duration-300
+                whitespace-nowrap
+                z-50
+              ">
+                {zodiac.name}
+              </div>
             </div>
           </motion.div>
-        </div>
+        );
+      })}
+    </motion.div>
+
+    {/* Decorative Outer Ring with Dots */}
+    <motion.div
+      animate={{ rotate: -360 }}
+      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
+      className="
+        absolute rounded-full
+        w-[330px] h-[330px]
+        sm:w-[350px] sm:h-[350px]
+        md:w-[550px] md:h-[550px]
+        lg:w-[550px] lg:h-[550px]
+        xl:w-[800px] xl:h-[800px]
+      "
+    >
+      {[...Array(24)].map((_, i) => (
+        <div
+          key={`dot-${i}`}
+          className="absolute w-1.5 h-1.5 sm:w-2 sm:h-2 bg-yellow-400/30 rounded-full"
+          style={{
+            left: `${50 + 50 * Math.cos((i * 15 * Math.PI) / 180)}%`,
+            top: `${50 + 50 * Math.sin((i * 15 * Math.PI) / 180)}%`,
+            transform: 'translate(-50%, -50%)',
+          }}
+        />
+      ))}
+    </motion.div>
+  </motion.div>
+
+  {/* Pandit Image */}
+  <motion.div
+    initial={{ opacity: 0, y: 25 }}
+    animate={{ opacity: 1, y: 0 }}
+    transition={{ duration: 1 }}
+    className="relative z-10"
+  >
+    <div className="
+      relative 
+      w-[240px] h-[240px] 
+      sm:w-[300px] sm:h-[300px] 
+      md:w-[380px] md:h-[380px] 
+      lg:w-[450px] lg:h-[450px] 
+      xl:w-[480px] xl:h-[580px]
+    ">
+      <Image
+        src="/pandit.png"
+        alt="Astrologer"
+        fill
+        className="object-contain drop-shadow-2xl"
+        priority
+      />
+    </div>
+  </motion.div>
+
+  {/* Floating Glow Effects */}
+  <div className="absolute inset-0 pointer-events-none">
+    {/* Center Glow */}
+    <div className="
+      absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2
+      w-[120px] h-[120px]
+      sm:w-[150px] sm:h-[150px]
+      md:w-[180px] md:h-[180px]
+      lg:w-[200px] lg:h-[200px]
+      xl:w-[220px] xl:h-[220px]
+      rounded-full bg-gradient-to-r from-yellow-500/10 to-orange-500/10 blur-2xl
+    " />
+  </div>
+</div>
       </div>
 
     </section>
