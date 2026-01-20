@@ -454,7 +454,7 @@ const HeroSection = () => {
     </div>
   
 </div>
-<div className="ad  h-[100px] pt-[40px] max-md:pt-[20px] max-sm:pt-[0px]"><MiniAdStrip slides={carousel || []}/></div>
+<div className={`ad ${carousel?'flex':'hidden'}  h-[100px] pt-[40px] max-md:pt-[20px] max-sm:pt-[0px]`}><MiniAdStrip slides={carousel || []}/></div>
 
 
           </motion.div>
