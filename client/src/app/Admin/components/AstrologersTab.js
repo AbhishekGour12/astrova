@@ -86,12 +86,18 @@ export default function AstrologersTab() {
   };
 
   /* ================= FILTER ================= */
-  const filteredAstrologers = astrologers.filter(
-    (a) =>
-      a.fullName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.expertise?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      a.email?.toLowerCase().includes(searchTerm.toLowerCase())
+ const filteredAstrologers = astrologers.filter((a) => {
+  const search = searchTerm.toLowerCase();
+
+  return (
+    a.fullName?.toLowerCase().includes(search) ||
+    (Array.isArray(a.expertise)
+      ? a.expertise.join(" ").toLowerCase().includes(search)
+      : a.expertise?.toLowerCase().includes(search)) ||
+    a.email?.toLowerCase().includes(search)
   );
+});
+
 
   /* ================= AVAILABILITY BADGE ================= */
   const getAvailabilityBadge = (availability) => {

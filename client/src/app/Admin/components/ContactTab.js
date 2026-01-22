@@ -626,12 +626,7 @@ const ContactTab = () => {
                 >
                   <FaReply /> Reply
                 </button>
-                <button
-                  onClick={() => updateContactStatus(selectedContact._id, 'closed')}
-                  className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300"
-                >
-                  Mark as Closed
-                </button>
+                
                 <button
                   onClick={() => deleteContact(selectedContact._id)}
                   className="px-4 py-2 bg-red-100 text-red-600 rounded-lg hover:bg-red-200 ml-auto"

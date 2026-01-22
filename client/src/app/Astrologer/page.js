@@ -481,12 +481,7 @@ socket.on("chatEnded", (data) => {
               active={activeTab === "profile"}
               onClick={() => setActiveTab("profile")}
             />
-            <NavItem
-              icon={<FaCog />}
-              label="Settings"
-              active={activeTab === "settings"}
-              onClick={() => setActiveTab("settings")}
-            />
+           
           </div>
 
           {/* Sidebar Footer */}
@@ -527,7 +522,7 @@ socket.on("chatEnded", (data) => {
                 {activeTab === "payouts" && "Payouts"}
                 {activeTab === "overview" && "Overview"}
                 {activeTab === "profile" && "Profile"}
-                {activeTab === "settings" && "Settings"}
+                
               </h1>
               {activeTab === "chat" && stats.activeChats > 0 && (
                 <span className="bg-green-100 text-green-700 text-sm px-3 py-1 rounded-full">
@@ -794,9 +789,7 @@ function ProfileTab({ astrologer }) {
     <div className="bg-white rounded-xl p-6 shadow-sm border border-gray-200">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-xl font-bold text-gray-800">Profile Settings</h2>
-        <button className="px-4 py-2 bg-[#C06014] text-white rounded-lg hover:bg-[#D47C3A] transition-colors">
-          Edit Profile
-        </button>
+        
       </div>
       <div className="space-y-6">
         <div className="flex items-center gap-6">

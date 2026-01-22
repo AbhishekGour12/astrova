@@ -17,7 +17,7 @@ import {
 } from 'react-icons/fa';
 
 const menuItems = [
-  { id: 'dashboard', label: 'Dashboard', icon: FaChartLine },
+ // { id: 'dashboard', label: 'Dashboard', icon: FaChartLine },
   { id: 'astrologers', label: 'Astrologers', icon: FaUserAstronaut },
   { id: 'products', label: 'Products', icon: FaShoppingBag },
   { id: 'orders', label: 'Orders', icon: FaBox },
@@ -27,7 +27,7 @@ const menuItems = [
   { id: 'carousel', label: 'Advsertisements', icon: FaAdversal },
   { id: 'remedies', label: 'Remedies', icon: FaAdversal },
   {id: 'contact', label: 'Contact', icon: FaPhone},
-  { id: 'settings', label: 'Settings', icon: FaCog },
+ // { id: 'settings', label: 'Settings', icon: FaCog },
   
 ];
 

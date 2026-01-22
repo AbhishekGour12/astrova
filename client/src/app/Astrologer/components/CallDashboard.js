@@ -1118,8 +1118,6 @@ delete window.refreshCalls;
 
 }, [refreshCalls]);
 
-
-
 if (!astrologerId) {
 
 return (

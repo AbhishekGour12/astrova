@@ -22,6 +22,7 @@ export default function ClientLayout({ children }) {
       "/Astrologer/register",
       "/Astrologer",
       "/Astrologer/call-dashboard",
+      "/Admin"
     ].includes(pathname);
 
   return (
