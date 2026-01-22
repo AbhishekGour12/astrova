@@ -17,7 +17,7 @@ import {
 } from 'react-icons/fa';
 
 const menuItems = [
- // { id: 'dashboard', label: 'Dashboard', icon: FaChartLine },
+  { id: 'dashboard', label: 'Dashboard', icon: FaChartLine },
   { id: 'astrologers', label: 'Astrologers', icon: FaUserAstronaut },
   { id: 'products', label: 'Products', icon: FaShoppingBag },
   { id: 'orders', label: 'Orders', icon: FaBox },
@@ -40,7 +40,7 @@ const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
       className={`fixed lg:static top-0 left-0 h-vw bg-white shadow-lg z-40
       w-64 border-r border-gray-300 
       ${sidebarOpen ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-      lg:translate-x-0 lg:block`}
+      lg:translate-x-0 lg:block max-sm:h-full`}
     >
 
       {/* TOP HEADER WITH CLOSE BUTTON */}
@@ -84,7 +84,7 @@ const Sidebar = ({ activeTab, setActiveTab, sidebarOpen, setSidebarOpen }) => {
         ))}
       </nav>
 
-      <div className="absolute bottom-4 left-4 right-4">
+      <div className=" bottom-4 left-4 right-4">
         <button className="w-full flex items-center gap-3 px-4 py-3 rounded-xl 
         hover:bg-red-50 text-red-600 border border-gray-300">
           <FaSignOutAlt /> Logout

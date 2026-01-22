@@ -73,7 +73,7 @@ const dummyData = {
 };
 
 const AdminDashboard = () => {
-  const [activeTab, setActiveTab] = useState('astrologers');
+  const [activeTab, setActiveTab] = useState('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -145,7 +145,7 @@ const AdminDashboard = () => {
   if (loading) return <PageLoader />;
 
   const tabComponents = {
-   // dashboard: <Dashboard stats={data.stats} orders={data.orders} />,
+    dashboard: <Dashboard stats={data.stats} orders={data.orders} />,
     users: <UsersTab 
       users={data.users} 
       searchTerm={searchTerm} 

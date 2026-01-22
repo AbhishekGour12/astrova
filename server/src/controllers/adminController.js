@@ -36,25 +36,7 @@ dotenv.config()
  * @desc Get overall dashboard stats
  * @route GET /api/admin/stats
  */
-export const getDashboardStats = async (req, res) => {
-  try {
-    const usersCount = await User.countDocuments();
-    const astrologersCount = await Astrologer.countDocuments();
-    const productsCount = await Product.countDocuments();
-    const totalOrders = await Order.countDocuments();
-    const totalPayments = await Payment.aggregate([{ $group: { _id: null, total: { $sum: "$amount" } } }]);
 
-    res.json({
-      usersCount,
-      astrologersCount,
-      productsCount,
-      totalOrders,
-      totalRevenue: totalPayments[0]?.total || 0,
-    });
-  } catch (error) {
-    res.status(500).json({ error: error.message });
-  }
-};
 
 // ===================== //
 // 👥 USER MANAGEMENT //
@@ -432,6 +414,270 @@ export const exportPayments = async (req, res) => {
     res.status(500).json({
       success: false,
       error: "Failed to export payments"
+    });
+  }
+};
+
+
+
+
+
+
+
+// Helper for consistent status checking
+const PAID_STATUS = ["captured", "success"]; 
+
+// 1. Get Main Dashboard Stats (Overview, Recent Orders, Top Products)
+export const getDashboardStats = async (req, res) => {
+  try {
+    const [
+      usersCount,
+      astrologersCount,
+      productsCount,
+      totalOrders,
+      pendingOrders,
+      revenueData,
+      recentOrders,
+      topProducts
+    ] = await Promise.all([
+      User.countDocuments(),
+      Astrologer.countDocuments({ isApproved: true }),
+      Product.countDocuments(),
+      Order.countDocuments(),
+      Order.countDocuments({ shiprocketStatus: "Pending" }),
+      
+      // Fixed: Check for both 'captured' and 'success'
+      Payment.aggregate([
+        { $match: { status: { $in: PAID_STATUS } } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]),
+
+      Order.find()
+        .populate('userId', 'username email')
+        .sort({ createdAt: -1 })
+        .limit(10)
+        .lean(),
+
+      // Top Selling Products
+      Order.aggregate([
+        { $unwind: "$items" },
+        { $group: { 
+          _id: "$items.product", 
+          totalSold: { $sum: "$items.quantity" },
+          totalRevenue: { $sum: { $multiply: ["$items.quantity", "$items.price"] } }
+        }},
+        { $sort: { totalSold: -1 } },
+        { $limit: 5 },
+        { $lookup: {
+          from: 'products',
+          localField: '_id',
+          foreignField: '_id',
+          as: 'product'
+        }},
+        { $unwind: "$product" },
+        { $project: {
+          productId: "$_id",
+          productName: "$product.name",
+          productImage: { $arrayElemAt: ["$product.imageUrls", 0] },
+          totalSold: 1,
+          totalRevenue: 1
+        }}
+      ])
+    ]);
+
+    const totalRevenue = revenueData[0]?.total || 0;
+
+    // Calculate Today vs Yesterday for Growth %
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    const [todaysData, yesterdaysData] = await Promise.all([
+        Payment.aggregate([
+            { $match: { status: { $in: PAID_STATUS }, createdAt: { $gte: today } } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ]),
+        Payment.aggregate([
+            { $match: { status: { $in: PAID_STATUS }, createdAt: { $gte: yesterday, $lt: today } } },
+            { $group: { _id: null, total: { $sum: "$amount" } } }
+        ])
+    ]);
+
+    const todaysRevenue = todaysData[0]?.total || 0;
+    const yesterdaysRevenue = yesterdaysData[0]?.total || 0;
+
+    const revenueGrowth = yesterdaysRevenue > 0 
+      ? (((todaysRevenue - yesterdaysRevenue) / yesterdaysRevenue) * 100).toFixed(1)
+      : todaysRevenue > 0 ? 100 : 0;
+
+    res.json({
+      success: true,
+      data: {
+        overview: {
+          usersCount,
+          astrologersCount,
+          productsCount,
+          totalOrders,
+          pendingOrders,
+          todaysRevenue,
+          totalRevenue,
+          revenueGrowth: parseFloat(revenueGrowth)
+        },
+        recentOrders: recentOrders.map(order => ({
+            _id: order._id,
+            orderNumber: `ORD${order._id.toString().slice(-6).toUpperCase()}`,
+            userName: order.userId?.username || 'N/A',
+            userEmail: order.userId?.email || 'N/A',
+            totalAmount: order.totalAmount,
+            orderStatus: order.shiprocketStatus,
+            createdAt: order.createdAt,
+            itemsCount: order.items?.length || 0
+        })),
+        topProducts
+      }
+    });
+
+  } catch (error) {
+    console.error('Error fetching dashboard stats:', error);
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+// 2. Get Detailed Revenue Analytics (For Chart)
+export const getRevenueAnalytics = async (req, res) => {
+  try {
+    const { period = 'month' } = req.query; 
+    const now = new Date();
+    let matchPeriod, groupFormat;
+
+    // Logic to determine time range
+    switch (period) {
+      case 'day': // Last 30 Days
+        matchPeriod = new Date();
+        matchPeriod.setDate(now.getDate() - 30);
+        groupFormat = { year: { $year: "$createdAt" }, month: { $month: "$createdAt" }, day: { $dayOfMonth: "$createdAt" } };
+        break;
+      case 'week': // Last 12 Weeks
+        matchPeriod = new Date();
+        matchPeriod.setDate(now.getDate() - (7 * 12));
+        groupFormat = { year: { $year: "$createdAt" }, week: { $week: "$createdAt" } };
+        break;
+      case 'year': // Last 5 Years
+         matchPeriod = new Date();
+         matchPeriod.setFullYear(now.getFullYear() - 5);
+         groupFormat = { year: { $year: "$createdAt" } };
+         break;
+      default: // Last 6 Months (default)
+        matchPeriod = new Date();
+        matchPeriod.setMonth(now.getMonth() - 6);
+        groupFormat = { year: { $year: "$createdAt" }, month: { $month: "$createdAt" } };
+    }
+
+    const revenueData = await Payment.aggregate([
+      {
+        $match: {
+          status: { $in: PAID_STATUS }, // FIXED: Using consistent status
+          createdAt: { $gte: matchPeriod }
+        }
+      },
+      {
+        $group: {
+          _id: groupFormat,
+          revenue: { $sum: "$amount" },
+          orders: { $sum: 1 }
+        }
+      },
+      { $sort: { "_id.year": 1, "_id.month": 1, "_id.day": 1, "_id.week": 1 } }
+    ]);
+
+    // Format for Chart.js / Recharts
+    const formattedData = revenueData.map(item => {
+        let label = '';
+        if (period === 'day') label = `${item._id.day}/${item._id.month}`;
+        else if (period === 'week') label = `W${item._id.week}`;
+        else if (period === 'month') label = getMonthName(item._id.month);
+        else if (period === 'year') label = item._id.year.toString();
+        
+        return { label, revenue: item.revenue, orders: item.orders };
+    });
+
+    res.json({ success: true, data: { period, analytics: formattedData } });
+
+  } catch (error) {
+    res.status(500).json({ success: false, message: error.message });
+  }
+};
+
+
+
+const getMonthName = (monthNum) => 
+  ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'][monthNum - 1];
+
+// Get quick stats for dashboard cards
+export const getQuickStats = async (req, res) => {
+  try {
+    const [
+      usersCount,
+      astrologersCount,
+      productsCount,
+      totalOrders,
+      pendingOrders,
+      todaysOrders,
+      todaysRevenue,
+      totalRevenue
+    ] = await Promise.all([
+      User.countDocuments({ role: 'user' }),
+      Astrologer.countDocuments({ isApproved: true }),
+      Product.countDocuments(),
+      Order.countDocuments(),
+      Order.countDocuments({ shiprocketStatus: "Pending" }),
+      
+      // Today's orders
+      Order.countDocuments({
+        createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
+      }),
+      
+      // Today's revenue
+      Payment.aggregate([
+        { 
+          $match: { 
+            status: "captured",
+            createdAt: { $gte: new Date().setHours(0, 0, 0, 0) }
+          }
+        },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ]),
+      
+      // Total revenue
+      Payment.aggregate([
+        { $match: { status: "captured" } },
+        { $group: { _id: null, total: { $sum: "$amount" } } }
+      ])
+    ]);
+
+    const stats = {
+      usersCount,
+      astrologersCount,
+      productsCount,
+      totalOrders,
+      pendingOrders,
+      todaysOrders,
+      todaysRevenue: todaysRevenue[0]?.total || 0,
+      totalRevenue: totalRevenue[0]?.total || 0
+    };
+
+    res.json({
+      success: true,
+      data: stats
+    });
+
+  } catch (error) {
+    console.error('Error fetching quick stats:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error fetching quick statistics',
+      error: error.message
     });
   }
 };

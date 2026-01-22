@@ -16,6 +16,8 @@ import {
   deleteSubAdmin,
   getAllPayment,
   exportPayments,
+  getRevenueAnalytics,
+  getQuickStats,
  
 } from "../controllers/adminController.js";
 import {
@@ -114,5 +116,14 @@ router.get("/payment", getAllPayment);
 
 // Export to Excel
 router.get("/export", exportPayments);
+
+
+router.get('/stats', getDashboardStats);
+
+// Get revenue analytics for different periods
+router.get('/revenue-analytics', getRevenueAnalytics);
+
+// Get quick stats (for dashboard cards only)
+router.get('/quick-stats', getQuickStats);
 
 export default router;
