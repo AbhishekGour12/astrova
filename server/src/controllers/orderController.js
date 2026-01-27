@@ -45,7 +45,7 @@ export const createOrder = async (req, res) => {
     const subtotal = cart.items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
     const gstAmount = Number((subtotal * 0.18).toFixed(2));
     const shippingCharge = subtotal > 500 ? 0 : 50;
-    const totalAmount = subtotal + gstAmount + shippingCharge - discount;
+    const totalAmount = Number((subtotal + gstAmount + shippingCharge - discount).toFixed(2));
     const paymentStatus = paymentMethod === "online" ? "Paid" : "Pending";
 
     // Weight
@@ -124,7 +124,7 @@ export const createOrder = async (req, res) => {
 // -----------------------------------
 // SAVE PAYMENT INFO (CASH / COD / OFFLINE)
 // -----------------------------------
-
+/** 
 if (paymentMethod === "online") {
   // Example: seller fixed payout
   const payoutAmount = Math.round(totalAmount * 0.7); // 70%
@@ -139,6 +139,7 @@ if (paymentMethod === "online") {
   newOrder.payoutstatus = "SUCCESS";
   
 }
+  */
 
 
 
