@@ -140,20 +140,7 @@ if (paymentMethod === "online") {
   
 }
 
-if (paymentMethod !== "online") {
-  await Payment.create(
-    [
-      {
-        user: req.user.id,
-        orderId: newOrder._id,
-        amount: totalAmount,
-        method: paymentMethod === "cash" || isCODEnabled ? "Cash" : "UPI",
-        status: "initiated", // cash / COD not paid yet
-      },
-    ],
-    { session }
-  );
-}
+
 
     // Reduce stock
   for (const item of cart.items) {
@@ -190,7 +177,7 @@ if (paymentMethod !== "online") {
       shiprocket: shipOrder
     });
   }catch(err){
-    console.log(err.message)
+    console.log("order", err.message)
   }
 
   } catch (error) {

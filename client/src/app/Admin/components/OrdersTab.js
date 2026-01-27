@@ -1,7 +1,8 @@
 import { motion } from "framer-motion";
-import { FaEye, FaTruck } from "react-icons/fa";
+import { FaEye, FaTruck, FaFileExcel } from "react-icons/fa"; // Added FaFileExcel
 import { adminAPI } from "../../lib/admin";
 import { useEffect, useState, useMemo } from "react";
+import * as XLSX from "xlsx"; // Added XLSX import
 
 const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
   const [orders, setOrders] = useState(initialOrders);
@@ -9,21 +10,20 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
   const [statusFilter, setStatusFilter] = useState("all");
   const [dateRange, setDateRange] = useState({ from: "", to: "" });
   const [page, setPage] = useState(1);
-  const [selectedOrder, setSelectedOrder] = useState(null); // for "View details" modal
-const normalizeStatus = (status = "") =>
-  status.toLowerCase().replace(/_/g, " ").trim();
+  const [selectedOrder, setSelectedOrder] = useState(null);
 
-  const LIMIT = 10; // 10 orders per page
+  const normalizeStatus = (status = "") =>
+    status.toLowerCase().replace(/_/g, " ").trim();
 
-  // 🔁 Fetch orders from backend
+  const LIMIT = 10;
+
+  // 🔁 Fetch orders
   const fetchOrders = async () => {
     try {
       setLoading(true);
       const res = await adminAPI.getAllOrders();
-      console.log(res) // must return { orders: [...] }
       if (res?.orders) {
         setOrders(res.orders);
-        
       }
     } catch (err) {
       console.error("Error fetching orders:", err);
@@ -36,29 +36,24 @@ const normalizeStatus = (status = "") =>
     fetchOrders();
   }, []);
 
-  // Reset to page 1 whenever filter/search changes
   useEffect(() => {
     setPage(1);
   }, [searchTerm, statusFilter, dateRange.from, dateRange.to]);
 
-  // 🌈 Status badge color classes based on shiprocketStatus
   const getStatusColor = (status = "") => {
-  const s = normalizeStatus(status);
+    const s = normalizeStatus(status);
+    if (s === "delivered") return "bg-green-100 text-green-700";
+    if (s === "out for delivery") return "bg-orange-100 text-orange-700";
+    if (["in transit", "reached at hub"].includes(s))
+      return "bg-blue-100 text-blue-700";
+    if (["picked up", "out for pickup"].includes(s))
+      return "bg-purple-100 text-purple-700";
+    if (s.includes("rto")) return "bg-red-100 text-red-700";
+    if (s.includes("cancel")) return "bg-red-100 text-red-700";
+    return "bg-amber-100 text-amber-700";
+  };
 
-  if (s === "delivered") return "bg-green-100 text-green-700";
-  if (s === "out for delivery") return "bg-orange-100 text-orange-700";
-  if (["in transit", "reached at hub"].includes(s))
-    return "bg-blue-100 text-blue-700";
-  if (["picked up", "out for pickup"].includes(s))
-    return "bg-purple-100 text-purple-700";
-  if (s.includes("rto")) return "bg-red-100 text-red-700";
-  if (s.includes("cancel")) return "bg-red-100 text-red-700";
-
-  return "bg-amber-100 text-amber-700";
-};
-
-
-  // 🔎 Filtering (search + status + date range)
+  // 🔎 Filtering
   const filteredOrders = useMemo(() => {
     const s = searchTerm.toLowerCase().trim();
 
@@ -67,23 +62,18 @@ const normalizeStatus = (status = "") =>
       const shipStatus = (order.shiprocketStatus || "").toLowerCase();
       const created = new Date(order.createdAt);
 
-      // search on: user name, email, phone, order id, shiprocketOrderId
       const matchesSearch =
         !s ||
-        (user.username || user.name || "")
-          .toLowerCase()
-          .includes(s) ||
+        (user.username || user.name || "").toLowerCase().includes(s) ||
         (user.email || "").toLowerCase().includes(s) ||
         (user.phone || "").toLowerCase().includes(s) ||
         (order._id || "").toLowerCase().includes(s) ||
         (order.shiprocketOrderId || "").toLowerCase().includes(s);
 
-      // status filter
       const matchesStatus =
         statusFilter === "all" ||
         shipStatus.includes(statusFilter.toLowerCase());
 
-      // date filter
       let matchesDate = true;
       if (dateRange.from) {
         const from = new Date(dateRange.from);
@@ -91,7 +81,6 @@ const normalizeStatus = (status = "") =>
       }
       if (dateRange.to) {
         const to = new Date(dateRange.to);
-        // include full day
         to.setHours(23, 59, 59, 999);
         matchesDate = matchesDate && created <= to;
       }
@@ -100,138 +89,117 @@ const normalizeStatus = (status = "") =>
     });
   }, [orders, searchTerm, statusFilter, dateRange]);
 
-  // 📄 Pagination
+  // 📊 EXPORT TO EXCEL FUNCTION
+  const handleExport = () => {
+    if (!filteredOrders.length) {
+      alert("No orders to export!");
+      return;
+    }
+
+    // 1. Flatten the data for Excel columns
+    const dataToExport = filteredOrders.map((order) => {
+      const user = order.userId || {};
+      const address = order.shippingAddress || {};
+      
+      // Helper to format items string safely
+      const itemsString = Array.isArray(order.items) 
+        ? order.items.map(i => `${i.product?.name || 'Item'} (x${i.quantity})`).join(", ") 
+        : "No Items";
+
+      return {
+        "Order ID": order._id,
+        "Date": new Date(order.createdAt).toLocaleDateString(),
+        "Time": new Date(order.createdAt).toLocaleTimeString(),
+        "Customer Name": user.username || user.name || "Unknown",
+        "Customer Email": user.email || address.email || "",
+        "Customer Phone": user.phone || address.phone || "",
+        "Shipping Address": `${address.addressLine1 || ""} ${address.addressLine2 || ""}, ${address.city || ""} ${address.state || ""} - ${address.pincode || ""}`.trim(),
+        "Items Summary": itemsString,
+        "Total Items": Array.isArray(order.items) ? order.items.reduce((acc, curr) => acc + (curr.quantity || 0), 0) : 0,
+        "Total Amount (INR)": order.totalAmount || 0,
+        "Payment Method": order.paymentMethod,
+        "Payment Status": order.paymentStatus,
+        "Shiprocket Status": order.shiprocketStatus || "Pending",
+        "AWB Code": order.awbCode || "N/A"
+      };
+    });
+
+    // 2. Create Workbook
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Orders");
+
+    // 3. Save File
+    XLSX.writeFile(workbook, `Orders_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
+  };
+
+  // ... (Existing Pagination logic)
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / LIMIT));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * LIMIT;
-  const paginatedOrders = filteredOrders.slice(
-    startIndex,
-    startIndex + LIMIT
-  );
+  const paginatedOrders = filteredOrders.slice(startIndex, startIndex + LIMIT);
 
   const handleChangePage = (nextPage) => {
     if (nextPage < 1 || nextPage > totalPages) return;
     setPage(nextPage);
   };
 
-  // 🟢 Update Shiprocket Status (local + backend)
-  const handleUpdateShiprocketStatus = async (orderId, newStatus) => {
-    // Optimistic UI update
-    setOrders((prev) =>
-      prev.map((o) =>
-        o._id === orderId ? { ...o, shiprocketStatus: newStatus } : o
-      )
-    );
-
-    try {
-      // 👉 Make sure this API exists in adminAPI
-      // e.g. PATCH /admin/orders/:id/status  { shiprocketStatus }
-      await adminAPI.updateOrderStatus(orderId, {
-        shiprocketStatus: newStatus,
-      });
-    } catch (err) {
-      console.error("Failed to update status:", err);
-      // Rollback on error
-      await fetchOrders();
+  const handleTrackShipment = (order) => {
+    if (!order.awbCode) {
+      alert("AWB not assigned yet.");
+      return;
     }
+    window.open(
+      `https://shiprocket.co/tracking/${order.awbCode}`,
+      "_blank",
+      "noopener,noreferrer"
+    );
   };
 
-  // 🚚 Track shipment (Shiprocket Tracking)
- const handleTrackShipment = (order) => {
-  if (!order.awbCode) {
-    alert("AWB not assigned yet.");
-    return;
-  }
-
-  window.open(
-    `https://shiprocket.co/tracking/${order.awbCode}`,
-    "_blank",
-    "noopener,noreferrer"
-  );
-};
-
-
-  // 📦 Items summary (for table)
- 
-const getItemsSummary = (order) => {
-  const items = Array.isArray(order.items) ? order.items : [];
-
-  if (!items.length) {
-    // maybe some old orders just stored a string / number in `items`
-    if (order.items && typeof order.items !== "object") {
-      return String(order.items);
+  // ... (Existing Helpers: getItemsSummary, totalItemCount, getProgressStep, mapAdminReadableStatus)
+  const getItemsSummary = (order) => {
+    const items = Array.isArray(order.items) ? order.items : [];
+    if (!items.length) {
+      if (order.items && typeof order.items !== "object") return String(order.items);
+      return "No items";
     }
-    return "No items";
-  }
+    const first = items[0];
+    const name = first?.product?.name || first?.productName || "Item";
+    if (items.length === 1) return `${name} (x${first.quantity || 1})`;
+    return `${name} (x${first.quantity || 1}) + ${items.length - 1} more`;
+  };
 
-  const first = items[0];
-  const name = first?.product?.name || first?.productName || "Item";
+  const totalItemCount = (order) => {
+    const items = Array.isArray(order.items) ? order.items : [];
+    if (!items.length) {
+      if (typeof order.items === "number") return order.items;
+      return 0;
+    }
+    return items.reduce((sum, i) => sum + (i.quantity || 0), 0);
+  };
 
-  if (items.length === 1) return `${name} (x${first.quantity || 1})`;
-  return `${name} (x${first.quantity || 1}) + ${items.length - 1} more`;
-};
-
-const totalItemCount = (order) => {
-  const items = Array.isArray(order.items) ? order.items : [];
-
-  if (!items.length) {
-    // if backend stored a number like `items: 3`
-    if (typeof order.items === "number") return order.items;
+  const getProgressStep = (status = "") => {
+    const s = normalizeStatus(status);
+    if (["pickup scheduled"].includes(s)) return 1;
+    if (["picked up", "out for pickup"].includes(s)) return 2;
+    if (["shipped", "in transit", "reached at hub"].includes(s)) return 3;
+    if (["out for delivery"].includes(s)) return 4;
+    if (["delivered"].includes(s)) return 5;
     return 0;
-  }
+  };
 
-  return items.reduce((sum, i) => sum + (i.quantity || 0), 0);
-};
-
-const getProgressStep = (status = "") => {
-  const s = normalizeStatus(status);
-
-  if (["pickup scheduled"].includes(s)) return 1;
-
-  if (["picked up", "out for pickup"].includes(s)) return 2;
-
-  // 🔥 SHIPPED == IN TRANSIT
-  if (["shipped", "in transit", "reached at hub"].includes(s)) return 3;
-
-  if (["out for delivery"].includes(s)) return 4;
-
-  if (["delivered"].includes(s)) return 5;
-
-  return 0;
-};
-
-const mapAdminReadableStatus = (status = "") => {
-  const s = normalizeStatus(status);
-
-  if (["order created", "pending"].includes(s))
-    return "Order Created";
-
-  if (["pickup scheduled"].includes(s))
-    return "Pickup Scheduled";
-
-  if (["out for pickup", "picked up"].includes(s))
-    return "Picked Up";
-
-  // 🔥 KEY FIX
-  if (["shipped", "in transit", "reached at hub", "departed hub"].includes(s))
-    return "In Transit";
-
-  if (["out for delivery"].includes(s))
-    return "Out for Delivery";
-
-  if (["delivered"].includes(s))
-    return "Delivered";
-
-  if (s.includes("rto"))
-    return "RTO / Returned";
-
-  if (s.includes("cancel"))
-    return "Cancelled";
-
-  return "Processing";
-};
-
-
+  const mapAdminReadableStatus = (status = "") => {
+    const s = normalizeStatus(status);
+    if (["order created", "pending"].includes(s)) return "Order Created";
+    if (["pickup scheduled"].includes(s)) return "Pickup Scheduled";
+    if (["out for pickup", "picked up"].includes(s)) return "Picked Up";
+    if (["shipped", "in transit", "reached at hub", "departed hub"].includes(s)) return "In Transit";
+    if (["out for delivery"].includes(s)) return "Out for Delivery";
+    if (["delivered"].includes(s)) return "Delivered";
+    if (s.includes("rto")) return "RTO / Returned";
+    if (s.includes("cancel")) return "Cancelled";
+    return "Processing";
+  };
 
   return (
     <div className="space-y-6">
@@ -254,15 +222,14 @@ const mapAdminReadableStatus = (status = "") => {
             className="px-3 py-2 rounded-xl border border-[#B2C5B2] text-sm text-[#003D33] bg-white"
           >
             <option value="all">All Status</option>
-<option value="pickup scheduled">Pickup Scheduled</option>
-<option value="picked up">Picked Up</option>
-<option value="out for pickup">Out for Pickup</option>
-<option value="in transit">In Transit</option>
-<option value="out for delivery">Out for Delivery</option>
-<option value="delivered">Delivered</option>
-<option value="rto">RTO</option>
-<option value="cancel">Cancelled</option>
-
+            <option value="pickup scheduled">Pickup Scheduled</option>
+            <option value="picked up">Picked Up</option>
+            <option value="out for pickup">Out for Pickup</option>
+            <option value="in transit">In Transit</option>
+            <option value="out for delivery">Out for Delivery</option>
+            <option value="delivered">Delivered</option>
+            <option value="rto">RTO</option>
+            <option value="cancel">Cancelled</option>
           </select>
 
           {/* Date Filters */}
@@ -271,10 +238,7 @@ const mapAdminReadableStatus = (status = "") => {
               type="date"
               value={dateRange.from}
               onChange={(e) =>
-                setDateRange((prev) => ({
-                  ...prev,
-                  from: e.target.value,
-                }))
+                setDateRange((prev) => ({ ...prev, from: e.target.value }))
               }
               className="px-3 py-2 rounded-xl border border-[#B2C5B2] text-sm text-[#003D33] bg-white"
             />
@@ -282,26 +246,34 @@ const mapAdminReadableStatus = (status = "") => {
               type="date"
               value={dateRange.to}
               onChange={(e) =>
-                setDateRange((prev) => ({
-                  ...prev,
-                  to: e.target.value,
-                }))
+                setDateRange((prev) => ({ ...prev, to: e.target.value }))
               }
               className="px-3 py-2 rounded-xl border border-[#B2C5B2] text-sm text-[#003D33] bg-white"
             />
           </div>
 
-          {/* Count + Refresh */}
+          {/* Count + Refresh + EXPORT Button */}
           <div className="flex items-center gap-2">
-            <span className="text-[#00695C] bg-[#ECE5D3] px-4 py-1 rounded-full text-sm">
+            <span className="text-[#00695C] bg-[#ECE5D3] px-4 py-1 rounded-full text-sm hidden xl:inline-block">
               {filteredOrders.length} orders
             </span>
+
+            {/* 🔥 Export Button */}
+            <button
+              onClick={handleExport}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-sm transition-colors"
+              title="Download Excel"
+            >
+              <FaFileExcel className="text-base" />
+              <span className="hidden md:inline">Export</span>
+            </button>
+
             <button
               onClick={fetchOrders}
               disabled={loading}
               className="px-3 py-2 rounded-xl bg-[#003D33] text-white text-sm disabled:opacity-50"
             >
-              {loading ? "Refreshing..." : "Refresh"}
+              {loading ? "..." : "Refresh"}
             </button>
           </div>
         </div>
@@ -384,9 +356,7 @@ const mapAdminReadableStatus = (status = "") => {
                     {/* Payment */}
                     <td className="px-4 py-3 text-xs">
                       <div className="font-semibold text-[#003D33]">
-                        {order.paymentMethod === "online"
-                          ? "Prepaid"
-                          : "COD"}
+                        {order.paymentMethod === "online" ? "Prepaid" : "COD"}
                       </div>
                       <div
                         className={`mt-1 inline-block px-2 py-1 rounded-full ${
@@ -402,40 +372,33 @@ const mapAdminReadableStatus = (status = "") => {
                     </td>
 
                     {/* Shiprocket Status */}
-                   <td className="px-4 py-3 text-xs">
-  {/* User-facing meaning */}
-  <span
-    className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-      mapAdminReadableStatus(shipStatus)
-    )}`}
-  >
-    {mapAdminReadableStatus(shipStatus)}
-  </span>
-
-  {/* Raw courier status */}
-  <div className="text-[11px] text-gray-500 mt-1">
-    Courier: {shipStatus}
-  </div>
-
-  <div className="text-[11px] text-[#00695C] mt-1">
-    AWB: {order.awbCode || "—"}
-  </div>
-
-  {/* Progress bar */}
-  <div className="flex gap-1 mt-1">
-    {Array.from({ length: 5 }).map((_, i) => (
-      <span
-        key={i}
-        className={`h-1.5 w-5 rounded-full ${
-          i < getProgressStep(shipStatus)
-            ? "bg-[#C06014]"
-            : "bg-gray-200"
-        }`}
-      />
-    ))}
-  </div>
-</td>
-
+                    <td className="px-4 py-3 text-xs">
+                      <span
+                        className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                          mapAdminReadableStatus(shipStatus)
+                        )}`}
+                      >
+                        {mapAdminReadableStatus(shipStatus)}
+                      </span>
+                      <div className="text-[11px] text-gray-500 mt-1">
+                        Courier: {shipStatus}
+                      </div>
+                      <div className="text-[11px] text-[#00695C] mt-1">
+                        AWB: {order.awbCode || "—"}
+                      </div>
+                      <div className="flex gap-1 mt-1">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <span
+                            key={i}
+                            className={`h-1.5 w-5 rounded-full ${
+                              i < getProgressStep(shipStatus)
+                                ? "bg-[#C06014]"
+                                : "bg-gray-200"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                    </td>
 
                     {/* Actions */}
                     <td className="px-4 py-3">
@@ -548,36 +511,30 @@ const mapAdminReadableStatus = (status = "") => {
                 </span>
               </div>
 
-             <div className="mt-3 space-y-1">
-  {/* Main Status */}
-  <span
-    className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
-      mapAdminReadableStatus(shipStatus)
-    )}`}
-  >
-    {mapAdminReadableStatus(shipStatus)}
-  </span>
-
-  {/* Courier Status */}
-  <p className="text-[11px] text-gray-500">
-    Courier: {shipStatus}
-  </p>
-
-  {/* Progress bar */}
-  <div className="flex gap-1 mt-1">
-    {Array.from({ length: 5 }).map((_, i) => (
-      <span
-        key={i}
-        className={`h-1.5 flex-1 rounded-full ${
-          i < getProgressStep(shipStatus)
-            ? "bg-[#C06014]"
-            : "bg-gray-200"
-        }`}
-      />
-    ))}
-  </div>
-</div>
-
+              <div className="mt-3 space-y-1">
+                <span
+                  className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
+                    mapAdminReadableStatus(shipStatus)
+                  )}`}
+                >
+                  {mapAdminReadableStatus(shipStatus)}
+                </span>
+                <p className="text-[11px] text-gray-500">
+                  Courier: {shipStatus}
+                </p>
+                <div className="flex gap-1 mt-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span
+                      key={i}
+                      className={`h-1.5 flex-1 rounded-full ${
+                        i < getProgressStep(shipStatus)
+                          ? "bg-[#C06014]"
+                          : "bg-gray-200"
+                      }`}
+                    />
+                  ))}
+                </div>
+              </div>
             </motion.div>
           );
         })}
@@ -594,40 +551,7 @@ const mapAdminReadableStatus = (status = "") => {
   );
 };
 
-/* 🔽 Status Dropdown Component (Shiprocket Status) */
-const StatusDropdown = ({
-  order,
-  shipStatus,
-  getStatusColor,
-  onUpdateStatus,
-  small = false,
-}) => {
-  const options = [
-    "Pending",
-    "Order Created",
-    "Shipped",
-    "In Transit",
-    "Delivered",
-    "Cancelled",
-  ];
-
-  return (
-    <select
-      value={shipStatus}
-      onChange={(e) => onUpdateStatus(order._id, e.target.value)}
-      className={`px-2 py-1 rounded-lg text-xs font-semibold border-none outline-none w-full ${
-        getStatusColor(shipStatus)
-      } ${small ? "text-[11px]" : ""}`}
-    >
-      {options.map((st) => (
-        <option key={st} value={st}>
-          {st}
-        </option>
-      ))}
-    </select>
-  );
-};
-
+/* 🔽 Helper Components */
 const ActionIcon = ({ icon, onClick, tooltip }) => (
   <motion.button
     whileHover={{ scale: 1.05 }}
@@ -640,7 +564,6 @@ const ActionIcon = ({ icon, onClick, tooltip }) => (
   </motion.button>
 );
 
-/* 🧾 Order Details Modal */
 const OrderDetailsModal = ({ order, onClose }) => {
   const user = order.userId || {};
   const items = order.items || [];
@@ -658,8 +581,7 @@ const OrderDetailsModal = ({ order, onClose }) => {
               Order #{order._id.slice(-6)}
             </h3>
             <p className="text-xs text-[#00695C] mt-1">
-              Placed on{" "}
-              {new Date(order.createdAt).toLocaleString()}
+              Placed on {new Date(order.createdAt).toLocaleString()}
             </p>
           </div>
           <button
@@ -671,12 +593,9 @@ const OrderDetailsModal = ({ order, onClose }) => {
         </div>
 
         <div className="px-6 py-4 space-y-6">
-          {/* Customer & Shipping */}
           <div className="grid md:grid-cols-2 gap-4">
             <div className="bg-[#F7F3E9] rounded-2xl p-4">
-              <h4 className="font-semibold text-[#003D33] mb-2">
-                Customer
-              </h4>
+              <h4 className="font-semibold text-[#003D33] mb-2">Customer</h4>
               <p className="text-sm text-[#003D33]">
                 {user.username || user.name || "Unknown User"}
               </p>
@@ -704,28 +623,18 @@ const OrderDetailsModal = ({ order, onClose }) => {
                 </p>
               )}
               <p className="text-xs text-[#003D33]">
-                {order.shippingAddress?.city},{" "}
-                {order.shippingAddress?.state} -{" "}
+                {order.shippingAddress?.city}, {order.shippingAddress?.state} -{" "}
                 {order.shippingAddress?.pincode}
               </p>
               <p className="text-xs text-[#00695C]">
-  AWB: <span className="font-semibold">{order.awbCode || "—"}</span>
-</p>
-<p className="text-xs text-[#00695C]">
-  Last Updated:{" "}
-  {order.shiprocketStatusDate
-    ? new Date(order.shiprocketStatusDate).toLocaleString()
-    : "—"}
-</p>
-
+                AWB:{" "}
+                <span className="font-semibold">{order.awbCode || "—"}</span>
+              </p>
             </div>
           </div>
 
-          {/* Items */}
           <div>
-            <h4 className="font-semibold text-[#003D33] mb-2">
-              Items
-            </h4>
+            <h4 className="font-semibold text-[#003D33] mb-2">Items</h4>
             <div className="space-y-2">
               {items.map((item, idx) => (
                 <div
@@ -757,7 +666,6 @@ const OrderDetailsModal = ({ order, onClose }) => {
             </div>
           </div>
 
-          {/* Summary */}
           <div className="bg-[#F7F3E9] rounded-2xl p-4 flex flex-col sm:flex-row sm:justify-between gap-3">
             <div className="text-sm text-[#003D33] space-y-1">
               <p>
@@ -796,9 +704,6 @@ const OrderDetailsModal = ({ order, onClose }) => {
               <p className="text-xs mt-2 text-[#00695C]">
                 Payment: {order.paymentMethod === "online" ? "Prepaid" : "COD"}{" "}
                 ({order.paymentStatus || "Pending"})
-              </p>
-              <p className="text-xs text-[#00695C]">
-                Shiprocket Status: {order.shiprocketStatus || "Pending"}
               </p>
             </div>
           </div>

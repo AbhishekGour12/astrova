@@ -52,7 +52,135 @@ const HeroSection = () => {
     router.push("/astrologers")
   }
 
-  
+  const zodiacSigns = [
+  {
+    name: "Aries",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M7 20V10c0-3 2-5 5-5s5 2 5 5v10" />
+        <path d="M7 12c-2 0-3-2-3-4 0-3 2-5 5-5" />
+        <path d="M17 12c2 0 3-2 3-4 0-3-2-5-5-5" />
+      </svg>
+    ),
+  },
+  {
+    name: "Taurus",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="12" cy="14" r="6" />
+        <path d="M8 6c0 2 2 4 4 4s4-2 4-4" />
+        <path d="M6 7c0 2 1 4 3 5" />
+        <path d="M18 7c0 2-1 4-3 5" />
+      </svg>
+    ),
+  },
+  {
+    name: "Gemini",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M8 4h8" />
+        <path d="M8 20h8" />
+        <path d="M9 4v16" />
+        <path d="M15 4v16" />
+      </svg>
+    ),
+  },
+  {
+    name: "Cancer",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <circle cx="9" cy="10" r="3" />
+        <circle cx="15" cy="14" r="3" />
+        <path d="M6 10c0-3 2-5 5-5" />
+        <path d="M18 14c0 3-2 5-5 5" />
+      </svg>
+    ),
+  },
+  {
+    name: "Leo",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M8 18c0-4 6-4 6 0v2" />
+        <path d="M14 12c2-1 4 0 4 2s-2 3-3 2" />
+        <circle cx="9" cy="9" r="3" />
+      </svg>
+    ),
+  },
+  {
+    name: "Virgo",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 4v16" />
+        <path d="M10 4v16" />
+        <path d="M14 4v10c0 3 2 4 4 4" />
+        <path d="M18 18c-2 0-4-1-4-4" />
+      </svg>
+    ),
+  },
+  {
+    name: "Libra",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 18h12" />
+        <path d="M7 18c2-3 8-3 10 0" />
+        <path d="M8 10h8" />
+        <path d="M9 10a3 3 0 0 1 6 0" />
+      </svg>
+    ),
+  },
+  {
+    name: "Scorpio",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 4v16" />
+        <path d="M10 4v16" />
+        <path d="M14 4v14c0 2 2 2 4 0" />
+        <path d="M18 18l2 2" />
+        <path d="M20 20v-3" />
+      </svg>
+    ),
+  },
+  {
+    name: "Sagittarius",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 18L18 6" />
+        <path d="M12 6h6v6" />
+        <path d="M8 8l8 8" />
+      </svg>
+    ),
+  },
+  {
+    name: "Capricorn",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 4v14c0 2 2 2 4 0V6" />
+        <path d="M10 6c0-2 2-2 4 0v12" />
+        <circle cx="16" cy="18" r="2" />
+      </svg>
+    ),
+  },
+  {
+    name: "Aquarius",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M6 9c2 2 4 2 6 0s4-2 6 0" />
+        <path d="M6 15c2 2 4 2 6 0s4-2 6 0" />
+      </svg>
+    ),
+  },
+  {
+    name: "Pisces",
+    svg: (
+      <svg viewBox="0 0 24 24" className="w-4 h-4 sm:w-5 sm:h-5 md:w-6 md:h-6 lg:w-7 lg:h-7" fill="none" stroke="currentColor" strokeWidth="2">
+        <path d="M8 4c3 2 3 14 0 16" />
+        <path d="M16 4c-3 2-3 14 0 16" />
+        <path d="M6 12h12" />
+      </svg>
+    ),
+  },
+];
+
 
   return (
   <section className="  relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 ">
@@ -488,7 +616,7 @@ const HeroSection = () => {
       animate={{ rotate: -360 }}
       transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
       className="
-        absolute rounded-full border-2 border-yellow-300/25
+        absolute rounded-full  border-yellow-300/25
         w-[330px] h-[330px]
         sm:w-[350px] sm:h-[350px]
         md:w-[500px] md:h-[500px]
@@ -504,107 +632,63 @@ const HeroSection = () => {
       className="
         absolute rounded-full
         w-[330px] h-[330px]
-        sm:w-[350px] sm:h-[350px]
+        sm:w-[450px] sm:h-[450px]
         md:w-[550px] md:h-[550px]
         lg:w-[550px] lg:h-[550px]
         xl:w-[650px] xl:h-[650px]
       "
     >
-      {[
-        { symbol: "♈", name: "Aries" },
-        { symbol: "♉", name: "Taurus" },
-        { symbol: "♊", name: "Gemini" },
-        { symbol: "♋", name: "Cancer" },
-        { symbol: "♌", name: "Leo" },
-        { symbol: "♍", name: "Virgo" },
-        { symbol: "♎", name: "Libra" },
-        { symbol: "♏", name: "Scorpio" },
-        { symbol: "♐", name: "Sagittarius" },
-        { symbol: "♑", name: "Capricorn" },
-        { symbol: "♒", name: "Aquarius" },
-        { symbol: "♓", name: "Pisces" }
-      ].map((zodiac, index) => {
-        // Calculate angle for each sign (12 signs, 30 degrees apart)
-        const angle = (index * 30 * Math.PI) / 180;
-        // Consistent radius for all signs
-        const radius = 48; // percentage from center
-        
-        return (
-          <motion.div
-            key={zodiac.name}
-            className="absolute flex items-center justify-center"
-            style={{
-              left: `calc(50% + ${radius * Math.cos(angle)}% - 1.5rem)`,
-              top: `calc(50% + ${radius * Math.sin(angle)}% - 1.5rem)`,
-              transform: 'translate(-50%, -50%)',
-            }}
-            animate={{
-              scale: [1, 1.15, 1],
-              rotate: [0, 5, 0, -5, 0],
-            }}
-            transition={{
-              scale: {
-                duration: 3,
-                repeat: Infinity,
-                delay: index * 0.2,
-                ease: "easeInOut"
-              },
-              rotate: {
-                duration: 4,
-                repeat: Infinity,
-                delay: index * 0.15,
-                ease: "easeInOut"
-              }
-            }}
-            whileHover={{
-              scale: 1.3,
-              transition: { duration: 0.3 }
-            }}
-          >
-            <div className="
-              w-6 h-6
-              sm:w-9 sm:h-9 
-              md:w-9 md:h-9
-              lg:w-9 lg:h-9 
-              xl:w-9 xl:h-9
-              flex items-center justify-center
-              bg-gradient-to-br from-yellow-400/30 via-yellow-300/20 to-orange-500/30
-              rounded-full backdrop-blur-sm
-              border-2 border-yellow-400/40
-              shadow-lg shadow-yellow-500/30
-              transition-all duration-300
-              hover:shadow-xl hover:shadow-yellow-500/40
-              hover:border-yellow-300/60
-              group
-            ">
-              <span className="
-                text-sm sm:text-lg md:text-xl lg:text-xl xl:text-2xl
-                text-yellow-300 font-bold
-                drop-shadow-[0_0_8px_rgba(255,215,0,0.6)]
-                group-hover:drop-shadow-[0_0_12px_rgba(255,215,0,0.8)]
-                transition-all duration-300
-                
-              ">
-                {zodiac.symbol}
-              </span>
-              
-              {/* Zodiac name tooltip on hover */}
-              <div className="
-                absolute -bottom-8 left-1/2 transform -translate-x-1/2
-                px-2 py-1 bg-black/80 backdrop-blur-sm rounded-md
-                border border-yellow-500/30
-                text-xs sm:text-sm text-yellow-200 font-medium
-                opacity-0 group-hover:opacity-100
-                transition-opacity duration-300
-                whitespace-nowrap
-                z-50
-              ">
-                {zodiac.name}
-              </div>
-            </div>
-          </motion.div>
-        );
-      })}
+      {zodiacSigns.map((zodiac, index) => {
+  const angle = (index * 30 * Math.PI) / 180;
+
+  // ✅ Responsive radius (small screen pe thoda kam)
+  const radius =
+    typeof window !== "undefined" && window.innerWidth < 640
+      ? 42
+      : 48;
+
+  return (
+    <motion.div
+      key={index}
+      className="absolute flex items-center justify-center"
+      style={{
+        left: `calc(50% + ${radius * Math.cos(angle)}% - 1.5rem)`,
+        top: `calc(50% + ${radius * Math.sin(angle)}% - 1.5rem)`,
+        transform: "translate(-50%, -50%)",
+      }}
+      animate={{
+        scale: [1, 1.15, 1],
+        rotate: [0, 5, 0, -5, 0],
+      }}
+      transition={{
+        scale: {
+          duration: 3,
+          repeat: Infinity,
+          delay: index * 0.2,
+          ease: "easeInOut",
+        },
+        rotate: {
+          duration: 4,
+          repeat: Infinity,
+          delay: index * 0.15,
+          ease: "easeInOut",
+        },
+      }}
+      whileHover={{
+        scale: 1.3,
+        transition: { duration: 0.3 },
+      }}
+    >
+     
+        {/* ✅ ONLY SIGN (SVG) */}
+        <span className="text-yellow-300 ">
+          {zodiac.svg}
+        </span>
+      
+    </motion.div>
+  );
+})}
+
     </motion.div>
 
     {/* Decorative Outer Ring with Dots */}
@@ -650,7 +734,7 @@ const HeroSection = () => {
       xl:w-[480px] xl:h-[580px]
     ">
       <Image
-        src="/pandit.png"
+        src="/panditbg.png"
         alt="Astrologer"
         fill
         className="object-contain drop-shadow-2xl"

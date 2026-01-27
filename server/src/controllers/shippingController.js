@@ -32,7 +32,7 @@ export const shippingCharge = async (req, res) => {
 
 
     const available = response.data.data.available_courier_companies;
-      console.log(available)
+      
     if (!available || available.length === 0) {
       return res.status(400).json({ message: "No courier options available" });
     }

@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaTimes, FaPlus, FaMinus, FaTrash, FaArrowLeft } from "react-icons/fa";
+import { FaTimes, FaPlus, FaMinus, FaTrash, FaArrowLeft, FaWallet, FaMoneyBillWave } from "react-icons/fa";
 
 import { useCart } from "../context/CartContext";
 import { useSelector } from "react-redux";
@@ -35,28 +35,26 @@ const CartSlideOut = () => {
 
   // PAYMENT TYPE
   const [paymentMethod, setPaymentMethod] = useState(null); 
+  const [showCODSummary, setShowCODSummary] = useState(false); 
 
   const platformFee = 11;
   const codFee = 52;
 
-  // Load Products Logic (With Data Preservation)
+  // Load Products Logic
   useEffect(() => {
     const loadProducts = async () => {
       if (mappedCart.length === 0) setLoadingProducts(true);
-
       try {
         const final = [];
         for (const item of cartItems) {
           const existingItem = mappedCart.find(
             (m) => m.product && (m.product._id === (item.product?._id || item.productId))
           );
-
           let productData = item.product;
           if (existingItem && existingItem.product) {
              const incomingHasData = productData && productData.offerPercent !== undefined;
              if (!incomingHasData) productData = existingItem.product;
           }
-
           if (productData && productData._id) {
             final.push({ ...item, product: productData });
           } else {
@@ -91,7 +89,7 @@ const CartSlideOut = () => {
   const [deliveryETA, setDeliveryETA] = useState(null);
 
   const [errors, setErrors] = useState({});
-  const [isCOD, setIsCOD] = useState(false);
+  const [isCOD, setIsCOD] = useState(false); 
   const [address, setAddress] = useState({
     fullName: "", email: "", phone: "", addressLine1: "", addressLine2: "", city: "", state: "", pincode: "",
   });
@@ -113,7 +111,7 @@ const CartSlideOut = () => {
   }, []);
 
   // ================================
-  // RESET LOGIC (Cart Change -> Reset Shipping/Coupon)
+  // RESET LOGIC
   // ================================
   useEffect(() => {
     if (shippingCharge > 0 || couponDiscount > 0) {
@@ -121,6 +119,8 @@ const CartSlideOut = () => {
         setCouponDiscount(0);
         setCouponCode("");
         setDeliveryETA(null);
+        setIsCOD(false);
+        setShowCODSummary(false);
         if (checkoutStep === 'payment' || checkoutStep === 'coupon') {
             setCheckoutStep('address'); 
             toast("Cart updated. Please recalculate shipping.");
@@ -129,7 +129,7 @@ const CartSlideOut = () => {
   }, [mappedCart, cartItems]); 
 
   // ================================
-  // 3. CALCULATION LOGIC
+  // 3. CALCULATION LOGIC (UPDATED FOR ROUND OFF)
   // ================================
 
   const calculateUnitFinalPrice = (product) => {
@@ -156,16 +156,19 @@ const CartSlideOut = () => {
     mappedCart.reduce((sum, item) => sum + Number(item?.product?.weight || 0.2) * item.quantity, 0), 
   [mappedCart]);
 
-  const rawTotal =
+  // 1. Calculate Exact Raw Total
+  const exactTotal =
     subtotal +
     shippingCharge +
     platformFee +
-    (isCOD ? codFee : 0) -
+    (isCOD ? codFee : 0) - 
     couponDiscount;
 
-  const finalAmount = isCOD ? Math.ceil(rawTotal) : Number(rawTotal.toFixed(2));
-  
-  const roundOff = (paymentMethod === "cod" || isCOD) ? Math.ceil(rawTotal) - rawTotal : 0;
+  // 2. Determine Final Amount (Round up for COD, 2 decimal for Online)
+  const finalAmount = isCOD ? Math.ceil(exactTotal) : Number(exactTotal.toFixed(2));
+
+  // 3. Calculate Round Off Difference (e.g. 0.44 -> displayed as Round Off)
+  const roundOffAmount = isCOD ? (finalAmount - exactTotal) : 0;
 
   // ================================
   // 4. ACTIONS
@@ -198,12 +201,15 @@ const CartSlideOut = () => {
   const calculateShipping = async () => {
     if (!validateAddress()) return toast.error("Check address fields");
     setLoading(true);
+    setIsCOD(false);
+    setShowCODSummary(false);
+
     try {
       const charge = await productAPI.getShippingCharges({
         pickup_postcode: 452010,
         delivery_postcode: address.pincode,
         weight: totalWeight,
-        cod: isCOD ? 1 : 0,
+        cod: 0, 
       });
       setShippingCharge(charge.shippingCharge);
       
@@ -253,7 +259,7 @@ const CartSlideOut = () => {
         paymentDetails,
         discount: couponDiscount,
         offerDiscount: 0,
-        roundOff,
+        roundOff: roundOffAmount, // Sending the calculated round off to backend
         isCODEnabled: isCOD,
         totalWeight,
         finalAmount,
@@ -271,7 +277,14 @@ const CartSlideOut = () => {
   const goBack = () => {
     if (checkoutStep === "address") setCheckoutStep("cart");
     else if (checkoutStep === "coupon") setCheckoutStep("address");
-    else if (checkoutStep === "payment") setCheckoutStep("coupon");
+    else if (checkoutStep === "payment") {
+        if(showCODSummary) {
+            setShowCODSummary(false);
+            setIsCOD(false);
+        } else {
+            setCheckoutStep("coupon");
+        }
+    }
   };
 
   // ================================
@@ -314,9 +327,7 @@ const CartSlideOut = () => {
                               <p className="font-semibold">{item.product.name}</p>
                               <div className="flex flex-col text-sm">
                                 <span className="font-bold">₹{unitPrice.toFixed(2)}</span>
-                                <span className="text-xs text-green-600">
-                                  ({item.product.offerPercent || 0}% Off + {item.product.gstPercent || 0}% GST)
-                                </span>
+                                
                               </div>
                               <div className="flex items-center gap-2 mt-2">
                                 <button onClick={() => updateQuantity(item.product._id, item.quantity - 1)} className="px-2 bg-gray-200 rounded"><FaMinus/></button>
@@ -350,22 +361,15 @@ const CartSlideOut = () => {
                             </div>
                         ))}
                     </div>
-                    <div className="flex items-center gap-2 mt-4">
-                        <input type="checkbox" checked={isCOD} onChange={() => setIsCOD(!isCOD)} className="w-5 h-5"/>
-                        <label>Cash on Delivery</label>
-                    </div>
                     <button onClick={calculateShipping} disabled={loading} className="w-full bg-[#003D33] text-white py-3 rounded-xl mt-6">
                         {loading ? "Calculating..." : "Calculate Shipping"}
                     </button>
                 </>
               )}
 
-              {/* COUPON STEP (Restored Old UI) */}
               {checkoutStep === "coupon" && (
                 <>
                     <h3 className="font-bold mb-3">Apply Coupon</h3>
-                    
-                    {/* Input + Apply Button */}
                     <div className="flex gap-2">
                         <input 
                             value={couponCode} 
@@ -382,11 +386,7 @@ const CartSlideOut = () => {
                         </button>
                     </div>
 
-                    {/* Available Coupons List (Old Style) */}
-                    <p className="font-semibold mt-4 mb-2 text-[#003D33]">
-                        Available Coupons
-                    </p>
-
+                    <p className="font-semibold mt-4 mb-2 text-[#003D33]">Available Coupons</p>
                     <div className="space-y-2">
                         {availableCoupons.length ? (
                             availableCoupons.map((cp) => (
@@ -397,9 +397,7 @@ const CartSlideOut = () => {
                                 >
                                     <p className="font-semibold">{cp.code}</p>
                                     <p className="text-sm text-gray-600">
-                                        {cp.discountType === "percentage"
-                                            ? `${cp.discountValue}% Off`
-                                            : `Flat ₹${cp.discountValue} Off`}
+                                        {cp.discountType === "percentage" ? `${cp.discountValue}% Off` : `Flat ₹${cp.discountValue} Off`}
                                     </p>
                                 </button>
                             ))
@@ -420,14 +418,107 @@ const CartSlideOut = () => {
               {checkoutStep === "payment" && (
                 <>
                     {!user && <p className="text-red-500 mb-2 font-semibold">Please Login to Continue</p>}
-                    <button onClick={() => { setPaymentMethod(isCOD ? "cod" : "online"); isCOD ? placeOrder("cod") : handleRazorpay(); }} className="w-full bg-[#C06014] text-white py-4 rounded-xl">
-                        {isCOD ? `Place COD Order (₹${finalAmount})` : `Pay Online (₹${finalAmount})`}
-                    </button>
+                    
+                    {!showCODSummary && (
+                        <div className="space-y-4 mt-2">
+                            <h3 className="font-bold text-lg text-gray-800">Select Payment Method</h3>
+                            
+                            {/* Pay Online Button */}
+                            <button 
+                                onClick={() => {
+                                    setIsCOD(false);
+                                    setPaymentMethod("online");
+                                    handleRazorpay();
+                                }} 
+                                className="w-full bg-[#003D33] text-white p-3 rounded-xl flex items-center justify-center gap-3 hover:bg-[#002a23] transition-colors"
+                            >
+                                <FaWallet className="text-xl"/>
+                                <div className="text-left">
+                                    <span className="block font-bold">Pay Online</span>
+                                    <span className="text-xs opacity-80">UPI, Cards, NetBanking</span>
+                                </div>
+                                <span className="ml-auto font-bold">₹{finalAmount}</span>
+                            </button>
+
+                            {/* COD Button */}
+                            <button 
+                                onClick={() => {
+                                    setIsCOD(true); 
+                                    setPaymentMethod("cod");
+                                    setShowCODSummary(true);
+                                }} 
+                                className="w-full bg-white border-2 border-[#C06014] text-[#C06014] py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-orange-50 transition-colors"
+                            >
+                                <FaMoneyBillWave className="text-xl"/>
+                                <div className="text-left">
+                                    <span className="block font-bold">Cash on Delivery</span>
+                                    <span className="text-xs opacity-80">Pay cash at your doorstep</span>
+                                </div>
+                            </button>
+                        </div>
+                    )}
+
+                    {/* OPTION 2: COD CONFIRMATION SUMMARY */}
+                    {showCODSummary && (
+                        <div className="bg-orange-50 p-5 rounded-xl border border-orange-200 animate-in fade-in slide-in-from-bottom-4">
+                            <h3 className="font-bold text-[#C06014] mb-4 text-lg border-b border-orange-200 pb-2">COD Order Summary</h3>
+                            
+                            <div className="space-y-2 text-sm text-gray-700 mb-4">
+                                <div className="flex justify-between">
+                                    <span>Subtotal</span>
+                                    <span>₹{subtotal.toFixed(2)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Shipping</span>
+                                    <span>₹{shippingCharge}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span>Platform Fee</span>
+                                    <span>₹{platformFee}</span>
+                                </div>
+                                <div className="flex justify-between text-orange-700 font-medium">
+                                    <span>COD Handling Charges</span>
+                                    <span>+ ₹{codFee}</span>
+                                </div>
+                                {couponDiscount > 0 && (
+                                    <div className="flex justify-between text-green-700">
+                                        <span>Discount</span>
+                                        <span>- ₹{couponDiscount}</span>
+                                    </div>
+                                )}
+                                
+                                
+
+                                <div className="border-t border-orange-200 pt-2 mt-2 flex justify-between font-bold text-lg text-[#003D33]">
+                                    <span>Total Payable</span>
+                                    <span>₹{finalAmount}</span>
+                                </div>
+                            </div>
+
+                            <button 
+                                onClick={() => placeOrder("cod")} 
+                                disabled={loading}
+                                className="w-full bg-[#C06014] text-white py-3 rounded-lg font-bold shadow-lg hover:shadow-xl transition-all"
+                            >
+                                {loading ? "Processing..." : `Place COD Order (₹${finalAmount})`}
+                            </button>
+                            
+                            <button 
+                                onClick={() => {
+                                    setShowCODSummary(false);
+                                    setIsCOD(false);
+                                }}
+                                className="w-full text-center text-sm text-gray-500 mt-3 underline"
+                            >
+                                Change Payment Method
+                            </button>
+                        </div>
+                    )}
                 </>
               )}
             </div>
 
-            {/* Price Summary */}
+            {/* Price Summary Bar */}
             <div className="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-[99999]">
               <div onClick={() => setShowPriceDetails(!showPriceDetails)} className="flex justify-between cursor-pointer">
                 <span className="font-bold text-[#003D33]">Total: ₹{finalAmount}</span>
@@ -450,6 +541,8 @@ const CartSlideOut = () => {
                         
                         {couponDiscount > 0 && <div className="flex justify-between text-green-700"><span>Coupon Discount</span><span>-₹{couponDiscount}</span></div>}
                         
+                       
+
                         <hr/>
                         <div className="flex justify-between font-bold text-lg text-[#003D33]"><span>Grand Total</span><span>₹{finalAmount}</span></div>
                     </motion.div>
