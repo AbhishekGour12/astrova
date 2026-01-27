@@ -136,13 +136,12 @@ const CartSlideOut = () => {
     if (!product) return 0;
     const price = Number(product.price) || 0;
     const offerPercent = Number(product.offerPercent) || 0; 
-    const gstPercent = Number(product.gstPercent) || 0;
+   
 
     const discountAmount = price * (offerPercent / 100);
     const priceAfterOffer = price - discountAmount;
-    const gstAmount = priceAfterOffer * (gstPercent / 100);
-    
-    return priceAfterOffer + gstAmount;
+   
+    return priceAfterOffer;
   };
 
   const subtotal = useMemo(() => {

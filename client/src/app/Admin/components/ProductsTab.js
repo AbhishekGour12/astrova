@@ -228,7 +228,7 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
         headers: { "Content-Type": "multipart/form-data" },
       });
 
-      console.log("Response:", response);
+      //console.log("Response:", response);
       alert("✅ Products uploaded successfully");
       setLoading(false);
       fetchProducts();

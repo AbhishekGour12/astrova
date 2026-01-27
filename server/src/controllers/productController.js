@@ -16,11 +16,11 @@ const XLSX = xlsx;
   const discount =
     offerPercent > 0 ? (basePrice * offerPercent) / 100 : 0;
 
-  const discountedPrice = basePrice - discount;
+  const discountedPrice = Number((basePrice - discount).toFixed(2));
 
-  const gstAmount = (discountedPrice * gstPercent) / 100;
+  const gstAmount = (((discountedPrice * gstPercent) / (100 + gstPercent)).toFixed(2));
 
-  const totalPrice = Number((discountedPrice + gstAmount).toFixed(2));
+  const totalPrice = discountedPrice
 
   return {
     discountedPrice,
@@ -148,8 +148,8 @@ export const getProducts = async (req, res) => {
       fileIndex += imageCount;
 
       const offerPercent = Number(product.offerPercent) || 0;
+      
       const gstPercent = Number(product.gstPercent) || 18;
-
       const pricing = calculatePricing({
         price: product.price,
         offerPercent,
@@ -284,15 +284,15 @@ export const uploadBulkProductsWithImages = async (req, res) => {
           continue;
         }
 
-        // 🔥 PRICE CALCULATION (DISCOUNT → GST)
-        const discount =
-          offerPercent > 0 ? (price * offerPercent) / 100 : 0;
+        const pricing = calculatePricing({
+  price,
+  offerPercent,
+  gstPercent,
+});
 
-        const discountedPrice = price - discount;
-        const gstAmount = (discountedPrice * gstPercent) / 100;
-        const totalPrice = Number(
-          (discountedPrice + gstAmount).toFixed(2)
-        );
+const discountedPrice = pricing.discountedPrice;
+const gstAmount = pricing.gstAmount;
+const totalPrice = pricing.totalPrice;
 
         // ✅ Image matching
         const productImages = [];
