@@ -350,10 +350,11 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
         .filter((f) => f.type.startsWith("image/"))
         .forEach((file) => formData.append("productImages", file));
 
-      const response = await axios.post("https://api.myastrova.com/admin/bulk-upload", formData)
+      const response = await api.post(`/admin/bulk-upload`, formData)
         
 
-      const result = await response.json();
+      const result = response.data;
+      
 
       if (response.ok || response.status === 207) {
         alert(`✅ Uploaded ${result.products?.length || 0} products successfully`);

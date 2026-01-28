@@ -69,7 +69,7 @@ router.delete("/carousel/:page/:slideId", deleteSlide);
 
 router.post(
   "/product",
-  uploadImages.array("images", 50), // allow up to 50 product images
+  uploadImages.array("images", 100), // allow up to 50 product images
   addBulkProductsWithImages
 );
 
@@ -78,7 +78,7 @@ router.post(
   "/bulk-upload",
   uploadExcelAndImages.fields([
     { name: "excelFile", maxCount: 1 },
-    { name: "productImages", maxCount: 50 },
+    { name: "productImages", maxCount: 100 },
   ]),
   uploadBulkProductsWithImages
 );
@@ -89,7 +89,7 @@ router.post("/types", addProductType);
 
 // ✅ Get all products
 router.get("/product", getProducts);
-router.put("/:id", uploadImages.array("images", 50), updateProduct)
+router.put("/:id", uploadImages.array("images", 100), updateProduct)
 router.delete("/:id", deleteProduct)
 
 
