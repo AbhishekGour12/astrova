@@ -142,7 +142,7 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
     if (!newType.trim()) return;
 
     try {
-      const response = await adminAPI.addProductType(newType.trim());
+      const response = await api.post(`${process.env.NEXT_PUBLIC_API}/api/admin/types`, {newType: newType.trim()});
       if (response) {
         await fetchProductTypes();
         setNewType("");
