@@ -218,6 +218,31 @@ export const addProductType = async (req, res) => {
   }
 };
 
+export const deleteProductType = async (req, res) => {
+  try {
+   
+    const { typeToDelete } = req.body;
+    
+
+    if (!typeToDelete)
+      return res.status(400).json({ error: "Type name required" });
+
+    // Remove this type from availableTypes array in all products
+    await Product.updateMany(
+      {},
+      { $pull: { availableTypes: typeToDelete } }
+    );
+
+    res.json({
+      message: "Product type deleted successfully",
+      deletedType: typeToDelete,
+    });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 // ✅ Bulk upload products via Excel (ENHANCED WITH OFFER LOGIC)
 export const uploadBulkProductsWithImages = async (req, res) => {
   try {

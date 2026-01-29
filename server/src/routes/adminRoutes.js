@@ -30,6 +30,7 @@ import {
   uploadBulkProductsWithImages,
   deleteProduct,
   updateProduct,
+  deleteProductType,
 } from "../controllers/productController.js";
 import multer from "multer";
 import  { uploadExcelAndImages, uploadImages } from "../utils/multer.js";
@@ -86,7 +87,7 @@ router.post(
 // ✅ Product types management
 router.get("/types", getProductTypes);
 router.post("/types", addProductType);
-
+router.post("/types/delete", deleteProductType);
 // ✅ Get all products
 router.get("/product", getProducts);
 router.put("/:id", uploadImages.array("images", 100), updateProduct)

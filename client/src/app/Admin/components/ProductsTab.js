@@ -156,6 +156,33 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
       alert(`Error adding product type: ${error.message}`);
     }
   };
+const deleteProductType = async (type) => {
+  if (!type) return;
+
+  const confirmDelete = window.confirm(
+    `Are you sure you want to delete "${type}" from all products?`
+  );
+  if (!confirmDelete) return;
+
+  try {
+    setLoading(true);
+
+    const response = await api.post(
+      `${process.env.NEXT_PUBLIC_API}/api/admin/types/delete`,
+      { typeToDelete: type }
+    );
+
+    if (response) {
+      await fetchProductTypes();
+      alert("✅ Product type deleted successfully!");
+    }
+  } catch (error) {
+    console.error("Error deleting product type:", error);
+    alert(`❌ Error deleting product type: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   // Drag handlers
   const handleDrag = (e) => {
@@ -1713,13 +1740,23 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
                 <div className="flex flex-wrap gap-2 max-h-40 overflow-y-auto p-2">
                   {productTypes.length > 0 ? (
                     productTypes.map((type, index) => (
-                      <span
-                        key={index}
-                        className="bg-[#ECE5D3] text-[#003D33] px-3 py-2 rounded-2xl text-sm border border-[#B2C5B2]"
-                      >
-                        {type}
-                      </span>
-                    ))
+  <div
+    key={index}
+    className="flex items-center gap-2 bg-[#ECE5D3] text-[#003D33] px-3 py-2 rounded-2xl text-sm border border-[#B2C5B2]"
+  >
+    <span>{type}</span>
+
+    <button
+      onClick={() => deleteProductType(type)}
+      disabled={loading}
+      className="text-red-600 hover:text-red-800"
+      title="Delete Type"
+    >
+      <FaTrash />
+    </button>
+  </div>
+))
+
                   ) : (
                     <p className="text-[#00695C] text-sm">
                       No product types available
