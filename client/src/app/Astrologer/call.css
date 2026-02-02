@@ -1,13 +1,88 @@
-/* Zego force fullscreen fix */
+/* =========================================
+   ✅ ZEGO FULL RESPONSIVE FIX (MOBILE SAFE)
+   Problem: Join button + bottom UI cut
+   Solution: container height + overflow + dvh
+========================================= */
+
+/* ✅ Main wrapper (use this around zego container) */
+.zego-wrapper {
+  width: 100%;
+  background: #000;
+  border-radius: 14px;
+  padding: 10px;
+
+  /* ✅ must for mobile */
+  overflow-y: auto;
+  overflow-x: hidden;
+
+  /* ✅ Give enough height */
+  height: 80dvh;
+  min-height: 620px;
+
+  position: relative;
+}
+
+/* ✅ Inner container where Zego renders UI */
+.zego-container {
+  width: 100%;
+  height: 100%;
+  border-radius: 12px;
+  position: relative;
+}
+
+/* ✅ If you are using id based container */
+#zego-container {
+  width: 100% !important;
+  height: 100% !important;
+
+  position: relative !important;
+  border-radius: 12px !important;
+
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+
+  background: #000 !important;
+}
+
+/* ✅ Fix zego injected video/canvas */
 #zego-container video,
 #zego-container canvas {
   width: 100% !important;
   height: 100% !important;
+
   object-fit: cover !important;
+  border-radius: 12px !important;
   position: relative !important;
 }
 
-#zego-container {
-  position: relative !important;
-  inset: auto !important;
+/* ✅ Prevent zego UI from going outside */
+#zego-container * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* ✅ Mobile screens (0 - 786px) */
+@media (max-width: 786px) {
+  .zego-wrapper {
+    height: 85dvh;
+    min-height: 670px;
+    padding: 12px;
+  }
+}
+
+/* ✅ Very small phones (0 - 420px) */
+@media (max-width: 420px) {
+  .zego-wrapper {
+    height: 88dvh;
+    min-height: 720px;
+    padding: 12px;
+  }
+}
+
+/* ✅ Desktop screens */
+@media (min-width: 1024px) {
+  .zego-wrapper {
+    height: 560px;
+    min-height: 560px;
+  }
 }

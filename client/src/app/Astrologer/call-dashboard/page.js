@@ -29,7 +29,7 @@ import {
   FaStop
 } from "react-icons/fa";
 import { useZego } from "../../hooks/useZego";
-
+import '../call.css';
 export default function AstrologerCallDashboard() {
   const router = useRouter();
   
@@ -554,9 +554,12 @@ const acceptCall = async (callId) => {
       {activeCall.callType === "VIDEO" ? "Video Call" : "Voice Call"}
     </div>
 
-    <div className="w-full h-[70vh] sm:h-[500px] bg-black rounded-lg overflow-y-auto">
-      <div ref={containerRef} className="w-full h-full" />
-    </div>
+    {/* Zego Container */}
+<div className="zego-wrapper">
+  <div id="zego-container" ref={containerRef} className="zego-container"></div>
+</div>
+
+
   </div>
 </div>
 
