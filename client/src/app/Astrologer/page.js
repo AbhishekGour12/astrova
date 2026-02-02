@@ -90,18 +90,14 @@ useEffect(() => {
     const call = data.call || data;
     const userName = call.user?.name || call.user?.username || "User";
     
-    // Play sound if not muted
-    if (!isSoundMuted) {
-      const audio = new Audio('/sounds/ringtone.mp3');
-      audio.play().catch(e => console.log("Audio play failed", e));
-    }
+   
 
     // Show notification
     toast.custom((t) => (
       <div className="bg-white p-4 rounded-xl shadow-2xl border-l-4 border-blue-500 flex items-center gap-4 cursor-pointer" 
            onClick={() => { 
              toast.dismiss(t.id); 
-             setActiveTab("call");
+             handleTabChange("call");
              // Force refresh calls when switching to call tab
              if (typeof window.refreshCalls === 'function') {
                window.refreshCalls();
@@ -168,7 +164,7 @@ socket.on("chatEnded", (data) => {
       <div className="bg-white p-4 rounded-xl shadow-2xl border-l-4 border-green-500 flex items-center gap-4 cursor-pointer"
            onClick={() => { 
              toast.dismiss(t.id); 
-             setActiveTab("chat");
+             handleTabChange("chat");
            }}>
         <div className="bg-green-100 p-2 rounded-full">
           <FaComments className="text-green-600"/>
@@ -202,7 +198,7 @@ socket.on("chatEnded", (data) => {
     const loadData = async () => {
         const id = localStorage.getItem("astrologer_id");
         const token = localStorage.getItem("astrologer_token");
-        if(!id || !token) { router.push("/astrologer/login"); return; }
+        if(!id || !token) { router.push("/Astrologer/login"); return; }
 
         apiAstrologer.defaults.headers.common['Authorization'] = `Bearer ${token}`;
         
@@ -228,7 +224,7 @@ socket.on("chatEnded", (data) => {
       
       if (!astrologerId || !token) {
         toast.error("Please login first");
-        router.push("/astrologer/login");
+        router.push("/Astrologer/login");
         return;
       }
 
@@ -262,7 +258,7 @@ socket.on("chatEnded", (data) => {
         if (error.response?.status === 401) {
           toast.error("Session expired. Please login again.");
           localStorage.clear();
-          router.push("/astrologer/login");
+          router.push("/Astrologer/login");
         } else {
           toast.error("Failed to load dashboard");
         }
@@ -365,6 +361,10 @@ socket.on("chatEnded", (data) => {
       </div>
     );
   }
+const handleTabChange = (tabName) => {
+  setActiveTab(tabName);
+  setSidebarOpen(false); // ✅ auto close sidebar on tab change
+};
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -447,13 +447,13 @@ socket.on("chatEnded", (data) => {
               icon={<FaHome />}
               label="Overview"
               active={activeTab === "overview"}
-              onClick={() => setActiveTab("overview")}
+              onClick={() => handleTabChange("overview")}
             />
             <NavItem
               icon={<FaComments />}
               label="Chat"
               active={activeTab === "chat"}
-              onClick={() => setActiveTab("chat")}
+              onClick={() => handleTabChange("chat")}
               badge={stats.activeChats + stats.waitingChats} // Sum of both
             />
             <NavItem
@@ -461,7 +461,7 @@ socket.on("chatEnded", (data) => {
               label="Calls"
               active={activeTab === "call"}
               onClick={() => {
-                setActiveTab("call");
+                handleTabChange("call");
                 if (typeof window.refreshCalls === 'function') {
                  window.refreshCalls()
               }
@@ -472,14 +472,14 @@ socket.on("chatEnded", (data) => {
               icon={<FaWallet />}
               label="Payouts"
               active={activeTab === "payouts"}
-              onClick={() => setActiveTab("payouts")}
+              onClick={() => handleTabChange("payouts")}
               badge={stats.pendingPayouts}
             />
             <NavItem
               icon={<FaUser />}
               label="Profile"
               active={activeTab === "profile"}
-              onClick={() => setActiveTab("profile")}
+              onClick={() => handleTabChange("profile")}
             />
            
           </div>
@@ -585,7 +585,7 @@ socket.on("chatEnded", (data) => {
 
           {/* Dashboard Content */}
           <div className="p-4 lg:p-6">
-            {activeTab === "overview" && <OverviewTab astrologer={astrologer} stats={stats} refreshStats={refreshStats} reviewStats={reviewStats} setActiveTab={setActiveTab}/>}
+            {activeTab === "overview" && <OverviewTab astrologer={astrologer} stats={stats} refreshStats={refreshStats} reviewStats={reviewStats} handleTabChange={handleTabChange}/>}
             {activeTab === "chat" && <ChatDashboard astrologerId={astrologer?._id} />}
             {activeTab === "call" && <CallDashboard astrologerId={astrologer?._id} />}
             {activeTab === "payouts" && <PayoutsDashboard astrologer={astrologer} stats={stats} />}
@@ -626,7 +626,7 @@ function NavItem({ icon, label, active, onClick, badge }) {
 
 // Updated Overview Tab Component
 // Updated OverviewTab component with real-time stats
-function OverviewTab({ astrologer, stats, refreshStats, reviewStats, setActiveTab }) {
+function OverviewTab({ astrologer, stats, refreshStats, reviewStats, handleTabChange }) {
   return (
     <div className="space-y-6">
       {/* Welcome Card */}
@@ -693,21 +693,21 @@ function OverviewTab({ astrologer, stats, refreshStats, reviewStats, setActiveTa
           <h3 className="font-bold text-gray-800 mb-4">Quick Actions</h3>
           <div className="space-y-3">
             <button 
-              onClick={() => setActiveTab("chat")}
+              onClick={() => handleTabChange("chat")}
               className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <span className="font-medium text-gray-700">View Active Chats ({stats.activeChats})</span>
               <span className="text-[#C06014]">→</span>
             </button>
             <button 
-              onClick={() => setActiveTab("call")}
+              onClick={() => handleTabChange("call")}
               className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <span className="font-medium text-gray-700">Handle Waiting Calls ({stats.waitingCalls})</span>
               <span className="text-[#C06014]">→</span>
             </button>
             <button 
-              onClick={() => setActiveTab("payouts")}
+              onClick={() => handleTabChange("payouts")}
               className="w-full flex items-center justify-between p-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <span className="font-medium text-gray-700">Withdraw Earnings (₹{stats.pendingPayouts})</span>

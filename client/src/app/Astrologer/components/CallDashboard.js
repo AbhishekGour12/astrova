@@ -366,7 +366,7 @@ const id = localStorage.getItem("astrologer_id");
 
 if (!id) {
 
-router.push("/astrologer/login");
+router.push("/Astrologer/login");
 
 return;
 
@@ -1411,16 +1411,24 @@ Refresh
 
 <div className="mb-6">
 
-<div className="bg-gray-900 rounded-xl p-4">
+<div className="bg-gray-900 rounded-xl p-4 overflow-visible">
 
 <div className="text-white text-center mb-2">
 
 {activeCall.callType === "VIDEO" ? "Video Call" : "Voice Call"}
 
 </div>
-<div className="relative w-full h-[300px] md:h-[360px] bg-black rounded-xl overflow-hidden">
-<div ref={containerRef} className="absolute inset-0 w-full h-full bg-black rounded-lg" />
+<div className="zego-wrapper relative w-full bg-black rounded-xl overflow-hidden 
+  h-[420px] sm:h-[500px] md:h-[560px] lg:h-[600px]
+  pb-16 sm:pb-0">
+
+  {/* Zego UI Mount */}
+  <div
+    ref={containerRef}
+    className="absolute inset-0 w-full h-full bg-black rounded-lg z-10"
+  />
 </div>
+
 
 </div>
 
@@ -1430,22 +1438,13 @@ Refresh
 
 {/* Call Controls */}
 
-<div className="relative z-20 flex justify-center gap-4 mt-4">
-
-
-
-<button
-
-onClick={endActiveCall}
-
-className="p-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full hover:from-red-600 hover:to-red-700 transition-all"
-
->
-
-<FaStop size={20} />
-
-</button>
-
+<div className="fixed bottom-4 left-0 right-0 z-[99999] flex justify-center">
+  <button
+    onClick={endActiveCall}
+    className="p-4 bg-gradient-to-r from-red-500 to-red-600 text-white rounded-full shadow-xl"
+  >
+    <FaPhoneSlash size={20} />
+  </button>
 </div>
 
 </div>

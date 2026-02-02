@@ -76,7 +76,7 @@ export default function AstrologerCallDashboard() {
   
     const id = localStorage.getItem("astrologer_id");
     if (!id) {
-      router.push("/astrologer/login");
+      router.push("/Astrologer/login");
       return;
     }
     setAstrologerId(id);
