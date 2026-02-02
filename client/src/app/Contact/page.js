@@ -56,8 +56,8 @@ export default function ContactUsPage() {
       icon: <FaEnvelope />,
       title: 'Email Address',
       details: [
-        'support@astrova.com',
-        'partnership@astrova.com'
+        'myastrova@gmail.com',
+       
       ],
       description: 'We respond within 24 hours'
     },
@@ -65,8 +65,8 @@ export default function ContactUsPage() {
       icon: <FaPhone />,
       title: 'Phone Number',
       details: [
-        '+91 98765 43210',
-        '+91 98765 43211 (Toll Free)'
+        '+91 9779113118',
+        '+91 7888762191 '
       ],
       description: 'Mon-Sat: 9 AM - 9 PM'
     },
@@ -75,8 +75,8 @@ export default function ContactUsPage() {
       title: 'Office Address',
       details: [
         'MyAstrova Headquarters',
-        'Spiritual Tower, 5th Floor',
-        'Varanasi, Uttar Pradesh - 221001'
+        'D1, 003,  Gardenia Gateway, Sector 75, Noida ',
+        'Uttar Pradesh - 201316'
       ],
       description: 'Visit by appointment only'
     },
@@ -613,7 +613,7 @@ const handleSubmit = async (e) => {
               </p>
               
               <div className="text-xl md:text-2xl font-bold text-white mb-3 md:mb-4">
-                +91 98765 43210
+                +91 7888762191
               </div>
               
               <p className="text-xs md:text-sm text-white/80">

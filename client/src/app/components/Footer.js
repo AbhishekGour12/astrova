@@ -122,15 +122,15 @@ const meet = () => {
             <ul className="space-y-3 text-sm">
               <li className="flex items-center space-x-3">
                 <MdEmail className="text-xl" />
-                <span>support@myastrova.com</span>
+                <span>myastrova@gmail.com</span>
               </li>
               <li className="flex items-center space-x-3">
                 <FiPhone className="text-xl" />
-                <span>+91 98765 43210</span>
+                <span>+91 7888762191</span>
               </li>
               <li className="flex items-center space-x-3">
                 <MdLocationOn className="text-xl" />
-                <span>New Delhi, India</span>
+                <span>Punjab, India</span>
               </li>
             </ul>
 

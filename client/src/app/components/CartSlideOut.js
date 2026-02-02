@@ -12,6 +12,7 @@ import { couponAPI } from "../lib/coupons";
 import { productAPI } from "../lib/product";
 import { paymentAPI } from "../lib/payment";
 import { orderAPI } from "../lib/order";
+import { useRouter } from "next/navigation";
 
 const CartSlideOut = () => {
   const {
@@ -23,7 +24,7 @@ const CartSlideOut = () => {
     fetchCart,
     clearCart
   } = useCart();
-
+  
   const user = useSelector((s) => s.auth.user);
 
   // ================================
@@ -81,7 +82,7 @@ const CartSlideOut = () => {
   // ================================
   const [checkoutStep, setCheckoutStep] = useState("cart");
   const [loading, setLoading] = useState(false);
-  
+  const router = useRouter()
   // DYNAMIC VALUES
   const [shippingCharge, setShippingCharge] = useState(0);
   const [couponCode, setCouponCode] = useState("");
@@ -266,6 +267,10 @@ const CartSlideOut = () => {
       toast.success("Order Placed!");
       await clearCart();
       setIsCartOpen(false);
+      setTimeout(() =>{
+        router.push("/Orders")
+
+      },2000)
     } catch (err) {
       toast.error(err?.response?.data?.message || "Order Failed");
     } finally {

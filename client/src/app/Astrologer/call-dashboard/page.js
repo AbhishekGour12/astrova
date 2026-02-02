@@ -548,14 +548,19 @@ const acceptCall = async (callId) => {
                 </div>
 
                 {/* Zego Container */}
-                <div className="mb-6">
-                  <div className="bg-gray-900 rounded-xl p-4">
-                    <div className="text-white text-center mb-2">
-                      {activeCall.callType === "VIDEO" ? "Video Call" : "Voice Call"}
-                    </div>
-                    <div ref={containerRef} className="min-h-[200px] bg-black rounded-lg" />
-                  </div>
-                </div>
+              <div className="mb-6">
+  <div className="bg-gray-900 rounded-xl p-4 overflow-visible">
+    <div className="text-white text-center mb-2">
+      {activeCall.callType === "VIDEO" ? "Video Call" : "Voice Call"}
+    </div>
+
+    <div className="w-full h-[70vh] sm:h-[500px] bg-black rounded-lg overflow-y-auto">
+      <div ref={containerRef} className="w-full h-full" />
+    </div>
+  </div>
+</div>
+
+
 
                 {/* Call Controls */}
                 <div className="flex justify-center gap-4">
