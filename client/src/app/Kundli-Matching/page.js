@@ -116,7 +116,7 @@ return(
           {/* Form */}
           <div className="space-y-4">
             <Input label="Name" value={person.name} onChange={(v) => setPerson({ ...person, name: v })} />
-            <Input type="date" label="Date of Birth" value={person.dob} onChange={(v) => setPerson({ ...person, dob: v })} />
+            <Input type="date" placeholder="Date of Birth"  label="Date of Birth"  value={person.dob}  onChange={(v) => setPerson({ ...person, dob: v })} className="w-full border border-gray-400 h-10 rounded-md " />
             <Input type="time" label="Time of Birth" value={person.time} onChange={(v) => setPerson({ ...person, time: v })} />
             <Input label="Birth Place (City)" value={person.place} onChange={(v) => setPerson({ ...person, place: v })} />
           </div>
@@ -228,7 +228,9 @@ function Input({ label, value, onChange, type = "text" }) {
         type={type}
         value={value}
         onChange={(e) => onChange(e.target.value)}
+        
         className="w-full border border-[#B2C5B2] rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-[#C06014]"
+        max={new Date().toISOString().split("T")[0]}
       />
     </div>
   );
