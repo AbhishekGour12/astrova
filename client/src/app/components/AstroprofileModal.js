@@ -94,7 +94,7 @@ const AstroProfileModal = ({ onClose }) => {
           {/* DOB */}
           <div>
             <label className="block text-sm font-semibold mb-1">Date of Birth</label>
-            <input type="date" className="w-full border p-2 rounded"
+            <input type="date" max={new Date().toISOString().split("T")[0]} className="w-full border p-2 rounded"
               onChange={(e) => handleChange("dateOfBirth", e.target.value)} />
           </div>
 
