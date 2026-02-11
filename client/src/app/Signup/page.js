@@ -67,6 +67,30 @@ if (loading) return <SignupLoader/>
       toast.error("Please enter a valid 10-digit phone number!");
       return;
     }
+    // Name validation
+  const nameRegex = /^[A-Za-z\s]+$/;
+  if (!formData.name.trim()) {
+    toast.error("Full Name is required!");
+    return;
+  }
+
+  if (!nameRegex.test(formData.name)) {
+    toast.error("Name should contain only letters and spaces!");
+    return;
+  }
+
+  // Phone validation
+  const phoneRegex = /^[6-9]\d{9}$/;
+
+  if (!formData.phone.trim()) {
+    toast.error("Phone number is required!");
+    return;
+  }
+
+  if (!phoneRegex.test(formData.phone)) {
+    toast.error("Enter a valid Indian phone number starting with 6,7,8,9");
+    return;
+  }
     setLoading1(true)
     const fullPhone = `${countryCode}${formData.phone}`;
 
@@ -89,6 +113,12 @@ if (loading) return <SignupLoader/>
        setLoading1(false)
     }
   };
+const handleNameChange = (e) => {
+  const value = e.target.value;
+  if (/^[A-Za-z\s]*$/.test(value)) {
+    setFormData({ ...formData, name: value });
+  }
+};
 
   return (
     <> 
@@ -147,7 +177,7 @@ if (loading) return <SignupLoader/>
                       name="name"
                       placeholder="Full Name"
                       value={formData.name}
-                      onChange={handleChange}
+                      onChange={handleNameChange}
                       className="mt-2 w-full px-6 py-3 pr-10 rounded-3xl bg-[#f4f1e2] focus:outline-none focus:ring-2 focus:ring-[#B2C5B2] placeholder-[gray] placeholder-opacity-70"
                       minLength={3}
                     />
@@ -167,17 +197,13 @@ if (loading) return <SignupLoader/>
       className="px-4 max-md:w-[25%]  max-md:px-3 max-md:py-2 max-md:text-sm py-3 bg-[#f4f1e2] text-[#7b5430] font-semibold focus:outline-none border-r border-[#bba989]"
     >
       <option value="+91">🇮🇳 +91</option>
-      <option value="+1">🇺🇸 +1</option>
-      <option value="+44">🇬🇧 +44</option>
-      <option value="+61">🇦🇺 +61</option>
-      <option value="+971">🇦🇪 +971</option>
-      <option value="+65">🇸🇬 +65</option>
+      
     </select>
 
     {/* Phone Input */}
     <div className="relative flex-1">
       <input
-        type="number"
+        type="tel"
         name="phone"
         placeholder="Phone no."
         value={formData.phone}

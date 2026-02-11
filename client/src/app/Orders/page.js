@@ -6,11 +6,13 @@ import { FaTruck, FaChevronDown, FaChevronUp, FaBox, FaMapMarkerAlt, FaMoneyBill
 import { orderAPI } from "../lib/order";
 import toast from "react-hot-toast";
 import OrderTracking from "../components/OrderTracking";
+import { useSelector } from "react-redux";
 
 const MyOrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [trackId, setTrackId] = useState(null);
   const [expanded, setExpanded] = useState({});
+  const user = useSelector((state) => state.auth.user);
 const normalizeStatus = (status = "") =>
   status.toLowerCase().replace(/_/g, " ").trim();
 
@@ -23,11 +25,15 @@ const normalizeStatus = (status = "") =>
       
       
     } catch (e) {
-      toast.error(e.message);
+      toast.error("no orders found");
     }
   };
 
   useEffect(() => {
+    if(!user){
+      toast.error("Please login to view your orders");
+      return;
+    }
     loadOrders();
   }, []);
 
