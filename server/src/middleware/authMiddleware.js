@@ -6,6 +6,7 @@ import jwt from "jsonwebtoken";
 export const authMiddleware = (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
+    console.log("Auth Header:", authHeader); // Debug log
 
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.status(401).json({
@@ -32,7 +33,7 @@ export const authMiddleware = (req, res, next) => {
     console.log(req.user) // 👈 single source of truth
     next();
   } catch (err) {
-    console.error("JWT Error:", err.message);
+    console.log("JWT Error:", err.message);
 
     return res.status(401).json({
       success: false,
@@ -45,6 +46,7 @@ export const authMiddleware = (req, res, next) => {
    ROLE BASED GUARDS
 ================================ */
 export const onlyUser = (req, res, next) => {
+  console.log("Checking onlyUser guard for role:", req.user?.role); // Debug log
   if (req.user?.role !== "user") {
     return res.status(403).json({
       success: false,

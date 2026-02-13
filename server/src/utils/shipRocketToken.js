@@ -15,7 +15,7 @@ const generateToken = async () => {
          password: "hBd&yu9ceczX64Rh",
       }
     );
-
+    
     shiprocketToken = response.data.token;
     tokenExpiry = Date.now() + 24 * 60 * 60 * 1000;
 

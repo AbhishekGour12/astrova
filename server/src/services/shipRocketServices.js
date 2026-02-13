@@ -12,7 +12,7 @@ export const createShiprocketOrder = async (order, extra = {}) => {
     order_id: order._id,
     order_date: new Date().toISOString().slice(0, 10),
 
-    pickup_location: "Home",
+    pickup_location: "Warehouse",
 
     billing_customer_name: order.shippingAddress.fullName,
     billing_last_name: "",

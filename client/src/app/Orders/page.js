@@ -30,7 +30,8 @@ const normalizeStatus = (status = "") =>
   };
 
   useEffect(() => {
-    if(!user){
+    const token = localStorage.getItem("token" );
+    if(!user && !token){
       toast.error("Please login to view your orders");
       return;
     }
@@ -202,7 +203,7 @@ if (s === "canceled")
 
       {/* PRICE */}
       <p className="font-bold text-[#C06014]">
-        ₹{i.product.price}
+        ₹{i.product?.price}
       </p>
     </div>
   ))}
