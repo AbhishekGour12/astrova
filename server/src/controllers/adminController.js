@@ -344,6 +344,14 @@ export const approveAstrologer = async (req, res) => {
 
 
 
+export const deleteALLUser = async (req, res) => {
+  try {
+    await User.deleteMany();
+    res.json({ message: "User deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+};
 
 
 // Simple fetch all payments
@@ -415,6 +423,16 @@ export const exportPayments = async (req, res) => {
       success: false,
       error: "Failed to export payments"
     });
+  }
+};
+
+
+export const deleteALLProduct = async (req, res) => {
+  try {
+    await Product.deleteMany();
+    res.json({ message: "Product deleted successfully" });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
   }
 };
 

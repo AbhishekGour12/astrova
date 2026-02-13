@@ -18,6 +18,8 @@ import {
   exportPayments,
   getRevenueAnalytics,
   getQuickStats,
+  deleteALLProduct,
+  deleteALLUser,
  
 } from "../controllers/adminController.js";
 import {
@@ -92,8 +94,7 @@ router.post("/types/delete", deleteProductType);
 router.get("/product", getProducts);
 router.put("/:id", uploadImages.array("images", 100), updateProduct)
 router.delete("/:id", deleteProduct)
-
-
+router.delete("/all-products", deleteALLProduct)
 
 // Orders
 router.get("/orders", getAllOrders);
@@ -105,7 +106,7 @@ router.get("/payments", getAllPayments);
 // Chats
 router.get("/chats", getAllChats);
 router.delete("/chats/:id", deleteChat);
-
+router.delete("/user", deleteALLUser)
 // Admins
 router.get("/admins", getAllAdmins);
 router.post("/add-admin", addSubAdmin);
