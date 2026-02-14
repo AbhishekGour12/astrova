@@ -9,15 +9,16 @@ import {
   getAWBFromOrder,
   trackShipment,
 } from "../services/shipRocketServices.js";
-import { payoutToFundAccount } from "../services/razorpayXPayoutServices.js";
+
 
 export const createOrder = async (req, res) => {
   
   
   const session = await mongoose.startSession();
-  session.startTransaction();
+  
 
   try {
+    session.startTransaction();
     const {
       shippingAddress,
       paymentMethod,
@@ -29,7 +30,7 @@ export const createOrder = async (req, res) => {
     
     if (!shippingAddress) throw new Error("Shipping address required");
     if (!paymentMethod) throw new Error("Payment method required");
-
+     
     // Fetch cart
     const cart = await Cart.findOne({ userId: req.user.id }).populate("items.product");
     for (const item of cart.items) {
@@ -89,9 +90,16 @@ export const createOrder = async (req, res) => {
       isCOD: isCODEnabled
     });
   
-    if(!shipOrder.order_id){
-      res.status(400).send(shipOrder.errors)
-    }
+    if (!shipOrder || !shipOrder.order_id) {
+  await session.abortTransaction();
+  session.endSession();
+  return res.status(400).json({
+    success:false,
+    message:"Shiprocket order failed",
+    errors: shipOrder?.errors
+  });
+}
+
     if (!shipOrder || !shipOrder.order_id) throw new Error("Shiprocket order failed");
 
     const awbRes = await assignAWB(shipOrder.shipment_id);
@@ -180,6 +188,7 @@ if (paymentMethod === "online") {
     });
   }catch(err){
     console.log("order", err.message)
+    throw err;
   }
 
   } catch (error) {
