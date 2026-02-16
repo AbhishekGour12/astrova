@@ -31,14 +31,14 @@ const AboutSection = () => {
       </div>
 
       {/* Right Side Chakra Image */}
-      <div className="relative w-full lg:w-1/2 flex justify-center lg:justify-end items-center">
+      <div className="relative w-full lg:w-1/2 flex justify-center lg:justify-end items-center ">
 
         {/* Background circular design */}
         <motion.div
           initial={{ opacity: 0, scale: 0.8 }}
           animate={{ opacity: 0.3, scale: 1 }}
           transition={{ duration: 1.5 }}
-          className="absolute lg:right-[10%] w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] md:w-[500px] md:h-[500px] lg:w-[600px] lg:h-[600px]  "
+          className="absolute lg:right-[20%] w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] md:w-[500px] md:h-[500px] lg:w-[600px] lg:h-[600px]  "
         >
           <Image
             src="/aboutBg.png"
@@ -53,7 +53,7 @@ const AboutSection = () => {
         <motion.div
           animate={{ rotate: 360 }}
           transition={{ repeat: Infinity, duration: 30, ease: "linear" }}
-          className="relative z-10 w-[450px] h-[450px] sm:w-[300px] sm:h-[300px] md:w-[350px] md:h-[350px] lg:w-[500px] lg:h-[500px]"
+          className="relative z-10 w-[450px] h-[450px] sm:w-[300px] sm:h-[300px] md:w-[350px] md:h-[350px] lg:w-[500px] lg:h-[500px] lg:right-[15%] "
         >
           <Image
             src="/about.png"

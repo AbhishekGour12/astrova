@@ -66,7 +66,7 @@ export default function ContactUsPage() {
       title: 'Phone Number',
       details: [
         '+91 9779113118',
-        '+91 7888762191 '
+        '+91 8544996977'
       ],
       description: 'Mon-Sat: 9 AM - 9 PM'
     },
@@ -94,10 +94,9 @@ export default function ContactUsPage() {
 
   const socialLinks = [
     { icon: <FaWhatsapp />, label: 'WhatsApp', link: 'https://wa.me/919876543210', color: '#25D366' },
-    { icon: <FaInstagram />, label: 'Instagram', link: 'https://instagram.com/astrova', color: '#E4405F' },
-    { icon: <FaFacebook />, label: 'Facebook', link: 'https://facebook.com/astrova', color: '#1877F2' },
-    { icon: <FaTwitter />, label: 'Twitter', link: 'https://twitter.com/astrova', color: '#1DA1F2' },
-    { icon: <FaLinkedin />, label: 'LinkedIn', link: 'https://linkedin.com/company/astrova', color: '#0A66C2' }
+    { icon: <FaInstagram />, label: 'Instagram', link: 'https://www.instagram.com/my.astrova/', color: '#E4405F' },
+    { icon: <FaFacebook />, label: 'Facebook', link: 'https://www.facebook.com/profile.php?id=61587116236269', color: '#1877F2' },
+    
   ];
 
   const handleChange = (e) => {

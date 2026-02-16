@@ -226,41 +226,52 @@ const HeroSection = () => {
           <div className="flex justify-center lg:justify-start mb-4 sm:mb-5 md:mb-6 gap-6">
     
     {/* BUTTON 1: Personalized Consultations */}
-    <motion.div
-      className="relative overflow-hidden inline-block rounded-full hover:cursor-pointer"
-      // 1. Pulsing Glow Animation (Piche ki chamak)
-      animate={{
-        boxShadow: [
-          "0px 0px 0px rgba(229, 222, 206, 0)",
-          "0px 0px 15px rgba(229, 222, 206, 0.8)",
-          "0px 0px 0px rgba(229, 222, 206, 0)",
-        ],
-      }}
-      transition={{
-        duration: 2,
-        repeat: Infinity,
-        ease: "easeInOut",
-      }}
-    >
-      <div className="px-3 py-1.5 sm:px-4 sm:py-2 bg-[#E5DECED6] rounded-full text-[#7E5833] text-xs sm:text-sm md:text-base lg:text-lg font-medium text-center relative z-10">
-        <Link href="/astrologers?service=ALL">Personalized Consultations</Link>
-      </div>
+  
+<motion.button
+  className="relative overflow-hidden inline-block rounded-full shadow-md text-sm sm:text-base font-medium whitespace-nowrap"
+  onClick={() => router.push("/astrologers?service=ALL")}
+  animate={{
+    scale: [1, 1.02, 1],
+    boxShadow: [
+      "0px 0px 0px rgba(126, 88, 51, 0)",
+      "0px 0px 20px rgba(126, 88, 51, 0.6)",
+      "0px 0px 0px rgba(126, 88, 51, 0)",
+    ],
+  }}
+  transition={{
+    duration: 2.5,
+    repeat: Infinity,
+    ease: "easeInOut",
+  }}
+>
+  {/* Background Layer */}
+  <div className="absolute inset-0 bg-[#7E5833] z-0"></div>
 
-      {/* 2. Moving Shine Effect (Heera jaisa chamak) */}
-      <motion.div
-        className="absolute top-0 left-0 w-full h-full bg-gradient-to-r from-transparent via-white/80 to-transparent"
-        style={{ skewX: -20 }} // Skew for realistic reflection
-        initial={{ x: "-150%" }}
-        animate={{ x: "150%" }}
-        transition={{
-          repeat: Infinity,
-          duration: 1.5, // Adjust speed (lower is faster)
-          ease: "linear",
-          repeatDelay: 1, // Pause between shines
-        }}
-      />
-    </motion.div>
+  {/* Moving Shine Effect */}
+  <motion.div
+    className="absolute inset-0 w-1/2 h-full bg-gradient-to-r from-transparent via-white/40 to-transparent z-10"
+    style={{ skewX: -20 }}
+    initial={{ x: "-200%" }}
+    animate={{ x: "400%" }}
+    transition={{
+      repeat: Infinity,
+      duration: 1.2,
+      ease: "linear",
+      repeatDelay: 0.5,
+    }}
+  />
 
+  {/* Text Layer */}
+  <span className="relative z-20 px-6 py-3 block text-white">
+    Personalized Consultations
+  </span>
+</motion.button>
+
+
+   
+   
+   
+   
     {/* BUTTON 2: Shop Astrology Products */}
     <motion.button
       className="relative overflow-hidden w-full lg:w-auto rounded-full shadow-md text-sm sm:text-base font-medium whitespace-nowrap"
@@ -507,7 +518,7 @@ const HeroSection = () => {
         {/* Image Section */}
         <div className="relative w-full aspect-[3/4]">
           <Image
-            src="/myastrovastore.jpeg"
+            src="/myastrovastore.jpg"
             alt="My Astrova Store"
             fill
             className="object-cover"

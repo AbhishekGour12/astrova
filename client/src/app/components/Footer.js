@@ -126,7 +126,7 @@ const meet = () => {
               </li>
               <li className="flex items-center space-x-3">
                 <FiPhone className="text-xl" />
-                <span>+91 7888762191</span>
+                <span>+91 8544996977</span>
               </li>
               <li className="flex items-center space-x-3">
                 <MdLocationOn className="text-xl" />

@@ -23,7 +23,7 @@ const products = [
   {
     title: "Kundli Matching",
     desc: "Starts at INR 199 Only",
-    img: "./p4.jpeg",
+    img: "./p4.jpg",
   },
 ];
 
