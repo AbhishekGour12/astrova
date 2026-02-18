@@ -228,7 +228,7 @@ const HeroSection = () => {
     {/* BUTTON 1: Personalized Consultations */}
   
 <motion.button
-  className="relative overflow-hidden inline-block rounded-full shadow-md text-sm sm:text-base font-medium whitespace-nowrap"
+  className="relative  overflow-hidden inline-block rounded-full shadow-md text-sm sm:text-base font-medium"
   onClick={() => router.push("/astrologers?service=ALL")}
   animate={{
     scale: [1, 1.02, 1],
@@ -262,7 +262,7 @@ const HeroSection = () => {
   />
 
   {/* Text Layer */}
-  <span className="relative z-20 px-6 py-3 block text-white">
+  <span className="relative z-20 p-4 max-sm:p-3 block text-white max-sm:text-xs w-full">
     Personalized Consultations
   </span>
 </motion.button>
@@ -274,7 +274,7 @@ const HeroSection = () => {
    
     {/* BUTTON 2: Shop Astrology Products */}
     <motion.button
-      className="relative overflow-hidden w-full lg:w-auto rounded-full shadow-md text-sm sm:text-base font-medium whitespace-nowrap"
+      className="relative overflow-hidden w-full lg:w-auto rounded-full shadow-md text-sm sm:text-base font-medium"
       onClick={() => {
         router.push("/ProductsPage");
       }}
@@ -311,7 +311,7 @@ const HeroSection = () => {
       />
 
       {/* Text Layer (Must be above shine) */}
-      <span className="relative z-20 px-6 py-3 block text-white">
+      <span className="relative w-full z-20 p-3 max-sm:p-2 flex justify-center items-center text-white flex-wrap">
         Shop Astrology Products
       </span>
     </motion.button>
