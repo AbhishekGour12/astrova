@@ -250,7 +250,12 @@ const CartSlideOut = () => {
   };
 
   const placeOrder = async (payMethod, paymentDetails = null) => {
-    if (!user) return toast.error("Please login");
+    if (!user) {
+      toast.error("Please login");
+      router.push("/Login");
+      return;
+
+    } 
     setLoading(true);
     try {
       await orderAPI.createOrder({
@@ -290,6 +295,46 @@ const CartSlideOut = () => {
         }
     }
   };
+
+
+  const indianStates = [
+  "Andhra Pradesh",
+  "Arunachal Pradesh",
+  "Assam",
+  "Bihar",
+  "Chhattisgarh",
+  "Goa",
+  "Gujarat",
+  "Haryana",
+  "Himachal Pradesh",
+  "Jharkhand",
+  "Karnataka",
+  "Kerala",
+  "Madhya Pradesh",
+  "Maharashtra",
+  "Manipur",
+  "Meghalaya",
+  "Mizoram",
+  "Nagaland",
+  "Odisha",
+  "Punjab",
+  "Rajasthan",
+  "Sikkim",
+  "Tamil Nadu",
+  "Telangana",
+  "Tripura",
+  "Uttar Pradesh",
+  "Uttarakhand",
+  "West Bengal",
+  "Andaman and Nicobar Islands",
+  "Chandigarh",
+  "Dadra and Nagar Haveli and Daman and Diu",
+  "Delhi",
+  "Jammu and Kashmir",
+  "Ladakh",
+  "Lakshadweep",
+  "Puducherry"
+];
 
   // ================================
   // 5. UI RENDER
@@ -354,16 +399,47 @@ const CartSlideOut = () => {
                 <>
                     <h3 className="font-bold mb-3">Shipping Address</h3>
                     <div className="space-y-3">
-                        {Object.keys(address).map(k => (
-                            <div key={k}>
-                                <input 
-                                    value={address[k]} placeholder={k.charAt(0).toUpperCase() + k.slice(1)} 
-                                    onChange={e => {setAddress({...address, [k]: e.target.value}); setErrors({...errors, [k]: ''})}}
-                                    className={`w-full border p-2 rounded ${errors[k] ? 'border-red-500' : ''}`}
-                                />
-                                {errors[k] && <p className="text-red-500 text-xs">{errors[k]}</p>}
-                            </div>
-                        ))}
+                        {Object.keys(address).map((k) => (
+  <div key={k}>
+    
+    {k === "state" ? (
+      <select
+        value={address.state}
+        onChange={(e) => {
+          setAddress({ ...address, state: e.target.value });
+          setErrors({ ...errors, state: "" });
+        }}
+        className={`w-full border p-2 rounded ${
+          errors.state ? "border-red-500" : ""
+        }`}
+      >
+        <option value="">Select State</option>
+        {indianStates.map((stateName) => (
+          <option key={stateName} value={stateName}>
+            {stateName}
+          </option>
+        ))}
+      </select>
+    ) : (
+      <input
+        value={address[k]}
+        placeholder={k.charAt(0).toUpperCase() + k.slice(1)}
+        onChange={(e) => {
+          setAddress({ ...address, [k]: e.target.value });
+          setErrors({ ...errors, [k]: "" });
+        }}
+        className={`w-full border p-2 rounded ${
+          errors[k] ? "border-red-500" : ""
+        }`}
+      />
+    )}
+
+    {errors[k] && (
+      <p className="text-red-500 text-xs">{errors[k]}</p>
+    )}
+  </div>
+))}
+
                     </div>
                     <button onClick={calculateShipping} disabled={loading} className="w-full bg-[#003D33] text-white py-3 rounded-xl mt-6">
                         {loading ? "Calculating..." : "Calculate Shipping"}
@@ -411,7 +487,14 @@ const CartSlideOut = () => {
                     </div>
 
                     <button 
-                        onClick={() => setCheckoutStep("payment")} 
+                        onClick={() => {
+                            if (!user) {
+                                toast.error("Please login to continue");
+                                router.push("/Login");
+                            } else {
+                                setCheckoutStep("payment");
+                            }
+                        }} 
                         className="w-full mt-6 bg-[#003D33] text-white py-3 rounded-xl"
                     >
                         Continue to Payment
