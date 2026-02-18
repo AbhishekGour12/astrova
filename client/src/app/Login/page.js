@@ -147,21 +147,35 @@ useEffect(() => {
   if ("OTPCredential" in window) {
     const ac = new AbortController();
 
-    navigator.credentials.get({
-      otp: { transport: ["sms"] },
-      signal: ac.signal,
-    })
-    .then((otpCredential) => {
-      if (otpCredential && otpCredential.code) {
-        const code = otpCredential.code;
-        setOtp(code.split(""));  // Fill inputs automatically
-      }
-    })
-    .catch((err) => console.log(err));
+    navigator.credentials
+      .get({
+        otp: { transport: ["sms"] },
+        signal: ac.signal,
+      })
+      .then((otpCredential) => {
+        if (otpCredential && otpCredential.code) {
+          const code = otpCredential.code.replace(/\D/g, "").slice(0, 6);
+          setOtp(code.split(""));
+        }
+      })
+      .catch(() => {});
 
     return () => ac.abort();
   }
 }, [otpSent]);
+
+
+const handlePasteOtp = (e) => {
+  const pastedData = e.clipboardData.getData("text").trim();
+
+  if (/^\d{6}$/.test(pastedData)) {
+    const digits = pastedData.split("");
+    setOtp(digits);
+
+    // focus last box
+    inputRefs.current[5]?.focus();
+  }
+};
 
 
   return (
@@ -258,12 +272,12 @@ useEffect(() => {
                   {/* OTP Inputs */}
                   {otpSent && (
                     <div className="mt-6 flex flex-col items-center">
-                      <div className="flex gap-3">
+                      <div className="flex gap-3" onPaste={handlePasteOtp}>
                         {otp.map((digit, index) => (
                           <input
                             key={index}
                             ref={(el) => (inputRefs.current[index] = el)}
-                            type="tel"
+                            type="text"
                             inputMode="numeric"
                             pattern="[0-9]*"
                             autoComplete="one-time-code"
