@@ -5,8 +5,15 @@ export const getCart = async (req, res) => {
   try {
     const userId = req.user.id;
 
-    const cart = await Cart.findOne({ userId })
-      .populate("items.product");
+    let cart = await Cart.findOne({ userId })
+  .populate("items.product");
+
+   if (cart) {
+    cart.items = cart.items.filter(item => item.product !== null);
+   }
+
+
+
 
     res.json({ cart });
   } catch (err) {
