@@ -141,6 +141,27 @@ const Login = () => {
     setOtp(["", "", "", "", "", ""]);
     handleSendOtp();
   };
+useEffect(() => {
+  if (!otpSent) return;
+
+  if ("OTPCredential" in window) {
+    const ac = new AbortController();
+
+    navigator.credentials.get({
+      otp: { transport: ["sms"] },
+      signal: ac.signal,
+    })
+    .then((otpCredential) => {
+      if (otpCredential && otpCredential.code) {
+        const code = otpCredential.code;
+        setOtp(code.split(""));  // Fill inputs automatically
+      }
+    })
+    .catch((err) => console.log(err));
+
+    return () => ac.abort();
+  }
+}, [otpSent]);
 
 
   return (
