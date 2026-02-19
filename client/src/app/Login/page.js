@@ -230,7 +230,7 @@ const Login = () => {
   <div className="mt-6 flex flex-col items-center">
     
     <input
-      type="tel"
+      type="text"
       inputMode="numeric"
       pattern="[0-9]*"
       autoComplete="one-time-code"
