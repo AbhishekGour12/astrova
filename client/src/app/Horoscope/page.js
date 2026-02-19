@@ -61,16 +61,7 @@ const router = useRouter()
 
     load();
   }, [user]);
- useEffect(() => {
-  if (!astrologers) return;
-
-  const hasSeenModal = localStorage.getItem("astroProfileModalShown");
-
-  if (!hasSeenModal) {
-    setShowProfileModal(true);
-    localStorage.setItem("astroProfileModalShown", "true");
-  }
-}, [astrologers]);
+ 
   if (!user) return null;
   if (loading) return <p className="text-center mt-20">Loading...</p>;
 
