@@ -12,6 +12,7 @@ import {
 import DashaTimeline from "../components/DashaTimeline";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
+import AstroProfileModal from "../components/AstroprofileModal";
 export default function HoroscopePage() {
   const user = useSelector((state) => state.auth.user);
   const [nakshatra, setNakshatra] = useState(null);
@@ -20,6 +21,7 @@ export default function HoroscopePage() {
 const [daily, setDaily] = useState(null);
 const [dasha, setDasha] = useState(null);
 const [sadeSati, setSadeSati] = useState(null);
+const [showProfileModal, setShowProfileModal] = useState(false);
 const router = useRouter()
   useEffect(() => {
     if(!user){
@@ -27,10 +29,17 @@ const router = useRouter()
       
 
     }
+    
     if (!user?.astroProfile){
       toast.error("first complete your profile");
       return;
     }
+    const hasSeenModal = localStorage.getItem("astroProfileModalShown");
+
+  if (!hasSeenModal) {
+    setShowProfileModal(true);
+    localStorage.setItem("astroProfileModalShown", "true");
+  }
     
 
     async function load() {
@@ -52,7 +61,16 @@ const router = useRouter()
 
     load();
   }, [user]);
+ useEffect(() => {
+  if (!astrologers) return;
 
+  const hasSeenModal = localStorage.getItem("astroProfileModalShown");
+
+  if (!hasSeenModal) {
+    setShowProfileModal(true);
+    localStorage.setItem("astroProfileModalShown", "true");
+  }
+}, [astrologers]);
   if (!user) return null;
   if (loading) return <p className="text-center mt-20">Loading...</p>;
 
@@ -199,6 +217,12 @@ const router = useRouter()
         <p>{sadeSati.what_is_sadhesati}</p>
       </div>
     </div>
+    {showProfileModal && (
+  <AstroProfileModal
+    onClose={() => setShowProfileModal(false)}
+  />
+)}
+
 
     </div>
   );

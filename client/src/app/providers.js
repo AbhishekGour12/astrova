@@ -13,7 +13,7 @@ import AstroProfileModal from "./components/AstroprofileModal";
 
 
 // ✅ Safe and silent user auth initialization
- function Product({setShowProfileForm}){
+ function Product(){
  
   const dispatch = useDispatch();
   const user = useSelector((state) => state.auth.user)
@@ -33,13 +33,9 @@ import AstroProfileModal from "./components/AstroprofileModal";
         const res = await authAPI.getProfile(token);
      
 
-       if (res?.data) {
+      if (res?.data) {
   dispatch(loginSuccess(res.data));
 
-  // 🔥 CHECK PROFILE COMPLETION
-  if (!res.data.isProfileComplete) {
-    setShowProfileForm(true);
-  }
 
 
         } else {
@@ -75,11 +71,7 @@ import AstroProfileModal from "./components/AstroprofileModal";
    fetchProductType()
     
   },[dispatch])
- useEffect(() => {
-  if (user && !user.isProfileComplete) {
-    setShowProfileForm(true);
-  }
-}, [user]);
+
 
   return null
 
@@ -87,17 +79,14 @@ import AstroProfileModal from "./components/AstroprofileModal";
 
 
 export function Providers({ children }) {
-  const [showProfileForm, setShowProfileForm] = useState(false);
+ 
 
   return (
     <Provider store={store}>
-      <Product setShowProfileForm={setShowProfileForm} />
+      <Product  />
       {children}
 
-      {/* 🔥 One-time Astro Profile Form */}
-      {showProfileForm && (
-        <AstroProfileModal onClose={() => setShowProfileForm(false)} />
-      )}
+      
 
       <Toaster position="bottom-left" />
     </Provider>

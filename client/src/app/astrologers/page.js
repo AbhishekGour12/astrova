@@ -26,7 +26,7 @@ import api from "../lib/api"
 import toast from "react-hot-toast";
 import { io } from "socket.io-client";
 import { useSelector } from "react-redux";
-
+import AstroProfileModal from "../components/AstroprofileModal";
 import { useCall } from "../hooks/useCall";
 // 1. Create a Loading Component (Extracted from your existing code)
 const LoadingFallback = () => (
@@ -45,6 +45,7 @@ const LoadingFallback = () => (
   const [activeChats, setActiveChats] = useState([]);
   const [resumeChats, setResumeChats] = useState([]);
   const [showMeetModal, setShowMeetModal] = useState(false);
+  
   const [selectedAstrologer, setSelectedAstrologer] = useState(null);
   const [meetForm, setMeetForm] = useState({
     name: "",
@@ -55,11 +56,11 @@ const LoadingFallback = () => (
   const [meetLoading, setMeetLoading] = useState(false);
   const router = useRouter();
   const user = useSelector((state) => state.auth.user);
-
+  
 
 const searchParams = useSearchParams();
 const service = searchParams?.get("service") || "ALL";
-
+const [showProfileModal, setShowProfileModal] = useState(false);
 
  // Use the call hook
   
@@ -239,6 +240,17 @@ const service = searchParams?.get("service") || "ALL";
   useEffect(() => {
     fetchData()
   }, [fetchData]);
+  useEffect(() => {
+  if (!astrologers) return;
+
+  const hasSeenModal = localStorage.getItem("astroProfileModalShown");
+
+  if (!hasSeenModal) {
+    setShowProfileModal(true);
+    localStorage.setItem("astroProfileModalShown", "true");
+  }
+}, [astrologers]);
+
 const loadRazorpay = () => {
   return new Promise((resolve) => {
     if (window.Razorpay) {
@@ -1058,6 +1070,12 @@ const testToken = async () => {
           </div>
         </div>
       )}
+      {showProfileModal && (
+  <AstroProfileModal
+    onClose={() => setShowProfileModal(false)}
+  />
+)}
+
     </div>
   );
 }

@@ -40,6 +40,7 @@ export default function AstrologerDashboard() {
     pendingPayouts: 0,
     waitingChats: 0
   });
+  
  const socketRef = useRef(null);
 
  // 1. FETCH LATEST STATS (The Source of Truth)
