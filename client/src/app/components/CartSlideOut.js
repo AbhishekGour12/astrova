@@ -217,6 +217,8 @@ const CartSlideOut = () => {
       else if (charge.etd) setDeliveryETA(new Date(charge.etd).toLocaleDateString("en-IN", { day: "numeric", month: "short" }));
       
       toast.success("Shipping updated!");
+      localStorage.setItem("shippingAddress", JSON.stringify(address));
+
       setCheckoutStep("coupon");
     } catch (err) {
       toast.error(err.message || "Shipping error");
@@ -335,6 +337,37 @@ const CartSlideOut = () => {
   "Lakshadweep",
   "Puducherry"
 ];
+// Load address from localStorage on mount
+useEffect(() => {
+  if (typeof window !== "undefined") {
+    const savedAddress = localStorage.getItem("shippingAddress");
+    if (savedAddress) {
+      try {
+        const parsed = JSON.parse(savedAddress);
+        setAddress(parsed);
+      } catch (err) {
+        console.error("Invalid address in localStorage");
+      }
+    }
+  }
+}, []);
+useEffect(() => {
+  if (!isCartOpen) return;
+
+  if (typeof window !== "undefined") {
+    const savedAddress = localStorage.getItem("shippingAddress");
+    if (savedAddress) {
+      try {
+        const parsed = JSON.parse(savedAddress);
+        setAddress(parsed);
+      } catch (err) {
+        console.error("Invalid localStorage address");
+      }
+    }
+  }
+}, [isCartOpen]);
+
+
 
   // ================================
   // 5. UI RENDER

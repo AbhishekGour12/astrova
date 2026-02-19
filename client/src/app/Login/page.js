@@ -27,9 +27,9 @@ const Login = () => {
   const [countryCode, setCountryCode] = useState("+91");
 
   const [otpSent, setOtpSent] = useState(false);
-  const [otp, setOtp] = useState(["", "", "", "", "", ""]);
+  const [otp, setOtp] = useState("");
   const [timer, setTimer] = useState();
-  const inputRefs = useRef([]);
+ 
   const router = useRouter()
  const dispatch = useDispatch();
  
@@ -77,20 +77,7 @@ const Login = () => {
   };
 
   // Handle OTP input
-  const handleOtpChange = (value, index) => {
-    if (!/^[0-9]?$/.test(value)) return;
-    const newOtp = [...otp];
-    newOtp[index] = value;
-    setOtp(newOtp);
-
-    if (value && index < 5) inputRefs.current[index + 1]?.focus();
-  };
-
-  const handleKeyDown = (e, index) => {
-    if (e.key === "Backspace" && !otp[index] && index > 0) {
-      inputRefs.current[index - 1]?.focus();
-    }
-  };
+  
 
   // ---------------- LOGIN SUBMIT ----------------
   const handleSubmit = async (e) => {
@@ -110,17 +97,17 @@ const Login = () => {
     }
 
     try {
-      const enteredOtp = otp.join("");
-      if (enteredOtp.length !== 6) {
-        toast.error("Enter complete 6-digit OTP!");
-        return;
-      }
+      if (otp.length !== 6) {
+  toast.error("Enter complete 6-digit OTP!");
+  return;
+}
+
 
       const fullPhone = `${countryCode}${formData.phone}`;
 
       const userData = {
         phone: fullPhone,
-        otp: enteredOtp,
+        otp: otp,
       };
 
       const response = await authAPI.login(userData);
@@ -141,41 +128,10 @@ const Login = () => {
     setOtp(["", "", "", "", "", ""]);
     handleSendOtp();
   };
-useEffect(() => {
-  if (!otpSent) return;
-
-  if ("OTPCredential" in window) {
-    const ac = new AbortController();
-
-    navigator.credentials
-      .get({
-        otp: { transport: ["sms"] },
-        signal: ac.signal,
-      })
-      .then((otpCredential) => {
-        if (otpCredential && otpCredential.code) {
-          const code = otpCredential.code.replace(/\D/g, "").slice(0, 6);
-          setOtp(code.split(""));
-        }
-      })
-      .catch(() => {});
-
-    return () => ac.abort();
-  }
-}, [otpSent]);
 
 
-const handlePasteOtp = (e) => {
-  const pastedData = e.clipboardData.getData("text").trim();
 
-  if (/^\d{6}$/.test(pastedData)) {
-    const digits = pastedData.split("");
-    setOtp(digits);
 
-    // focus last box
-    inputRefs.current[5]?.focus();
-  }
-};
 
 
   return (
@@ -243,7 +199,7 @@ const handlePasteOtp = (e) => {
                       {/* Phone Input */}
                       <div className="relative flex-1">
                         <input
-                          type="number"
+                          type="tel"
                           name="phone"
                           placeholder="Phone no."
                           value={formData.phone}
@@ -270,43 +226,40 @@ const handlePasteOtp = (e) => {
                   )}
 
                   {/* OTP Inputs */}
-                  {otpSent && (
-                    <div className="mt-6 flex flex-col items-center">
-                      <div className="flex gap-3" onPaste={handlePasteOtp}>
-                        {otp.map((digit, index) => (
-                          <input
-                            key={index}
-                            ref={(el) => (inputRefs.current[index] = el)}
-                            type="text"
-                            inputMode="numeric"
-                            pattern="[0-9]*"
-                            autoComplete="one-time-code"
-                            maxLength="1"
-                            value={digit}
-                            onChange={(e) =>
-                              handleOtpChange(e.target.value, index)
-                            }
-                            onKeyDown={(e) => handleKeyDown(e, index)}
-                            className="w-10 h-10 text-center text-lg font-bold rounded-lg bg-[#f4f1e2] text-[#7b5430] focus:ring-2 focus:ring-[#B2C5B2]"
-                          />
-                        ))}
-                      </div>
+                 {otpSent && (
+  <div className="mt-6 flex flex-col items-center">
+    
+    <input
+      type="tel"
+      inputMode="numeric"
+      pattern="[0-9]*"
+      autoComplete="one-time-code"
+      maxLength={6}
+      value={otp}
+      onChange={(e) => {
+        const value = e.target.value.replace(/\D/g, "");
+        setOtp(value);
+      }}
+      placeholder="Enter 6-digit OTP"
+      className="w-full max-w-[250px] text-center tracking-[10px] text-xl font-bold py-3 rounded-xl bg-[#f4f1e2] text-[#7b5430] focus:ring-2 focus:ring-[#B2C5B2]"
+    />
 
-                      {timer > 0 ? (
-                        <p className="mt-3 text-white text-sm font-semibold">
-                          OTP valid for {timer}s
-                        </p>
-                      ) : (
-                        <button
-                          type="button"
-                          onClick={handleResendOtp}
-                          className="mt-3 text-white underline font-semibold"
-                        >
-                          Resend OTP
-                        </button>
-                      )}
-                    </div>
-                  )}
+    {timer > 0 ? (
+      <p className="mt-3 text-white text-sm font-semibold">
+        OTP valid for {timer}s
+      </p>
+    ) : (
+      <button
+        type="button"
+        onClick={handleResendOtp}
+        className="mt-3 text-white underline font-semibold"
+      >
+        Resend OTP
+      </button>
+    )}
+  </div>
+)}
+
 
                   {/* LOGIN BUTTON */}
                   <button

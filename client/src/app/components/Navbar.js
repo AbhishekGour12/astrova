@@ -201,10 +201,10 @@ ${
               </button>
             </div>
           ) : (
-            <Link href="/Login" className="max-[328px]:hidden">
+            <Link href="/Signup" className="max-[328px]:hidden">
               <button className="px-3 py-1.5 lg:px-3 lg:py-2 bg-[#F6F3E4] text-[#E9C164] rounded-lg shadow hover:bg-[#E8E3CF] transition flex items-center space-x-2 max-sm:space-x-0">
                 <FaUser />
-                <span className="hidden sm:inline">Login</span>
+                <span className="hidden sm:inline">Signup</span>
               </button>
             </Link>
           )}

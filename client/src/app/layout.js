@@ -8,7 +8,7 @@ import {Providers} from './providers'
 import {CartProvider} from './context/CartContext'
 import ClientLayout from './ClientLayout'
 import PathLayout from './PathLayout'
-
+import Script from "next/script";
 
 
 
@@ -54,7 +54,11 @@ export default function RootLayout({ children }) {
        
 
        
-        <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+       <Script
+  src="https://checkout.razorpay.com/v1/checkout.js"
+  strategy="beforeInteractive"
+/>
+
          
         
       </body>
