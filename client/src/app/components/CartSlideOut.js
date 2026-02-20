@@ -339,7 +339,16 @@ const exactTotal =
     }
   };
 
-
+useEffect(() => {
+    if (isCartOpen) {
+      document.body.style.overflow = "hidden";
+    } else {
+      document.body.style.overflow = "unset";
+    }
+    return () => {
+      document.body.style.overflow = "unset";
+    };
+  }, [isCartOpen])
   const indianStates = [
   "Andhra Pradesh",
   "Arunachal Pradesh",
