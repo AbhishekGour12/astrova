@@ -566,12 +566,9 @@ useEffect(() => {
 
                     <button 
                         onClick={() => {
-                            if (!user) {
-                                toast.error("Please login to continue");
-                                router.push("/Login");
-                            } else {
+                            
                                 setCheckoutStep("payment");
-                            }
+                            
                         }} 
                         className="w-full mt-6 bg-[#003D33] text-white py-3 rounded-xl"
                     >
