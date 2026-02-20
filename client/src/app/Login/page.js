@@ -112,6 +112,7 @@ const Login = () => {
         toast.success(response.message);
         localStorage.setItem("token", response.token);
         dispatch(loginSuccess(response.data));
+       
         router.push("/")
 
       }

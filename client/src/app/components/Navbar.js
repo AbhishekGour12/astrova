@@ -183,7 +183,7 @@ ${
       <FaUser className="text-sm text-[#E9C164]" />
       <span className="text-[#E9C164] font-medium">
         {/* If name is missing (new signup), show "User", else show name */}
-        {user.username || "User"}
+        {user.username || user.shippingAddress?.username || "User"}
       </span>
     </div>
 
@@ -311,7 +311,7 @@ ${
         <FaUser className="text-[#E9C164]" />
         <span className="text-[#E9C164]">
           {/* Default to "User" if profile isn't complete yet */}
-          {user.username || "My Profile"}
+          {user.username || user?.shippingAddress?.username || "My Profile"}
         </span>
       </div>
 

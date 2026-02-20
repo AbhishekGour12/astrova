@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { FaTimes, FaPlus, FaMinus, FaTrash, FaArrowLeft, FaWallet, FaMoneyBillWave } from "react-icons/fa";
 
 import { useCart } from "../context/CartContext";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import toast from "react-hot-toast";
 
 import { couponAPI } from "../lib/coupons";
@@ -13,6 +13,7 @@ import { productAPI } from "../lib/product";
 import { paymentAPI } from "../lib/payment";
 import { orderAPI } from "../lib/order";
 import { useRouter } from "next/navigation";
+import { loginSuccess } from "../store/features/authSlice";
 
 const CartSlideOut = () => {
   const {
@@ -88,7 +89,7 @@ const CartSlideOut = () => {
   const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [deliveryETA, setDeliveryETA] = useState(null);
-
+const dispatch = useDispatch();
   const [errors, setErrors] = useState({});
   const [isCOD, setIsCOD] = useState(false); 
   const [address, setAddress] = useState({
@@ -110,7 +111,7 @@ const CartSlideOut = () => {
     };
     load();
   }, []);
-
+  
   // ================================
   // RESET LOGIC
   // ================================
@@ -258,8 +259,9 @@ const exactTotal =
       
      toast.success("Address saved & Shipping updated!");
       localStorage.setItem("shippingAddress", JSON.stringify(address));
+     
       localStorage.setItem("token", charge.token)
-
+     
       setCheckoutStep("coupon");
     } catch (err) {
       toast.error(err.message || "Shipping error");
@@ -300,6 +302,11 @@ const exactTotal =
           if (verify.success) await placeOrder("online", response);
           else toast.error("Verification Failed");
         },
+         modal: {
+    ondismiss: function () {
+      setLoading(false);
+    }
+  },
         theme: { color: "#C06014" },
       };
       const rz = new window.Razorpay(options);
@@ -440,7 +447,7 @@ useEffect(() => {
 const handleOnlinePayment = async () => {
   setIsCOD(false);
   setPaymentMethod("online");
-  await handleRazorpay();
+  handleRazorpay();
 };
   // ================================
   // 5. UI RENDER
