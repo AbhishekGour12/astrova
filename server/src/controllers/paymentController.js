@@ -13,7 +13,7 @@ const razorpay = new Razorpay({
 export const createOrder = async (req, res) => {
   try {
     const { amount } = req.body;
-    console.log(amount)
+    
 
     const order = await razorpay.orders.create({
       amount: amount,
@@ -27,10 +27,11 @@ export const createOrder = async (req, res) => {
  await Payment.create({
       user: req.user.id,
       razorpayOrderId: order.id,
-      amount: amount,
+      amount: amount / 100,
       method: "Razorpay",
       status: "initiated",
     });
+  
 
 
     res.json(order);
@@ -65,7 +66,7 @@ export const verifyPayment = async (req, res) => {
 
       return res.status(400).json({ message: "Invalid signature" });
     }
-
+    
     await Payment.findOneAndUpdate(
       { razorpayOrderId: razorpay_order_id },
       {
