@@ -267,7 +267,7 @@ const exactTotal =
   };
 
   const handleRazorpay = async () => {
-    if (!user) return toast.error("Login required");
+    //if (!user) return toast.error("Login required");
     setLoading(true);
     try {
        
@@ -298,12 +298,7 @@ const exactTotal =
   };
 
   const placeOrder = async (payMethod, paymentDetails = null) => {
-    if (!user) {
-      toast.error("Please login");
-      router.push("/Login");
-      return;
-
-    } 
+    
     setLoading(true);
     try {
       await orderAPI.createOrder({

@@ -422,12 +422,12 @@ const handleAddToCart = async (e, productId) => {
 
         {/* 🟤 BEST SELLERS SLIDER */}
   {/* 🟤 BEST SELLERS SLIDER */}
-<section className="max-w-6xl mx-auto mb-16 px-4">
+<section className="max-w-6xl mx-auto mb-16 px-4  p-3">
   <h2 className="text-2xl font-semibold text-[#111111] mb-8 text-center">
     Best Sellers
   </h2>
 
-  <div className="relative">
+  <div className=" p-6 non  h-fit ">
     <Swiper
       spaceBetween={25}
       grabCursor={true}
@@ -449,7 +449,7 @@ const handleAddToCart = async (e, productId) => {
         1024: { slidesPerView: 4 },
         1280: { slidesPerView: 3 },
       }}
-      className="pb-12" // 👈 dots niche chale jayenge
+      className="border-amber-700  pb-10!  " // 👈 dots niche chale jayenge
     >
       {bestSellers.map((p, i) => (
         <SwiperSlide key={i}>
@@ -457,11 +457,11 @@ const handleAddToCart = async (e, productId) => {
             <motion.div
               whileHover={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 200 }}
-              className={`relative rounded-2xl h-[340px] flex flex-col overflow-hidden transition-all hover:cursor-pointer
+              className={`  rounded-2xl h-[340px] flex flex-col overflow-hidden transition-all hover:cursor-pointer
   ${
     p.stock === 0
       ? "bg-gray-100 shadow-lg shadow-gray-400/50"
-      : "bg-white shadow-md border border-[#e7e7e7]"
+      : "bg-white shadow-md  border-[#e7e7e7]"
   }
 `}
 onClick={() => {
@@ -506,12 +506,7 @@ onClick={() => {
                     {p.name}
                   </h4>
 
-                  <div className="flex items-center justify-center gap-1 mb-1 text-xs">
-                    {renderStars(p.rating || 4.5)}
-                    <span className="ml-2 text-[#9b9b9b]">
-                      ({p.reviewCount || 100}+)
-                    </span>
-                  </div>
+                 
 
                  <div className="font-semibold text-[#7d5732] mb-2 text-sm">
   {p.offerPercent > 0 ? (
@@ -543,7 +538,12 @@ onClick={() => {
   <FaShoppingCart size={14} />
   {p.stock === 0 ? "Out of Stock" : "Add"}
 </button>
-
+ <div className="flex items-center justify-center gap-1 mb-1 text-xs mt-3">
+                    {renderStars(p.rating || 4.5)}
+                    <span className="ml-2 text-[#9b9b9b]">
+                      ({p.reviewCount || 100}+)
+                    </span>
+                  </div>
 
               </div>
             </motion.div>
@@ -615,12 +615,7 @@ onClick={() => {
               {p.name}
             </h4>
 
-            <div className="flex items-center justify-center gap-1 my-1">
-              {renderStars(p.rating || 4.5)}
-              <span className="ml-2 text-[#9b9b9b] text-[10px] sm:text-xs">
-                ({p.reviewCount || 100}+)
-              </span>
-            </div>
+           
 
 <div className="font-semibold text-[#7d5732] text-sm sm:text-base">
   {p.offerPercent > 0 ? (
@@ -649,7 +644,12 @@ onClick={() => {
   <FaShoppingCart size={14} />
   {p.stock === 0 ? "Out of Stock" : "Add"}
 </button>
-
+ <div className="flex items-center justify-center gap-1 my-1 mt-3">
+              {renderStars(p.rating || 4.5)}
+              <span className="ml-2 text-[#9b9b9b] text-[10px] sm:text-xs">
+                ({p.reviewCount || 100}+)
+              </span>
+            </div>
           </div>
         </motion.div>
       </Link>

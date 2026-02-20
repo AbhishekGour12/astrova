@@ -10,13 +10,25 @@ import { Swiper, SwiperSlide } from "swiper/react";
 import "swiper/css";
 import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css/pagination";
+import { useCart } from "../../context/CartContext";
+import { FaShoppingCart } from "react-icons/fa";
 
 export default function BestProducts({categories, products, productType, setProductType, fetchProducts, filters, setFilters, handleCategoryClick}) {
   
   const router = useRouter()
+  const { addToCart } = useCart();
   
-  
+const handleAddToCart = async (e, productId) => {
+  e.preventDefault(); // stop Link
+  e.stopPropagation(); // stop card click
 
+  try {
+    await addToCart(productId, 1);
+    toast.success("Added to cart!");
+  } catch (err) {
+    toast.error("Failed to add");
+  }
+};
 
 
   return (
@@ -136,36 +148,36 @@ ${
                   {product.name}
                 </h3>
 
-                <div className="text-center">
+              <div className="  font-semibold text-[#7d5732] text-sm sm:text-base flex items-center gap-2 justify-center">
   {product.offerPercent > 0 ? (
     <>
-      <span className="text-gray-400 line-through text-[10px] sm:text-xs block">
+      <span className="text-gray-400 line-through text-xs sm:text-sm   ">
         ₹{product.price}
       </span>
-      <span className="text-[#7E5833] font-bold text-sm sm:text-base">
+      <span className="text-base sm:text-lg">
         ₹{product.discountedPrice}
       </span>
     </>
   ) : (
-    <span className="text-[#7E5833] font-semibold text-sm sm:text-base">
-      ₹{product.price}
-    </span>
+    <span>₹{product.price}</span>
   )}
 </div>
-
               </div>
-
-             <button
+  <button
+  onClick={(e) => handleAddToCart(e, product._id)}
   disabled={product.stock === 0}
-  className={`mt-3 sm:mt-4 md:mt-5 w-full py-1.5 sm:py-2 text-xs sm:text-sm rounded-full transition-all duration-300
-    ${product.stock === 0
-      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-      : "bg-[#7E5833] text-[#F6F3E4] hover:bg-[#5A3E25]"
+  className={`mt-2 py-1.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm transition flex items-center gap-2 justify-center mx-auto
+    ${
+      product.stock === 0
+        ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+        : "bg-[#7d5732] text-[#d6ccc0] hover:bg-[#b39976]"
     }
   `}
 >
-  {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
+  <FaShoppingCart size={14} />
+  {product.stock === 0 ? "Out of Stock" : "Add"}
 </button>
+
 
             </div>
               </motion.div>
@@ -230,13 +242,13 @@ ${
                   {product.name}
                 </h3>
 
-                <div className="text-center">
+                <div className="text-center  flex items-center justify-center">
   {product.offerPercent > 0 ? (
     <>
       <span className="text-gray-400 line-through text-[10px] sm:text-xs block">
         ₹{product.price}
       </span>
-      <span className="text-[#7E5833] font-bold text-sm sm:text-base">
+      <span className="text-[#7E5833] font-bold text-sm sm:text-base ml-2">
         ₹{product.discountedPrice}
       </span>
     </>
@@ -250,16 +262,20 @@ ${
               </div>
 
             <button
-  disabled={product.stock === 0}
-  className={`mt-3 sm:mt-4 md:mt-5 w-full py-1.5 sm:py-2 text-xs sm:text-sm rounded-full transition-all duration-300
-    ${product.stock === 0
-      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-      : "bg-[#7E5833] text-[#F6F3E4] hover:bg-[#5A3E25]"
-    }
-  `}
->
-  {product.stock === 0 ? "Out of Stock" : "Add to Cart"}
-</button>
+            onClick={(e) => handleAddToCart(e, product._id)}
+            disabled={product.stock === 0}
+            className={`mt-2 py-1.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm transition flex items-center gap-2 justify-center mx-auto
+              ${
+                product.stock === 0
+                  ? "bg-gray-300 text-gray-600 cursor-not-allowed"
+                  : "bg-[#7d5732] text-[#d6ccc0] hover:bg-[#b39976]"
+              }
+            `}
+          >
+            <FaShoppingCart size={14} />
+            {product.stock === 0 ? "Out of Stock" : "Add"}
+          </button>
+          
 
             </div>
           </motion.div>
