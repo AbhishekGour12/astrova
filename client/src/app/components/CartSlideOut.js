@@ -269,14 +269,26 @@ const exactTotal =
 
   const handleRazorpay = async () => {
     //if (!user) return toast.error("Login required");
-    setLoading(true);
+    if (!window.Razorpay) {
+    toast.error("Payment gateway not loaded.");
+    return;
+  }
+    const amountToPay = Math.round(Number(onlineTotal) * 100);
+
+
+   
+
+  if (!amountToPay || amountToPay < 100) {
+    toast.error("Invalid payment amount");
+    return;
+  }
+   setLoading(true);
     try {
        
-
-
-    const rpOrder = await paymentAPI.createOrder({
-      amount: Math.round(onlineTotal * 100), // send paise to backend
+     const rpOrder = await paymentAPI.createOrder({
+      amount: amountToPay, // send paise to backend
     });
+
      console.log("Razorpay Order Created:", onlineTotal);
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
@@ -418,7 +430,11 @@ useEffect(() => {
   }
 }, [isCartOpen]);
 
-
+const handleOnlinePayment = async () => {
+  setIsCOD(false);
+  setPaymentMethod("online");
+  await handleRazorpay();
+};
   // ================================
   // 5. UI RENDER
   // ================================
@@ -590,11 +606,7 @@ useEffect(() => {
         
         {/* ONLINE PAYMENT - 10% KATKE DIKHEGA */}
         <button 
-         onClick={() => {
-  setIsCOD(false);
-  setPaymentMethod("online");
-  handleRazorpay();
-}}
+         onClick={handleOnlinePayment}
 
 
 
