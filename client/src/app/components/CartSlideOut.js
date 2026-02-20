@@ -258,6 +258,7 @@ const exactTotal =
       
      toast.success("Address saved & Shipping updated!");
       localStorage.setItem("shippingAddress", JSON.stringify(address));
+      localStorage.setItem("token", charge.token)
 
       setCheckoutStep("coupon");
     } catch (err) {

@@ -1,6 +1,7 @@
 import axios from "axios";
 import { getValidToken } from "../utils/shipRocketToken.js";
 import User from "../models/User.js";
+import jwt from "jsonwebtoken";
 // Store token in memory + expiry
 
 // Get Token (Cached for 24 hours)
@@ -39,9 +40,15 @@ export const shippingCharge = async (req, res) => {
       });
       await user.save();
     }
-
+     // 3. Generate JWT
+            const token = jwt.sign(
+                { id: user._id, role: "user" }, 
+                process.env.JWT_SECRET, 
+               
+            );
+   
     // 2. Get Shiprocket Charge
-    const token = await getValidToken();
+    //const token = await getValidToken()
     {/** 
     const response = await axios.get(
       "https://apiv2.shiprocket.in/v1/external/courier/serviceability/",
@@ -65,7 +72,8 @@ export const shippingCharge = async (req, res) => {
 */}
     res.json({
       success: true,
-      user: user, // Frontend can update local state if needed
+      user: user,
+      token: token
     });
 
   } catch (err) {
