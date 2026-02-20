@@ -309,7 +309,14 @@ const exactTotal =
     }
     setLoading(false);
   };
-
+useEffect(() => {
+  if (!user) {
+    setCheckoutStep("cart");
+    setShowCODSummary(false);
+    setIsCOD(false);
+    setPaymentMethod(null);
+  }
+}, [user]);
   const placeOrder = async (payMethod, paymentDetails = null) => {
     
     setLoading(true);
