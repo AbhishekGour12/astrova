@@ -84,7 +84,7 @@ const CartSlideOut = () => {
   const [loading, setLoading] = useState(false);
   const router = useRouter()
   // DYNAMIC VALUES
-  const [shippingCharge, setShippingCharge] = useState(0);
+  
   const [couponCode, setCouponCode] = useState("");
   const [couponDiscount, setCouponDiscount] = useState(0);
   const [deliveryETA, setDeliveryETA] = useState(null);
@@ -156,19 +156,60 @@ const CartSlideOut = () => {
     mappedCart.reduce((sum, item) => sum + Number(item?.product?.weight || 0.2) * item.quantity, 0), 
   [mappedCart]);
 
+const onlineDiscountPercent = 10; // 10% Extra Discount
+const shippingCharge = 0; // FREE SHIPPING
+  // Update calculation logic for Online Discount
+  
   // 1. Calculate Exact Raw Total
-  const exactTotal =
-    subtotal +
-    shippingCharge +
-    platformFee +
-    (isCOD ? codFee : 0) - 
-    couponDiscount;
+  
+// --- Simplified Calculations ---
 
-  // 2. Determine Final Amount (Round up for COD, 2 decimal for Online)
-  const finalAmount = isCOD ? Math.ceil(exactTotal) : Number(exactTotal.toFixed(2));
+// 1. Online Discount (Hamesha 10% on Subtotal for display)
 
-  // 3. Calculate Round Off Difference (e.g. 0.44 -> displayed as Round Off)
-  const roundOffAmount = isCOD ? (finalAmount - exactTotal) : 0;
+// ================================
+// CLEAN FINAL CALCULATION
+// ================================
+
+
+
+
+// ❗ Discount sirf preview ke liye
+const onlineDiscountAmountPreview =
+  subtotal * (onlineDiscountPercent / 100);
+
+const onlinePreviewTotal =
+  subtotal - couponDiscount - onlineDiscountAmountPreview;
+
+// ❗ Real discount tab lagega jab user online select kare
+const onlineDiscountAmount =
+  paymentMethod === "online"
+    ? subtotal * (onlineDiscountPercent / 100)
+    : 0;
+
+const onlineTotal =
+  subtotal - couponDiscount - onlineDiscountAmount;
+
+const codTotal =
+  subtotal - couponDiscount + codFee;
+
+const finalAmount =
+  paymentMethod === "online"
+    ? Number(onlineTotal.toFixed(2))
+    : isCOD
+      ? Math.ceil(codTotal)
+      : Number((subtotal - couponDiscount).toFixed(2));
+
+const roundOffAmount =
+  isCOD ? finalAmount - codTotal : 0;
+
+// 4️⃣ Final Amount (used for backend)
+const exactTotal =
+  subtotal
+  - couponDiscount
+  - onlineDiscountAmount
+  + (isCOD ? codFee : 0);
+
+
 
   // ================================
   // 4. ACTIONS
@@ -206,17 +247,16 @@ const CartSlideOut = () => {
 
     try {
       const charge = await productAPI.getShippingCharges({
-        pickup_postcode: 452010,
+        address: address, // Send full address object
         delivery_postcode: address.pincode,
-        weight: totalWeight,
-        cod: 0, 
+        weight: totalWeight
       });
-      setShippingCharge(charge.shippingCharge);
+     // setShippingCharge(charge.shippingCharge);
       
-      if (charge.estimated_delivery_days) setDeliveryETA(`${charge.estimated_delivery_days} days`);
-      else if (charge.etd) setDeliveryETA(new Date(charge.etd).toLocaleDateString("en-IN", { day: "numeric", month: "short" }));
+     // if (charge.estimated_delivery_days) setDeliveryETA(`${charge.estimated_delivery_days} days`);
+     // else if (charge.etd) setDeliveryETA(new Date(charge.etd).toLocaleDateString("en-IN", { day: "numeric", month: "short" }));
       
-      toast.success("Shipping updated!");
+     toast.success("Address saved & Shipping updated!");
       localStorage.setItem("shippingAddress", JSON.stringify(address));
 
       setCheckoutStep("coupon");
@@ -230,10 +270,16 @@ const CartSlideOut = () => {
     if (!user) return toast.error("Login required");
     setLoading(true);
     try {
-      const rpOrder = await paymentAPI.createOrder({ amount: finalAmount });
+       
+
+
+    const rpOrder = await paymentAPI.createOrder({
+      amount: Math.round(onlineTotal * 100), // send paise to backend
+    });
+     console.log("Razorpay Order Created:", onlineTotal);
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
-        amount: rpOrder.amount * 100,
+        amount: rpOrder.amount,
         currency: "INR",
         order_id: rpOrder.id,
         handler: async (response) => {
@@ -368,7 +414,6 @@ useEffect(() => {
 }, [isCartOpen]);
 
 
-
   // ================================
   // 5. UI RENDER
   // ================================
@@ -475,7 +520,7 @@ useEffect(() => {
 
                     </div>
                     <button onClick={calculateShipping} disabled={loading} className="w-full bg-[#003D33] text-white py-3 rounded-xl mt-6">
-                        {loading ? "Calculating..." : "Calculate Shipping"}
+                        {loading ? "processing..." : "proceed to coupons"}
                     </button>
                 </>
               )}
@@ -535,49 +580,76 @@ useEffect(() => {
                 </>
               )}
 
-              {checkoutStep === "payment" && (
-                <>
-                    {!user && <p className="text-red-500 mb-2 font-semibold">Please Login to Continue</p>}
-                    
-                    {!showCODSummary && (
-                        <div className="space-y-4 mt-2">
-                            <h3 className="font-bold text-lg text-gray-800">Select Payment Method</h3>
-                            
-                            {/* Pay Online Button */}
-                            <button 
-                                onClick={() => {
-                                    setIsCOD(false);
-                                    setPaymentMethod("online");
-                                    handleRazorpay();
-                                }} 
-                                className="w-full bg-[#003D33] text-white p-3 rounded-xl flex items-center justify-center gap-3 hover:bg-[#002a23] transition-colors"
-                            >
-                                <FaWallet className="text-xl"/>
-                                <div className="text-left">
-                                    <span className="block font-bold">Pay Online</span>
-                                    <span className="text-xs opacity-80">UPI, Cards, NetBanking</span>
-                                </div>
-                                <span className="ml-auto font-bold">₹{finalAmount}</span>
-                            </button>
+            {checkoutStep === "payment" && (
+  <div className="space-y-4 px-2">
+    {!showCODSummary && (
+      <div className="flex flex-col gap-3">
+        <h3 className="font-bold text-base text-gray-800">Select Payment Method</h3>
+        
+        {/* ONLINE PAYMENT - 10% KATKE DIKHEGA */}
+        <button 
+         onClick={() => {
+  setIsCOD(false);
+  setPaymentMethod("online");
+  handleRazorpay();
+}}
 
-                            {/* COD Button */}
-                            <button 
-                                onClick={() => {
-                                    setIsCOD(true); 
-                                    setPaymentMethod("cod");
-                                    setShowCODSummary(true);
-                                }} 
-                                className="w-full bg-white border-2 border-[#C06014] text-[#C06014] py-4 rounded-xl flex items-center justify-center gap-3 hover:bg-orange-50 transition-colors"
-                            >
-                                <FaMoneyBillWave className="text-xl"/>
-                                <div className="text-left">
-                                    <span className="block font-bold">Cash on Delivery</span>
-                                    <span className="text-xs opacity-80">Pay cash at your doorstep</span>
-                                </div>
-                            </button>
-                        </div>
-                    )}
 
+
+          className="w-full bg-[#003D33] text-white p-4 rounded-2xl active:scale-[0.98] transition-all shadow-md"
+        >
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-2 text-left">
+              <FaWallet className="text-sm text-yellow-400"/>
+              <div>
+                <span className="block font-semibold text-sm">Pay Online</span>
+                <span className="text-[10px] text-yellow-300 font-bold uppercase">★ 10% Discount Applied</span>
+              </div>
+            </div>
+            <div className="text-right">
+              {/* Yahan Subtotal + Fees - 10% Discount dikh raha hai */}
+              <span className="block font-bold text-lg leading-none">₹{onlinePreviewTotal.toFixed(2)}
+</span>
+              <span className="text-[10px] line-through opacity-50">
+              ₹{(subtotal - couponDiscount).toFixed(2)}
+
+              </span>
+            </div>
+          </div>
+        </button>
+
+        {/* COD - EXTRA CHARGE KE SAATH */}
+        <button 
+          onClick={() => {
+            setIsCOD(true); 
+            setPaymentMethod("cod");
+            setShowCODSummary(true);
+          }} 
+          className="w-full bg-white border-2 border-[#C06014] text-[#C06014] p-4 rounded-2xl flex items-center justify-between active:scale-[0.98] transition-all shadow-sm"
+        >
+          <div className="flex items-center gap-2 text-left">
+            <FaMoneyBillWave className="text-sm opacity-80"/>
+            <span className="font-medium text-sm text-gray-700">COD</span>
+          </div>
+          
+          <div className="text-right flex flex-col items-end">
+             <span className="text-[15px] font-bold text-red-600 bg-red-50 px-2 py-0.5 rounded-full mb-1">
+               + ₹{codFee} FEE
+             </span>
+             {/* Yahan bina discount aur +52 charge ke saath total hai */}
+             <span className="font-bold text-lg text-gray-900 leading-none">
+                ₹{Math.ceil(codTotal)}
+
+             </span>
+          </div>
+        </button>
+      
+        <p className="text-[10px] text-center text-gray-400 mt-2 px-6">
+          Pay online to avoid extra COD charges and get your cosmic tools at the best price.
+        </p>
+        </div>
+      
+    )}
                     {/* OPTION 2: COD CONFIRMATION SUMMARY */}
                     {showCODSummary && (
                         <div className="bg-orange-50 p-5 rounded-xl border border-orange-200 animate-in fade-in slide-in-from-bottom-4">
@@ -588,14 +660,12 @@ useEffect(() => {
                                     <span>Subtotal</span>
                                     <span>₹{subtotal.toFixed(2)}</span>
                                 </div>
-                                <div className="flex justify-between">
-                                    <span>Shipping</span>
-                                    <span>₹{shippingCharge}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span>Platform Fee</span>
-                                    <span>₹{platformFee}</span>
-                                </div>
+                                <div className="flex justify-between text-green-600">
+  <span>Shipping</span>
+  <span>FREE</span>
+</div>
+
+                               
                                 <div className="flex justify-between text-orange-700 font-medium">
                                     <span>COD Handling Charges</span>
                                     <span>+ ₹{codFee}</span>
@@ -614,7 +684,7 @@ useEffect(() => {
                                     <span>₹{finalAmount}</span>
                                 </div>
                             </div>
-
+                            
                             <button 
                                 onClick={() => placeOrder("cod")} 
                                 disabled={loading}
@@ -634,41 +704,46 @@ useEffect(() => {
                             </button>
                         </div>
                     )}
-                </>
-              )}
+                
+              </div>
+      )}
             </div>
 
             {/* Price Summary Bar */}
-            <div className="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-[99999]">
-              <div onClick={() => setShowPriceDetails(!showPriceDetails)} className="flex justify-between cursor-pointer">
-                <span className="font-bold text-[#003D33]">Total: ₹{finalAmount}</span>
-                <span className="text-[#C06014] text-sm">{showPriceDetails ? "Hide Details ▲" : "View Details ▼"}</span>
-              </div>
-              
-              <AnimatePresence>
-                {showPriceDetails && (
-                    <motion.div initial={{height:0}} animate={{height:'auto'}} exit={{height:0}} className="overflow-hidden bg-gray-50 mt-2 rounded text-sm p-3 space-y-2">
-                        <div className="flex justify-between"><span>Subtotal (GST+Offer Incl.)</span><span>₹{subtotal.toFixed(2)}</span></div>
-                        
-                        <div className="flex justify-between">
-                            <span>Shipping</span>
-                            <span>{shippingCharge > 0 ? `₹${shippingCharge}` : <span className="text-xs text-orange-500">Calculated at Address</span>}</span>
-                        </div>
+            
+<div className="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-[99999]">
+  <div onClick={() => setShowPriceDetails(!showPriceDetails)} className="flex justify-between cursor-pointer">
+    <span className="font-bold text-[#003D33]">Total: ₹{finalAmount}</span>
+    <span className="text-[#C06014] text-sm">{showPriceDetails ? "Hide Details ▲" : "View Details ▼"}</span>
+  </div>
+  
+  <AnimatePresence>
+    {showPriceDetails && (
+      <motion.div initial={{height:0}} animate={{height:'auto'}} exit={{height:0}} className="overflow-hidden bg-gray-50 mt-2 rounded text-sm p-3 space-y-2">
+        <div className="flex justify-between"><span>Subtotal</span><span>₹{subtotal.toFixed(2)}</span></div>
+        <div className="flex justify-between text-green-600">
+  <span>Shipping</span>
+  <span>FREE</span>
+</div>
 
-                        <div className="flex justify-between"><span>Platform Fee</span><span>₹{platformFee}</span></div>
-                        
-                        {isCOD && <div className="flex justify-between text-orange-700"><span>COD Handling</span><span>+₹{codFee}</span></div>}
-                        
-                        {couponDiscount > 0 && <div className="flex justify-between text-green-700"><span>Coupon Discount</span><span>-₹{couponDiscount}</span></div>}
-                        
-                       
+        {isCOD && <div className="flex justify-between text-orange-700"><span>COD Handling</span><span>+₹{codFee}</span></div>}
+        
+        {couponDiscount > 0 && <div className="flex justify-between text-green-700"><span>Coupon Discount</span><span>-₹{couponDiscount}</span></div>}
+        
+       {paymentMethod === "online" && (
+  <div className="flex justify-between text-blue-700">
+    <span>Online Discount (10%)</span>
+    <span>-₹{onlineDiscountAmount.toFixed(2)}</span>
+  </div>
+)}
 
-                        <hr/>
-                        <div className="flex justify-between font-bold text-lg text-[#003D33]"><span>Grand Total</span><span>₹{finalAmount}</span></div>
-                    </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
+
+        <hr/>
+        <div className="flex justify-between font-bold text-lg text-[#003D33]"><span>Grand Total</span><span>₹{finalAmount}</span></div>
+      </motion.div>
+    )}
+  </AnimatePresence>
+</div>
 
           </motion.div>
         </>

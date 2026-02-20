@@ -34,69 +34,67 @@ const otpStore = new Map();
 
 // Assuming required imports (twilio, jwt, isE164) are present at the top of the file
 
+// --- Updated Login (Handles both Login & Signup) ---
 const Login = async (req, res) => {
     const { phone, otp } = req.body;
-    
-    // 1. Input Validation and Formatting
-   
 
-    if (!phone || !otp ) {
-        return res.status(400).json({ success: false, message: 'Missing phone number or code, or invalid phone format.' });
+    if (!phone || !otp) {
+        return res.status(400).json({ success: false, message: 'Phone and OTP are required.' });
     }
-    
-    // 2. Twilio Configuration Check (CRITICAL)
-   
 
     try {
+        // 1. Verify OTP from your Map store
         const record = otpStore.get(phone);
 
-  if (!record) {
-    return res.status(400).json({ success: false, message: "OTP expired or not found" });
-  }
-
-  if (Date.now() > record.expiresAt) {
-    otpStore.delete(formattedPhone);
-    return res.status(400).json({ success: false, message: "OTP expired" });
-  }
-
-  if (record.otp.toString() !== otp.toString()) {
-    return res.status(400).json({ success: false, message: "Invalid OTP" });
-  }
-
-     otpStore.delete(phone);
- 
-
-        // Initialize Twilio client
-        
-        
-        // Find User Record (Essential for JWT payload and database lookup)
-        // NOTE: You must include logic here to find the user by phone number
-        const user = await User.findOne({ phone: phone }); 
-        if (!user) {
-            return res.status(404).json({ success: false, message: "User not found." });
+        if (!record) {
+            return res.status(400).json({ success: false, message: "OTP expired or not found" });
         }
 
-      
-        // 3. Perform Verification Check - Isolated Try/Catch Block for Twilio API call
-        
-            // This captures the 404 error if Twilio fails the API call itself.
-           
+        if (Date.now() > record.expiresAt) {
+            otpStore.delete(phone);
+            return res.status(400).json({ success: false, message: "OTP expired" });
+        }
 
-        // 4. Handle Verification Result
-      
-            // SUCCESS: Generate JWT and return response
-            // Assuming 'User' model is imported and used for authentication
-            const token = jwt.sign({ id: user._id, role: "user" }, process.env.JWT_SECRET, { expiresIn: '10d' });
-           // console.log(token)
-            // You should return the user role here for frontend routing
-            res.status(200).json({ message: "Login successful", token, data: user }); 
+        if (record.otp.toString() !== otp.toString()) {
+            return res.status(400).json({ success: false, message: "Invalid OTP" });
+        }
+
+        // OTP is valid, remove it
+        otpStore.delete(phone);
+
+        // 2. Find or Create User
+        // If user doesn't exist, this is their "Signup"
+        let user = await User.findOne({ phone: phone });
         
+        if (!user) {
+            user = new User({ 
+                phone: phone,
+                isProfileComplete: false // They will fill name/details later
+            });
+            await user.save();
+        }
+
+        // 3. Generate JWT
+        const token = jwt.sign(
+            { id: user._id, role: "user" }, 
+            process.env.JWT_SECRET, 
+            { expiresIn: '10d' }
+        );
+
+        res.status(200).json({ 
+            success: true,
+            message: "Authentication successful", 
+            token, 
+            data: user 
+        }); 
+
     } catch (error) {
-        // 5. Handle Final Internal Errors (DB access, JWT failure, etc.)
-        console.error("Final Error logging in user:", error.message);
+        console.error("Auth Error:", error.message);
         res.status(500).json({ message: "Internal server error" });
     }
 };
+
+
 
 
 const userProfile = async (req, res) =>{

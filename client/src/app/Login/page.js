@@ -40,19 +40,15 @@ const Login = () => {
 
   // ---------------- SEND OTP ----------------
   const handleSendOtp = async () => {
-    if (!formData.phone) {
-      toast.error("Enter phone number");
+    if (!formData.phone || formData.phone.length !== 10) {
+      toast.error("Enter a valid 10-digit phone number");
       return;
     }
 
     const fullPhone = `${countryCode}${formData.phone}`;
 
     try {
-      const res = await authAPI.userFind(fullPhone);
-      if (res.success === false) {
-        toast.error(res.message);
-        return;
-      }
+     
 
       const response = await authAPI.requestotp(fullPhone);
 
@@ -277,17 +273,7 @@ const Login = () => {
                 </div>
               </div>
 
-              <div className="text-center font-bold mt-9 text-[#614b2f] text-sm">
-                <p>
-                  Don’t have an account?
-                  <Link
-                    href="/Signup"
-                    className="font-bold text-[#7b5430] ml-1 underline"
-                  >
-                    Sign up
-                  </Link>
-                </p>
-              </div>
+              
             </form>
           </div>
         </div>

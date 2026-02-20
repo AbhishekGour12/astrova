@@ -15,6 +15,10 @@ import Link from "next/link";
 import { useSelector } from "react-redux";
 import { useRef } from "react";
 import axios from "axios";
+import { useCart } from "../context/CartContext";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
+
 
 
 
@@ -31,7 +35,8 @@ export default function ProductsPage() {
 const page = "products"
 const [carousel, setCarousel] = useState()
 const [loading1, setLoading1] = useState(true)
-
+const { addToCart } = useCart();
+const router = useRouter();
 
   const fetchCarousel = async () => {
     try {
@@ -223,6 +228,17 @@ useEffect(() =>{
 
 },[filters])
 
+const handleAddToCart = async (e, productId) => {
+  e.preventDefault(); // stop Link
+  e.stopPropagation(); // stop card click
+
+  try {
+    await addToCart(productId, 1);
+    toast.success("Added to cart!");
+  } catch (err) {
+    toast.error("Failed to add");
+  }
+};
 
 
   return (
@@ -437,17 +453,23 @@ useEffect(() =>{
     >
       {bestSellers.map((p, i) => (
         <SwiperSlide key={i}>
-          <Link href={`/Product/${p._id}`}>
+          
             <motion.div
               whileHover={{ scale: 1.03 }}
               transition={{ type: "spring", stiffness: 200 }}
-              className={`relative rounded-2xl h-[340px] flex flex-col overflow-hidden transition-all
+              className={`relative rounded-2xl h-[340px] flex flex-col overflow-hidden transition-all hover:cursor-pointer
   ${
     p.stock === 0
       ? "bg-gray-100 shadow-lg shadow-gray-400/50"
       : "bg-white shadow-md border border-[#e7e7e7]"
   }
 `}
+onClick={() => {
+    if (p.stock !== 0) {
+      router.push(`/Product/${p._id}`);
+    }
+  }}
+
 
             >
               {p.offerPercent > 0 && (
@@ -507,10 +529,10 @@ useEffect(() =>{
 </div>
 
                 </div>
-
-                <button
+<button
+  onClick={(e) => handleAddToCart(e, p._id)}
   disabled={p.stock === 0}
-  className={`py-1.5 px-4 rounded-xl text-sm transition w-full
+  className={`mt-2 py-1.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm transition flex items-center gap-2 justify-center mx-auto
     ${
       p.stock === 0
         ? "bg-gray-300 text-gray-600 cursor-not-allowed"
@@ -518,12 +540,14 @@ useEffect(() =>{
     }
   `}
 >
-  {p.stock === 0 ? "Out of Stock" : "Add to Cart"}
+  <FaShoppingCart size={14} />
+  {p.stock === 0 ? "Out of Stock" : "Add"}
 </button>
+
 
               </div>
             </motion.div>
-          </Link>
+          
         </SwiperSlide>
       ))}
     </Swiper>
@@ -611,7 +635,8 @@ useEffect(() =>{
   )}
 </div>
 
-           <button
+         <button
+  onClick={(e) => handleAddToCart(e, p._id)}
   disabled={p.stock === 0}
   className={`mt-2 py-1.5 px-3 sm:px-4 rounded-xl text-xs sm:text-sm transition flex items-center gap-2 justify-center mx-auto
     ${

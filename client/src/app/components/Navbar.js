@@ -175,39 +175,35 @@ ${
           </button>
 
           {/* USER LOGIN/PROFILE */}
-          {user ? (
-            <div className="flex items-center space-x-3 max-[328px]:hidden">
-              {/* USER ICON + FIRST LETTER FOR SM & MD */}
-              <div className="flex items-center justify-center bg-[#F6F3E4] w-9 h-9 rounded-full shadow lg:hidden">
-                <span className="text-[#E9C164] font-bold">
-                  {user.username?.charAt(0).toUpperCase()}
-                </span>
-              </div>
+         {/* USER LOGIN/PROFILE */}
+{user ? (
+  <div className="flex items-center space-x-3 max-[328px]:hidden">
+    {/* Desktop Profile Badge */}
+    <div className="hidden lg:flex items-center space-x-2 bg-[#F6F3E4] px-3 py-1.5 rounded-lg shadow">
+      <FaUser className="text-sm text-[#E9C164]" />
+      <span className="text-[#E9C164] font-medium">
+        {/* If name is missing (new signup), show "User", else show name */}
+        {user.username || "User"}
+      </span>
+    </div>
 
-              {/* USERNAME BADGE FOR LG + SCREENS */}
-              <div className="hidden lg:flex items-center space-x-2 bg-[#F6F3E4] px-3 py-1.5 rounded-lg shadow">
-                <FaUser className="text-sm text-[#E9C164]" />
-                <span className="text-[#E9C164] font-medium">
-                  {user.username}
-                </span>
-              </div>
-
-              {/* LOGOUT BUTTON ONLY DESKTOP */}
-              <button
-                onClick={logout}
-                className="hidden lg:block px-3 py-1.5 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition-all"
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <Link href="/Signup" className="max-[328px]:hidden">
-              <button className="px-3 py-1.5 lg:px-3 lg:py-2 bg-[#F6F3E4] text-[#E9C164] rounded-lg shadow hover:bg-[#E8E3CF] transition flex items-center space-x-2 max-sm:space-x-0">
-                <FaUser />
-                <span className="hidden sm:inline">Signup</span>
-              </button>
-            </Link>
-          )}
+    {/* Logout Button */}
+    <button
+      onClick={logout}
+      className="hidden lg:block px-3 py-1.5 bg-red-500 text-white rounded-lg shadow hover:bg-red-600 transition-all"
+    >
+      Logout
+    </button>
+  </div>
+) : (
+  /* Pointing to /Login instead of /Signup */
+  <Link href="/Login" className="max-[328px]:hidden">
+    <button className="px-3 py-1.5 lg:px-3 lg:py-2 bg-[#F6F3E4] text-[#E9C164] rounded-lg shadow hover:bg-[#E8E3CF] transition flex items-center space-x-2">
+      <FaUser />
+      <span className="hidden sm:inline">Login</span>
+    </button>
+  </Link>
+)}
         </div>
         {/* MOBILE MENU BUTTON */}
         <div className="hidden" id="menu-button">
@@ -307,31 +303,34 @@ ${
                 </ul>
 
                 {/* USER SECTION */}
-                <div className="mt-auto p-4 shrink-0">
-                  {user ? (
-                    <>
-                      <div className="mb-3 flex items-center space-x-2 px-3 py-2 bg-[#F6F3E4] rounded-lg shadow">
-                        <FaUser className="text-[#E9C164]" />
-                        <span className="text-[#E9C164]">
-                          {user.username}
-                        </span>
-                      </div>
+              
+<div className="mt-auto p-4 shrink-0">
+  {user ? (
+    <>
+      <div className="mb-3 flex items-center space-x-2 px-3 py-2 bg-[#F6F3E4] rounded-lg shadow">
+        <FaUser className="text-[#E9C164]" />
+        <span className="text-[#E9C164]">
+          {/* Default to "User" if profile isn't complete yet */}
+          {user.username || "My Profile"}
+        </span>
+      </div>
 
-                      <button
-                        onClick={logout}
-                        className="w-full px-4 py-3 bg-red-500 text-white rounded-lg shadow hover:bg-red-600"
-                      >
-                        Logout
-                      </button>
-                    </>
-                  ) : (
-                    <Link href="/Login">
-                      <button className="w-full px-4 py-3 bg-[#E9C164] text-white rounded-lg shadow hover:bg-[#5A3E25]">
-                        Login / Sign Up
-                      </button>
-                    </Link>
-                  )}
-                </div>
+      <button
+        onClick={logout}
+        className="w-full px-4 py-3 bg-red-500 text-white rounded-lg shadow"
+      >
+        Logout
+      </button>
+    </>
+  ) : (
+    /* Changed Link from /Signup to /Login */
+    <Link href="/Login">
+      <button className="w-full px-4 py-3 bg-[#E9C164] text-white rounded-lg shadow hover:bg-[#5A3E25]">
+        Login / Sign Up
+      </button>
+    </Link>
+  )}
+</div>
               </motion.div>
             </>
           )}

@@ -48,12 +48,18 @@ const AstroProfileSchema = new mongoose.Schema({
 
 /* ================= USER SCHEMA ================= */
 
+const shippingAddressSchema = new mongoose.Schema({
+  username: {type: String},
+  email: {type: String},
+  addressline1: {type:String},
+  addressline2: {type:String},
+  city: {type:String},
+  state: {type:String},
+  pincode: {type:String}
+});
+
 const UserSchema = new mongoose.Schema({
-  username: {
-    type: String,
-    required: true,
-    trim: true,
-  },
+ 
   phone: {
     type: String,
     unique: true,
@@ -70,7 +76,9 @@ const UserSchema = new mongoose.Schema({
     
   },
 
+
   astroProfile: AstroProfileSchema,
+  shippingAddress: shippingAddressSchema
 
 
 }, {

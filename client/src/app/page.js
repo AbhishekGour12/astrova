@@ -791,7 +791,7 @@ export default function AstroHeroPage() {
   });
     
   useEffect(() =>{
-    console.log(process.env.NEXT_PUBLIC_API)
+    
     const fetchProducts = async () =>{
       try{
         const {products, totalPages} = await productAPI.getProducts(filters);
