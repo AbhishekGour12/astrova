@@ -4,17 +4,18 @@ import { motion } from "framer-motion";
 
 export default function PremiumProductSection() {
   return (
-    <div className="relative z-[5] mb-[20px] mt-[50px] overflow-visible h-fit max-sm:mb-[0px] max-sm:mt-[150px]">
+    <div className=" z-[5] mb-[20px] mt-[30px] border overflow-visible h-fit max-sm:mb-[0px] max-sm:mt-[60px] ">
       <section className="
   relative 
   bg-transparent text-white
   pt-28 pb-32 
   overflow-visible z-[10]
   
-  min-h-[600px]  /* Default height thodi kam */
+  h-fit  /* Default height thodi kam */
   sm:min-h-[650px]
   md:min-h-[750px]
   lg:min-h-[800px]
+  max-sm:pt-10
 ">
 
         <div className="absolute inset-0 -z-10 max-sm:h-[400px] ">
@@ -35,7 +36,7 @@ export default function PremiumProductSection() {
           </p>
 
           {/* Heading */}
-          <h2 className="text-xl sm:text-2xl md:text-4xl lg:text-[40px] leading-snug font-semibold text-white max-w-[650px] mb-20 md:mb-32">
+          <h2 className="text-xl sm:text-2xl md:text-4xl lg:text-[40px] leading-snug font-semibold text-white max-w-[650px] mb-20 mt-6 ">
             Expertly paired essentials: the quickest way to elevate your luck now.
           </h2>
         </div>
@@ -45,7 +46,8 @@ export default function PremiumProductSection() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="absolute  h-fit bottom-[-200px] left-[-20px] md:left-[40px] w-[55%] sm:w-[50%] md:w-[45%] lg:w-[40%] overflow-visible z-[10] max-sm:bottom-[30%] "
+          className=" absolute   h-fit bottom-[-200px] left-[-20px] md:left-[-100px] w-[55%] sm:w-[50%] md:w-[45%] lg:w-[40%] overflow-visible z-[10] max-sm:bottom-[-36%]   max-md:bottom-[-20%]  "
+         
         >
           {/* Left Combo Image */}
           <Image
@@ -67,7 +69,7 @@ export default function PremiumProductSection() {
           initial={{ opacity: 0, y: 50 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 1 }}
-          className="absolute bottom-[-50px] right-[-40px] md:right-[40px] w-[55%] sm:w-[50%] md:w-[45%]  h-fit lg:w-[40%] overflow-vissib z-[10] max-sm:bottom-[30%] border-black"
+          className="absolute bottom-[-50px] right-[-40px] md:right-[-100px] w-[55%] sm:w-[50%] md:w-[45%]  h-fit lg:w-[40%] overflow-vissib z-[10] max-sm:bottom-[-20%] "
         >
           {/* Right Combo Image */}
           <Image

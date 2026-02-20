@@ -48,10 +48,10 @@ export default function Testimonial() {
   const visibleSiteReviews = siteReviews.slice(index, index + REVIEWS_PER_SLIDE);
 
   return (
-    <div className="relative overflow-visible">
+    <div className="  overflow-visible ">
       
       {/* ===================== TOP SECTION: SITE TESTIMONIALS ===================== */}
-      <section className="relative bg-white py-16 sm:py-20 md:py-28 lg:py-32 overflow-visible">
+      <section className="relative max-sm:mt-16 bg-white py-16 sm:py-20 md:py-28 lg:py-32 overflow-visible max-sm:pt-16 ">
         {/* Background decorations */}
         <div className="absolute left-[-50px] bottom-[-80px] w-[250px] sm:w-[300px] md:w-[400px] opacity-60 z-0 pointer-events-none">
           <Image src="/star.png" alt="Stars" width={400} height={400} className="object-contain" />
