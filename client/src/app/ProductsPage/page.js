@@ -617,7 +617,7 @@ onClick={() => {
 
            
 
-<div className="font-semibold text-[#7d5732] text-sm sm:text-base">
+<div className="font-semibold text-[#7d5732] text-sm sm:text-base flex items-center justify-center gap-2">
   {p.offerPercent > 0 ? (
     <>
       <span className="text-gray-400 line-through text-xs block">
