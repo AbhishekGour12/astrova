@@ -81,12 +81,7 @@ const [showProfileModal, setShowProfileModal] = useState(false);
     });
 
     setSocket(newSocket);
-    let token = localStorage.getItem("token")
-    if(!token){
-      toast.error("login first")
-      router.push("/Login")
-    }
-
+    
     return () => {
       newSocket.disconnect();
     };
