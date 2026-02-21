@@ -14,6 +14,7 @@ import { paymentAPI } from "../lib/payment";
 import { orderAPI } from "../lib/order";
 import { useRouter } from "next/navigation";
 import { loginSuccess } from "../store/features/authSlice";
+import { config } from "process";
 
 const CartSlideOut = () => {
   const {
@@ -43,43 +44,42 @@ const CartSlideOut = () => {
   const codFee = 52;
 
   // Load Products Logic
-  useEffect(() => {
-    const loadProducts = async () => {
-      setLoadingProducts(true);
-      try {
-        const final = [];
-        for (const item of cartItems) {
-          const existingItem = mappedCart.find(
-            (m) => m.product && (m.product._id === (item.product?._id || item.productId))
-          );
-          let productData = item.product;
-          if (existingItem && existingItem.product) {
-             const incomingHasData = productData && productData.offerPercent !== undefined;
-             if (!incomingHasData) productData = existingItem.product;
-          }
-          if (productData && productData._id) {
-            final.push({ ...item, product: productData });
-          } else {
-            const p = await productAPI.getProductById(item.productId);
-            final.push({ product: p, quantity: item.quantity });
+ useEffect(() => {
+  const loadProducts = async () => {
+    if (!isCartOpen || cartItems.length === 0) {
+      if (cartItems.length === 0) setMappedCart([]);
+      setLoadingProducts(false);
+      return;
+    }
+
+    setLoadingProducts(true);
+    try {
+      const final = [];
+      for (const item of cartItems) {
+        // 1. Check if product data is already available in the item
+        if (item.product && item.product._id && item.product.offerPercent !== undefined) {
+          final.push(item);
+        } 
+        // 2. Otherwise fetch from API (Login ke baad guest items ke liye)
+        else {
+          const productId = item.product?._id || item.productId;
+          if (productId) {
+            const p = await productAPI.getProductById(productId);
+            final.push({ ...item, product: p });
           }
         }
-        setMappedCart(final);
-      } catch (err) {
-        console.error(err);
-      }finally{
-      setLoadingProducts(false);
       }
-    };
+      // loop khatam hone ke baad sirf ek baar set karein
+      setMappedCart(final);
+    } catch (err) {
+      console.error("Cart Sync Error:", err);
+    } finally {
+      setLoadingProducts(false);
+    }
+  };
 
-    if (cartItems.length > 0){
-      loadProducts();
-    }
-    else {
-      setMappedCart([]);
-      
-    }
-  }, [cartItems]); 
+  loadProducts();
+}, [cartItems, isCartOpen]); // mappedCart ko dependency se hata diya taaki loop na bane
 
   // ================================
   // 2. CHECKOUT STATE
@@ -264,6 +264,8 @@ const exactTotal =
       localStorage.setItem("shippingAddress", JSON.stringify(address));
      
       localStorage.setItem("token", charge.token)
+      dispatch(loginSuccess(charge.user)); // Redux update karein
+      await fetchCart();  
      
       setCheckoutStep("coupon");
     } catch (err) {
@@ -307,6 +309,18 @@ const exactTotal =
         backdropclose: false,
         // This ensures the modal stays on top of your slide-out
         zIndex: 999999, 
+      },
+      config:{
+        display: {
+          blocks:{
+            utp:{
+              name: "UPI Apps",
+              instruments: [{ method: 'upi' }],
+          },
+        },
+        sequence: ['block.utp'],
+        preferences: { show_default_blocks: true },
+        },
       },
      retry: {
     enabled: true,
