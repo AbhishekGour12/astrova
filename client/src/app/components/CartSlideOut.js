@@ -271,19 +271,17 @@ const exactTotal =
 
   const handleRazorpay = async () => {
     //if (!user) return toast.error("Login required");
-    if (!window.Razorpay) {
-    toast.error("Payment gateway not loaded.");
+    if (typeof window === "undefined" || !window.Razorpay) {
+    toast.error("Payment gateway is still loading. Please wait 2 seconds.");
     return;
   }
-    const amountToPay = Math.round(Number(onlineTotal) * 100);
-
-
-   
-
+   const amountToPay = Math.round(Number(onlineTotal) * 100);
   if (!amountToPay || amountToPay < 100) {
     toast.error("Invalid payment amount");
     return;
   }
+
+
    setLoading(true);
     try {
        
@@ -291,30 +289,53 @@ const exactTotal =
       amount: amountToPay, // send paise to backend
     });
 
-     console.log("Razorpay Order Created:", onlineTotal);
+     
       const options = {
         key: process.env.NEXT_PUBLIC_RAZORPAY_KEY,
         amount: rpOrder.amount,
         currency: "INR",
         order_id: rpOrder.id,
-        handler: async (response) => {
-          const verify = await paymentAPI.verifyPayment(response);
-          if (verify.success) await placeOrder("online", response);
-          else toast.error("Verification Failed");
+        remember_customer: true,
+        modal: {
+        ondismiss: function () {
+          setLoading(false);
         },
-         modal: {
-    ondismiss: function () {
-      setLoading(false);
-    }
-  },
+        // This ensures the modal stays on top of your slide-out
+        zIndex: 999999, 
+      },
+        handler: async (response) => {
+          try {
+          const verify = await paymentAPI.verifyPayment(response);
+          if (verify.success) {
+            await placeOrder("online", response);
+          } else {
+            toast.error("Payment Verification Failed");
+          }
+        } catch (err) {
+          toast.error("Verification Error");
+        } finally {
+          setLoading(false);
+        }
+        },
+        prefill: {
+        name: address.fullName,
+        email: address.email,
+        contact: address.phone,
+      },
         theme: { color: "#C06014" },
       };
       const rz = new window.Razorpay(options);
+      // 3. Mobile Specific Error Handling
+    rz.on('payment.failed', function (response){
+        toast.error("Payment Failed: " + response.error.description);
+        setLoading(false);
+    });
       rz.open();
     } catch (err) {
       toast.error(err.message);
+      setLoading(false)
     }
-    setLoading(false);
+    
   };
 useEffect(() => {
   if (!user) {
