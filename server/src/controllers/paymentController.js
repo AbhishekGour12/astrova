@@ -1,7 +1,7 @@
 import Razorpay from "razorpay";
 import crypto from "crypto";
 import Payment from "../models/Payment.js";
-import { console } from "inspector";
+
 import dotenv from "dotenv";
 
 dotenv.config()

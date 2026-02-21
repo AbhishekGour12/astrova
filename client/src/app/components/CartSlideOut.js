@@ -45,7 +45,7 @@ const CartSlideOut = () => {
   // Load Products Logic
   useEffect(() => {
     const loadProducts = async () => {
-      if (mappedCart.length === 0) setLoadingProducts(true);
+      setLoadingProducts(true);
       try {
         const final = [];
         for (const item of cartItems) {
@@ -67,14 +67,17 @@ const CartSlideOut = () => {
         setMappedCart(final);
       } catch (err) {
         console.error(err);
-      }
+      }finally{
       setLoadingProducts(false);
+      }
     };
 
-    if (cartItems.length > 0) loadProducts();
+    if (cartItems.length > 0){
+      loadProducts();
+    }
     else {
       setMappedCart([]);
-      setLoadingProducts(false);
+      
     }
   }, [cartItems]); 
 
@@ -300,9 +303,15 @@ const exactTotal =
         ondismiss: function () {
           setLoading(false);
         },
+        handleback: true,
+        backdropclose: false,
         // This ensures the modal stays on top of your slide-out
         zIndex: 999999, 
       },
+     retry: {
+    enabled: true,
+    max_count: 3
+  },
         handler: async (response) => {
           try {
           const verify = await paymentAPI.verifyPayment(response);
