@@ -217,7 +217,10 @@ const decrementQty = () => {
   // ------------------------------------------------------------------
   const handleSubmitRating = async (e) => {
   e.preventDefault();
-  if (!checkLogin()) return;
+  if (!checkLogin()){
+    router.push("/Login");
+    return;
+  };
   if (!rating) return toast.error("Please select rating");
 
   try {
@@ -851,7 +854,13 @@ const handleShare = async () => {
                 <motion.div
                   key={product._id}
                   whileHover={{ y: -5 }}
-                  className="bg-white rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300"
+                  className="bg-white hover:cursor-pointer rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 "
+                onClick={() => {
+    if (product.stock !== 0) {
+      router.push(`/Product/${product._id}`);
+    }
+  }}
+
                 >
                   <div className="relative overflow-hidden">
                     <img

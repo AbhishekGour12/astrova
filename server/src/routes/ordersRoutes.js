@@ -8,13 +8,12 @@ import { authMiddleware, onlyUser } from '../middleware/authMiddleware.js';
 
 const router = express.Router();
 
-router.use(authMiddleware, onlyUser);
 
-router.route('/')
-  .get(getOrders)
-  .post(createOrder);
 
-router.route('/:id')
-  .get(getOrderById)
+router.post('/', createOrder);
+router.get("/", authMiddleware, onlyUser, getOrders);
+
+router.get('/:id', authMiddleware, onlyUser, getOrderById);
+  
   
 export default router;

@@ -40,11 +40,11 @@ const router = useRouter();
 
   const fetchCarousel = async () => {
     try {
-      console.log("hii")
+      
       const res = await axios.get(
         `${process.env.NEXT_PUBLIC_API}/api/admin/carousel/${page}`
       );
-      console.log(res.data)
+      
       setCarousel(res.data.carousel);
     } catch (error) {
       console.error("Error fetching carousel:", error);
@@ -156,8 +156,7 @@ const scrollToProducts = () => {
      fetchCarousel()
     fetchBestSellers();
   }, []);
-  console.log(types)
-
+ 
   
 
   const handleCategoryClick = (category) => {
@@ -255,7 +254,7 @@ const handleAddToCart = async (e, productId) => {
     key={carousel.slides.length}   // 🔥 FORCE RE-INIT
     modules={[Autoplay, Pagination, EffectFade]}
     effect="fade"
-    loop
+    loop={carousel.slides.length > 3}
     observer
     observeParents
     autoplay={{
@@ -594,7 +593,7 @@ onClick={() => {
         >
          <div className="relative">
   <img
-    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
+    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.imageUrls?.[0]}`}
     alt={p.name}
     className="object-cover h-32 sm:h-40 md:h-48 w-full"
   />

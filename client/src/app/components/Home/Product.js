@@ -38,19 +38,26 @@ export default function ProductSection() {
         transition={{ duration: 1.5 }}
         className="absolute top-[-100px] xs:top-[-150px] sm:top-[-200px] md:top-[-250px] lg:top-[-300px] xl:top-[-350px] left-1/2 -translate-x-1/2 w-[250px] h-[200px] xs:w-[300px] xs:h-[250px] sm:w-[400px] sm:h-[350px] md:w-[500px] md:h-[450px] lg:w-[700px] lg:h-[600px] xl:w-[900px] xl:h-[800px] opacity-10 z-0"
       >
-        <Image src="/productcakra.png" alt="chakra" fill className="object-contain" />
+        <Image src="/productcakra.png" alt="chakra" fill className="object-contain" sizes="80px" />
       </motion.div>
 
       {/* Star Design (bottom-left corner) */}
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 0.2 }}
-        transition={{ duration: 1.5, delay: 0.5 }}
-        className="absolute bottom-[15px] left-[10px] xs:bottom-[20px] xs:left-[15px] sm:bottom-[25px] sm:left-[25px] md:bottom-[35px] md:left-[50px] lg:bottom-[45px] lg:left-[75px] xl:bottom-[60px] xl:left-[100px] w-[40px] h-[40px] xs:w-[50px] xs:h-[50px] sm:w-[60px] sm:h-[60px] md:w-[70px] md:h-[70px] lg:w-[85px] lg:h-[85px] xl:w-[100px] xl:h-[100px] opacity-10 z-0"
-      >
-        <Image src="/productstar.png" alt="Star Design" fill className="object-contain" />
-      </motion.div>
 
+<motion.div
+  initial={{ opacity: 0 }}
+  animate={{ opacity: 0.2 }}
+  transition={{ duration: 1.5, delay: 0.5 }}
+  className="absolute bottom-[15px] left-[10px] xs:bottom-[20px] xs:left-[15px] sm:bottom-[25px] sm:left-[25px] md:bottom-[35px] md:left-[50px] lg:bottom-[45px] lg:left-[75px] xl:bottom-[60px] xl:left-[100px] w-[40px] h-auto xs:w-[50px] sm:w-[60px] md:w-[70px] lg:w-[85px] xl:w-[100px] opacity-10 z-0"
+>
+  <Image 
+    src="/productstar.png" 
+    alt="Star Design" 
+    width={100} 
+    height={100}
+    style={{ height: 'auto', width: '100%' }}
+    className="object-contain"
+  />
+</motion.div>
       {/* Content Wrapper */}
       <div className="relative z-10 max-w-7xl mx-auto px-3 xs:px-4 sm:px-6 md:px-8 lg:px-10 xl:px-12">
         {/* Header Row */}

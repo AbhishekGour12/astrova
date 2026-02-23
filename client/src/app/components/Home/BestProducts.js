@@ -40,7 +40,7 @@ const handleAddToCart = async (e, productId) => {
         transition={{ duration: 1.5 }}
         className="absolute top-[5px] right-[5px] sm:top-[10px] sm:right-[10px] w-[60px] h-[60px] sm:w-[80px] sm:h-[80px] md:w-[100px] md:h-[100px] z-0"
       >
-        <Image src="/productcakra.png" alt="chakra" fill className="object-contain" />
+        <Image src="/productcakra.png" alt="chakra"  sizes="(max-width: 768px) 80px, 100px" fill className="object-contain" />
       </motion.div>
 
       {/* Section Container */}
@@ -103,7 +103,7 @@ ${
           autoplay={{ delay: 4000, disableOnInteraction: false }}
           
           spaceBetween={15}
-          loop={true}
+          loop={products?.length > 4}
           breakpoints={{
             0: { slidesPerView: 1.2 },   // Mobile
             480: { slidesPerView: 1.4 },
@@ -138,6 +138,10 @@ ${
               <img
                 src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
                 alt={product.name}
+               width="400"
+               height="400"
+               loading="lazy"
+               decoding="async"
                 className="object-cover rounded-lg sm:rounded-xl w-full h-full border"
               />
             </div>

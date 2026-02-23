@@ -34,7 +34,9 @@ export default function AstrologerListSection() {
         const { data } = await axios.get(
           `${process.env.NEXT_PUBLIC_API}/api/astrologer/?service=ALL`
         );
-        setAstrologers(data);
+        if(data ) {
+        setAstrologers(data)
+        }
       } catch (error) {
         console.error("Error fetching astrologers:", error);
       } finally {
@@ -64,11 +66,25 @@ export default function AstrologerListSection() {
     <section className="relative  bg-white mt-[5%] max-md:mt-[60%] max-sm:mt-[69%] md:py-28 overflow-hidden pt-10 pb-10">
       {/* Decorative Backgrounds */}
       <div className="absolute top-30 w-[500px] opacity-5 -z-0 left-[-100px]">
-        <Image src="/productstar.png" alt="Left Star" width={500} height={500} />
-      </div>
-      <div className="absolute right-[-50px] top-[50px] w-[250px] opacity-50 -z-0">
-        <Image src="/star.png" alt="Right Star" width={250} height={250} />
-      </div>
+  <Image 
+    src="/productstar.png" 
+    alt="Left Star" 
+    width={500} 
+    height={500} 
+    style={{ height: 'auto', width: 'auto' }} // Yeh line error hatayegi
+     // Optional: Agar ye image fold ke upar hai toh performance achi karega
+  />
+</div>
+
+<div className="absolute right-[-50px] top-[50px] w-[250px] opacity-50 -z-0">
+  <Image 
+    src="/star.png" 
+    alt="Right Star" 
+    width={250} 
+    height={250} 
+    style={{ height: 'auto', width: 'auto' }} // Yeh line bhi error hatayegi
+  />
+</div>
 
       <div className="max-w-[1440px] mx-auto px-4 md:px-12 relative z-10">
         {/* Header */}

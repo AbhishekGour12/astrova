@@ -53,12 +53,28 @@ export default function Testimonial() {
       {/* ===================== TOP SECTION: SITE TESTIMONIALS ===================== */}
       <section className="relative max-sm:mt-16 bg-white py-16 sm:py-20 md:py-28 lg:py-32 overflow-visible max-sm:pt-16 ">
         {/* Background decorations */}
-        <div className="absolute left-[-50px] bottom-[-80px] w-[250px] sm:w-[300px] md:w-[400px] opacity-60 z-0 pointer-events-none">
-          <Image src="/star.png" alt="Stars" width={400} height={400} className="object-contain" />
-        </div>
-        <div className="absolute right-[-100px] top-[20px] w-[350px] sm:w-[450px] md:w-[600px] opacity-20 z-0 pointer-events-none">
-          <Image src="/bgCircle.png" alt="Chakra" width={600} height={600} className="object-contain" />
-        </div>
+      
+<div className="absolute left-[-50px] bottom-[-80px] w-[250px] sm:w-[300px] md:w-[400px] opacity-60 z-0 pointer-events-none">
+  <Image 
+    src="/star.png" 
+    alt="Stars" 
+    width={400} 
+    height={400} 
+    style={{ height: 'auto', width: '100%' }} 
+    className="object-contain" 
+  />
+</div>
+<div className="absolute right-[-100px] top-[20px] w-[350px] sm:w-[450px] md:w-[600px] opacity-20 z-0 pointer-events-none">
+  <Image 
+    src="/bgCircle.png" 
+    alt="Chakra" 
+    width={600} 
+    height={600} 
+    style={{ height: 'auto', width: '100%' }} 
+    className="object-contain" 
+    priority
+  />
+</div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-4 sm:px-6 md:px-10 lg:px-12">
           {/* Badge */}
@@ -89,7 +105,7 @@ export default function Testimonial() {
               >
                 {/* Decorative Ellipse */}
                 <div className="absolute top-0 left-0 w-24 h-24 sm:w-28 sm:h-28 -translate-x-6 -translate-y-6">
-                  <Image src="/ellipse.png" alt="ellipse" fill className="object-contain opacity-95" />
+                  <Image src="/ellipse.png" alt="ellipse"  className="object-contain opacity-95" width={100} height={100} />
                   <div className="absolute inset-0 flex items-center justify-center text-[#7E5833]">
                     <Quote size={28} className="opacity-80" />
                   </div>

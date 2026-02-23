@@ -97,10 +97,12 @@ ${
           <div className="relative w-[56px] h-[56px] lg:w-[100px] lg:h-[100px]  ">
             <Image
               src="/logo2.png"
-              alt="MyAstrova Logo"
+              alt="MyAstrovaLogo"
               fill
               className=" object-cover "
               priority
+              sizes="(max-width: 768px) 100vw, 50vw"
+            
             />
           </div>
           <span

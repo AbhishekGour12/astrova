@@ -18,8 +18,8 @@ export default function ConsultationSection() {
           <Image
             src="/consultantbg.jpg"
             alt="Background"
-            height={100}
-            width={100}
+             fill
+             priority
             className="object-cover brightness-[0.35] h-[550px] w-[100%] max-md:h-[100%] "
           />
         </div>
@@ -35,7 +35,10 @@ export default function ConsultationSection() {
             src="/bgCircle.png"
             alt="chakra"
             fill
+            priority
+            loading="eager"
             className="object-contain pointer-events-none h-[600px] w-[60%]"
+          sizes="(max-width: 1280px) 100vw, 1280px"
           />
         </motion.div>
 

@@ -9,7 +9,7 @@ import {
   getAWBFromOrder,
   trackShipment,
 } from "../services/shipRocketServices.js";
-
+import User from "../models/User.js";
 
 export const createOrder = async (req, res) => {
   
@@ -25,15 +25,49 @@ export const createOrder = async (req, res) => {
       discount = 0,
       paymentDetails = null,
       isCODEnabled = false,
-      totalWeight = 0.5
+      totalWeight = 0.5,
+      phone,
+      items,
+      userId,
+      finalAmount
     } = req.body;
-    
+    let user = null;
+if (phone) {
+  user = await User.findOne({ phone });
+}
+
+let cartItems = [];
     if (!shippingAddress) throw new Error("Shipping address required");
     if (!paymentMethod) throw new Error("Payment method required");
      
     // Fetch cart
-    const cart = await Cart.findOne({ userId: req.user.id }).populate("items.product");
-    for (const item of cart.items) {
+   
+   if (userId) {
+  const cart = await Cart.findOne({ userId: user._id }).populate("items.product");
+
+  if (!cart || cart.items.length === 0)
+    throw new Error("Your cart is empty");
+
+  cartItems = cart.items;
+}else {
+  if (!items || items.length === 0)
+    throw new Error("No items provided");
+
+  cartItems = await Promise.all(
+    items.map(async (item) => {
+      const product = await Product.findById(item.product._id || item.product);
+      if (!product) throw new Error("Product not found");
+
+      return {
+        product,
+        quantity: item.quantity
+      };
+    })
+  );
+}
+  
+
+    for (const item of cartItems) {
   if (item.quantity > item.product.stock) {
     throw new Error(
       `${item.product.name} is out of stock`
@@ -41,17 +75,15 @@ export const createOrder = async (req, res) => {
   }
 }
 
-    if (!cart || cart.items.length === 0) throw new Error("Your cart is empty");
+    
+    if (!cartItems || cartItems.length === 0) throw new Error("Your cart is empty");
 
-    // Totals
-    const subtotal = cart.items.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
-    const gstAmount = Number((subtotal * 0.18).toFixed(2));
-    const shippingCharge = subtotal > 500 ? 0 : 50;
-    const totalAmount = Number((subtotal + gstAmount + shippingCharge - discount).toFixed(2));
+    const subtotal = cartItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0);
+    const totalAmount = finalAmount;
     const paymentStatus = paymentMethod === "online" ? "Paid" : "Pending";
-
+ 
     // Weight
-    let calculatedWeight = cart.items.reduce(
+    let calculatedWeight = cartItems.reduce(
       (sum, item) => sum + (item.product.weight ?? 0.2) * item.quantity,
       0
     );
@@ -59,7 +91,7 @@ export const createOrder = async (req, res) => {
     if (totalWeight > 0) calculatedWeight = totalWeight;
 
     // Format items
-    const orderItems = cart.items.map((item) => ({
+    const orderItems = cartItems.map((item) => ({
       product: item.product._id,
       name: item.product.name,
       image: item.product.imageUrls?.[0] || "",
@@ -79,7 +111,7 @@ export const createOrder = async (req, res) => {
       totalAmount,
       weight: calculatedWeight
     };
-
+    
     // -----------------------------------
     // CREATE ORDER IN SHIPROCKET FIRST
     // -----------------------------------
@@ -109,12 +141,10 @@ export const createOrder = async (req, res) => {
     // -----------------------------------
     const newOrder = new Order({
       _id: plainOrder._id,
-      userId: req.user.id,
+      userId: user._id,
       items: orderItems,
       shippingAddress,
       subtotal,
-      gstAmount,
-      shippingCharge,
       discount,
       totalAmount,
       weight: calculatedWeight,
@@ -153,7 +183,7 @@ if (paymentMethod === "online") {
 
 
     // Reduce stock
-  for (const item of cart.items) {
+  for (const item of cartItems) {
   const updated = await Product.updateOne(
     {
       _id: item.product._id,
@@ -171,11 +201,16 @@ if (paymentMethod === "online") {
 }
 
 
-
     // Clear cart
+    if(userId){
+    const cart = await Cart.findOne({ userId: user._id });
+  if (cart) {
     cart.items = [];
     cart.totalAmount = 0;
     await cart.save({ session });
+  }
+    
+    }
 
     await session.commitTransaction();
     session.endSession();

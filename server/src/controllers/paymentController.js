@@ -3,7 +3,7 @@ import crypto from "crypto";
 import Payment from "../models/Payment.js";
 
 import dotenv from "dotenv";
-
+import User from "../models/User.js";
 dotenv.config()
 const razorpay = new Razorpay({
   key_id: process.env.RAZORPAY_KEY,
@@ -12,8 +12,10 @@ const razorpay = new Razorpay({
 
 export const createOrder = async (req, res) => {
   try {
-    const { amount } = req.body;
+    const { amount, phone } = req.body;
     
+    
+    const user = await User.findOne({phone: phone})
 
     const order = await razorpay.orders.create({
       amount: amount,
@@ -25,7 +27,7 @@ export const createOrder = async (req, res) => {
 // -----------------------------------
 
  await Payment.create({
-      user: req.user.id,
+      user: user._id,
       razorpayOrderId: order.id,
       amount: amount / 100,
       method: "Razorpay",

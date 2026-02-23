@@ -6,7 +6,7 @@ import { getValidToken } from "../utils/shipRocketToken.js";
  */
 export const createShiprocketOrder = async (order, extra = {}) => {
   const token = await getValidToken();
-  console.log(order.weight)
+  console.log(order)
 
   const payload = {
     order_id: order._id,
@@ -35,7 +35,7 @@ export const createShiprocketOrder = async (order, extra = {}) => {
     })),
 
     payment_method: order.paymentMethod === "cod" ? "COD" : "Prepaid",
-    sub_total: Number(order.subtotal),
+    sub_total: Number(order.totalAmount.toFixed(0)),
 
     length: 10,
     breadth: 10,

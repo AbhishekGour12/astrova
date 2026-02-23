@@ -45,7 +45,8 @@ const AboutSection = () => {
             alt="Astro Background"
             fill
             className="object-contain opacity-30"
-            priority
+           
+            sizes="(max-width: 768px) 100vw, 50vw"
           />
         </motion.div>
 
@@ -59,8 +60,9 @@ const AboutSection = () => {
             src="/about.png"
             alt="Astro Chakra"
             fill
+           sizes="(max-width: 768px) 100vw, 50vw"
             className="object-contain drop-shadow-2xl"
-            priority
+            
           />
         </motion.div>
       </div>

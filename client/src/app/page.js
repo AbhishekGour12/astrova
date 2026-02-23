@@ -1,23 +1,23 @@
 "use client";
 import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
-import { FaShoppingCart, FaUser, FaTimes, FaBars } from "react-icons/fa";
-import { useEffect, useState } from "react";
-import About from './components/Home/About'
-import Product from './components/Home/Product'
-import BestProducts from './components/Home/BestProducts'
-import BookConsultant from './components/Home/BookConsultant'
-import PremiumProductSection from './components/Home/PremiumProductSection'
-import Testimonial from './components/Home/Testimonial'
-import AstrologerSection from './components/Home/AstrologerSection'
-import LandingLoader from './components/Loading'
+import dynamic from "next/dynamic";
+import { motion, AnimatePresence, LazyMotion } from "framer-motion";
+import { useEffect, useMemo, useState } from "react";
+// Heavy Components (Lazy Load as user scrolls)
+const About = dynamic(() => import('./components/Home/About'), { ssr: false });
+const Product = dynamic(() => import('./components/Home/Product'), { ssr: false });
+const BestProducts = dynamic(() => import('./components/Home/BestProducts'), { ssr: false });
+const BookConsultant = dynamic(() => import('./components/Home/BookConsultant'), { ssr: false });
+const AstrologerSection = dynamic(() => import('./components/Home/AstrologerSection'), { ssr: false });
+const PremiumProductSection = dynamic(() => import('./components/Home/PremiumProductSection'), { ssr: false });
+const Testimonial = dynamic(() => import('./components/Home/Testimonial'), { ssr: false });
+
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import Navbar from './components/Navbar'
-import { adminAPI } from "./lib/admin";
-import { useDispatch, useSelector } from "react-redux";
+
+import { useSelector } from "react-redux";
 import MiniAdStrip from './components/Home/MiniAdStrip'
-import { productType } from "./store/features/productTypeSlice";
 import axios from "axios";
 import { productAPI } from "./lib/product";
 
@@ -30,29 +30,26 @@ const HeroSection = () => {
 
   
 
-  const fetchCarousel = async () => {
-    try {
-     
-      const res = await axios.get(
-        `${process.env.NEXT_PUBLIC_API}/api/admin/carousel/home`
-      );
-     
-      setCarousel(res.data.carousel.slides);
-    } catch (error) {
-      console.error("Error fetching carousel:", error);
-    } 
-  };
-  useEffect(() =>{
-    fetchCarousel()
-
-  },[])
+ useEffect(() => {
+    let isMounted = true;
+    const fetchCarousel = async () => {
+      try {
+        const res = await axios.get(`${process.env.NEXT_PUBLIC_API}/api/admin/carousel/home`);
+        if (isMounted && res.data) setCarousel(res.data.carousel.slides);
+      } catch (error) {
+        console.error("Error fetching carousel:", error);
+      }
+    };
+    fetchCarousel();
+    return () => { isMounted = false; };
+  }, []);
   
   const astrologerpage = () =>{
     localStorage.setItem("service", "All");
     router.push("/astrologers")
   }
 
-  const zodiacSigns = [
+  const zodiacSigns = useMemo(() =>[
   {
     name: "Aries",
     svg: (
@@ -179,24 +176,35 @@ const HeroSection = () => {
       </svg>
     ),
   },
-];
+], []);
 
 
   return (
-  <section className="  relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 ">
+  <section className="  relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 overflow-hidden ">
 
       {/* Background split */}
-      <div className="absolute inset-0 flex flex-col lg:flex-row">
+      <div className="absolute inset-0 flex flex-col lg:flex-row -z-10">
         {/* Left Side - White background with Zodiac circle aligned bottom-left */}
         <div className="w-full lg:w-[70%] bg-white relative overflow-hidden min-h-[45vh] sm:min-h-[40vh] md:min-h-[45vh] lg:min-h-0">
-          <div className="absolute left-[-100px] sm:left-[-150px] md:left-[-200px] lg:left-[-300px] bottom-0 w-[300px] h-[300px] sm:w-[400px] sm:h-[400px] md:w-[500px] md:h-[500px] lg:w-[700px] lg:h-[700px] opacity-5">
-            <Image 
-              src="/bgCircle.png" 
-              alt="Zodiac Left" 
-              fill 
-              className="object-contain object-left-bottom" 
-            />
-          </div>
+         <div className="absolute left-[-100px] sm:left-[-150px] md:left-[-200px] lg:left-[-300px] 
+bottom-0 
+w-[300px] h-[300px] 
+sm:w-[400px] sm:h-[400px] 
+md:w-[500px] md:h-[500px] 
+lg:w-[700px] lg:h-[700px] 
+opacity-5 relative">
+
+  // HeroSection component ke andar
+<Image 
+  src="/bgCircle.png" 
+  alt="Zodiac Left" 
+  fill 
+  priority // Yeh important hai LCP ke liye
+  loading="eager" // Browser ko batata hai ki wait mat karo, turant load karo
+  sizes="(max-width: 1024px) 300px, 700px"
+  className="object-contain object-left-bottom" 
+/>
+</div>
         </div>
 
         {/* Right Side - Brown background with Zodiac circle aligned bottom-right */}
@@ -206,6 +214,7 @@ const HeroSection = () => {
               src="/bgSymbol.png" 
               alt="Zodiac Right" 
               fill 
+             sizes="(max-width: 768px) 100vw, 50vw"
               className="object-contain object-right-bottom" 
             />
           </div>
@@ -350,7 +359,7 @@ const HeroSection = () => {
                   alt="Star Icon"
                   width={24}
                   height={24}
-                  className="opacity-80 hidden sm:block sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 mt-1 absolute"
+                  className="opacity-80 hidden sm:block h-auto sm:w-6 sm:h-6 md:w-7 md:h-7 lg:w-8 lg:h-8 mt-1 absolute"
                 />
               </div>
             </div>
@@ -425,7 +434,9 @@ const HeroSection = () => {
             src="/kundli.jpeg"
             alt="Kundli Matching"
             fill
+            sizes="(max-width: 768px) 100vw, 25vw"
             className="object-cover"
+
           />
         </div>
 
@@ -473,6 +484,7 @@ const HeroSection = () => {
             src="/horoscope.jpeg"
             alt="Horoscope"
             fill
+            sizes="(max-width: 768px) 100vw, 50vw"
             className="object-cover"
           />
         </div>
@@ -521,7 +533,9 @@ const HeroSection = () => {
             src="/myastrovastore.jpg"
             alt="My Astrova Store"
             fill
+            
             className="object-cover"
+            sizes="(max-width: 768px) 100vw, 33vw"
           />
         </div>
 
@@ -570,6 +584,7 @@ const HeroSection = () => {
             alt="Talk to Astrologer"
             fill
             className="object-cover"
+            sizes="(max-width: 768px) 100vw, 50vw"
           />
         </div>
 
@@ -649,22 +664,20 @@ const HeroSection = () => {
         xl:w-[650px] xl:h-[650px]
       "
     >
-      {zodiacSigns.map((zodiac, index) => {
+   {zodiacSigns.map((zodiac, index) => {
   const angle = (index * 30 * Math.PI) / 180;
+  const radius = 48;
 
-  // ✅ Responsive radius (small screen pe thoda kam)
-  const radius =
-    typeof window !== "undefined" && window.innerWidth < 640
-      ? 42
-      : 48;
+  const x = (radius * Math.cos(angle)).toFixed(2);
+  const y = (radius * Math.sin(angle)).toFixed(2);
 
   return (
-    <motion.div
+    <motion.div 
       key={index}
       className="absolute flex items-center justify-center"
       style={{
-        left: `calc(50% + ${radius * Math.cos(angle)}% - 1.5rem)`,
-        top: `calc(50% + ${radius * Math.sin(angle)}% - 1.5rem)`,
+        left: `calc(50% + ${x}% - 1.5rem)`,
+        top: `calc(50% + ${y}% - 1.5rem)`,
         transform: "translate(-50%, -50%)",
       }}
       animate={{
@@ -672,61 +685,20 @@ const HeroSection = () => {
         rotate: [0, 5, 0, -5, 0],
       }}
       transition={{
-        scale: {
-          duration: 3,
-          repeat: Infinity,
-          delay: index * 0.2,
-          ease: "easeInOut",
-        },
-        rotate: {
-          duration: 4,
-          repeat: Infinity,
-          delay: index * 0.15,
-          ease: "easeInOut",
-        },
-      }}
-      whileHover={{
-        scale: 1.3,
-        transition: { duration: 0.3 },
+        duration: 4,
+        repeat: Infinity,
+        delay: index * 0.2,
       }}
     >
-     
-        {/* ✅ ONLY SIGN (SVG) */}
-        <span className="text-yellow-300 ">
-          {zodiac.svg}
-        </span>
-      
+      <span className="text-yellow-300">
+        {zodiac.svg}
+      </span>
     </motion.div>
   );
 })}
-
     </motion.div>
 
-    {/* Decorative Outer Ring with Dots */}
-    <motion.div
-      animate={{ rotate: -360 }}
-      transition={{ duration: 25, repeat: Infinity, ease: "linear" }}
-      className="
-        absolute rounded-full
-        w-[330px] h-[330px]
-        sm:w-[350px] sm:h-[350px]
-        md:w-[550px] md:h-[550px]
-        lg:w-[550px] lg:h-[550px]
-        xl:w-[800px] xl:h-[800px]
-      "
-    >
-      {[...Array(24)].map((_, i) => (
-        <div
-          key={`dot-${i}`}
-          className="absolute w-1.5 h-1.5 sm:w-2 sm:h-2 bg-yellow-400/30 rounded-full"
-          style={{
-            left: `${50 + 50 * Math.cos((i * 15 * Math.PI) / 180)}%`,
-            top: `${50 + 50 * Math.sin((i * 15 * Math.PI) / 180)}%`,
-            transform: 'translate(-50%, -50%)',
-          }}
-        />
-      ))}
-    </motion.div>
+   
   </motion.div>
 
   {/* Pandit Image */}
@@ -750,6 +722,7 @@ const HeroSection = () => {
         fill
         className="object-contain drop-shadow-2xl"
         priority
+        sizes="(max-width: 1280px) 100vw, 1280px"
       />
     </div>
   </motion.div>

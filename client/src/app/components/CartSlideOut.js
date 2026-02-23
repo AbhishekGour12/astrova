@@ -98,11 +98,25 @@ const dispatch = useDispatch();
   const [address, setAddress] = useState({
     fullName: "", email: "", phone: "", addressLine1: "", addressLine2: "", city: "", state: "", pincode: "",
   });
-
+const [token, setToken] = useState(null);
   const onClose = () => setIsCartOpen(false);
 
   useEffect(() => { fetchCart(); }, [user]);
+useEffect(() => {
+  const mergeCart = async () => {
+    const guestCart = JSON.parse(localStorage.getItem("cart"));
 
+    if (guestCart && user) {
+      for (const item of guestCart) {
+        await addToCart(item.product._id || item.productId, item.quantity);
+      }
+      localStorage.removeItem("cart");
+      await fetchCart();
+    }
+  };
+
+  mergeCart();
+}, [user]);
   // Load Available Coupons
   const [availableCoupons, setAvailableCoupons] = useState([]);
   useEffect(() => {
@@ -184,21 +198,15 @@ const onlineDiscountAmountPreview =
 const onlinePreviewTotal =
   subtotal - couponDiscount - onlineDiscountAmountPreview;
 
-// ❗ Real discount tab lagega jab user online select kare
-const onlineDiscountAmount =
-  paymentMethod === "online"
-    ? subtotal * (onlineDiscountPercent / 100)
-    : 0;
 
-const onlineTotal =
-  subtotal - couponDiscount - onlineDiscountAmount;
+
 
 const codTotal =
   subtotal - couponDiscount + codFee;
 
 const finalAmount =
   paymentMethod === "online"
-    ? Number(onlineTotal.toFixed(2))
+    ? Number(onlinePreviewTotal.toFixed(2))
     : isCOD
       ? Math.ceil(codTotal)
       : Number((subtotal - couponDiscount).toFixed(2));
@@ -207,11 +215,7 @@ const roundOffAmount =
   isCOD ? finalAmount - codTotal : 0;
 
 // 4️⃣ Final Amount (used for backend)
-const exactTotal =
-  subtotal
-  - couponDiscount
-  - onlineDiscountAmount
-  + (isCOD ? codFee : 0);
+
 
 
 
@@ -263,8 +267,7 @@ const exactTotal =
      toast.success("Address saved & Shipping updated!");
       localStorage.setItem("shippingAddress", JSON.stringify(address));
      
-      localStorage.setItem("token", charge.token)
-      dispatch(loginSuccess(charge.user)); // Redux update karein
+      setToken(charge.user.phone);
       await fetchCart();  
      
       setCheckoutStep("coupon");
@@ -280,18 +283,23 @@ const exactTotal =
     toast.error("Payment gateway is still loading. Please wait 2 seconds.");
     return;
   }
-   const amountToPay = Math.round(Number(onlineTotal) * 100);
+  const discountAmount = subtotal * 0.10;
+
+const finalOnlineAmount =
+  subtotal - couponDiscount - discountAmount;
+
+const amountToPay = Math.round(finalOnlineAmount * 100);
   if (!amountToPay || amountToPay < 100) {
     toast.error("Invalid payment amount");
     return;
   }
 
-
    setLoading(true);
     try {
        
      const rpOrder = await paymentAPI.createOrder({
-      amount: amountToPay, // send paise to backend
+      amount: amountToPay,
+      phone: token
     });
 
      
@@ -382,9 +390,14 @@ useEffect(() => {
         isCODEnabled: isCOD,
         totalWeight,
         finalAmount,
+        phone: token,
+        items: mappedCart,
+        userId: user?true:false,
+      
       });
       toast.success("Order Placed!");
       await clearCart();
+      localStorage.removeItem("cart")
       setIsCartOpen(false);
       setTimeout(() =>{
         router.push("/Orders")
@@ -805,7 +818,7 @@ const handleOnlinePayment = async () => {
        {paymentMethod === "online" && (
   <div className="flex justify-between text-blue-700">
     <span>Online Discount (10%)</span>
-    <span>-₹{onlineDiscountAmount.toFixed(2)}</span>
+    <span>-₹{onlineDiscountAmountPreview.toFixed(2)}</span>
   </div>
 )}
 

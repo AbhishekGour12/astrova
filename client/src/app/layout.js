@@ -36,9 +36,21 @@ export default function RootLayout({ children }) {
   
   return (
     <html lang="en">
-
+     
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-      
+       {/* Google Analytics */}
+        <Script
+          src="https://www.googletagmanager.com/gtag/js?id=G-RMNVENG1P5"
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-RMNVENG1P5');
+          `}
+        </Script>
         <PathLayout> 
         <Providers className="pt-[120px]">
           <CartProvider>
