@@ -14,6 +14,10 @@ export const metadata = {
         alt: "Peaceful nature and spirituality",
       },
     ],
+     // Add this to disable preloading
+  other: {
+    'og:image:preload': 'false',
+  },
   },
 };
 
@@ -26,7 +30,10 @@ export default function About() {
           <img
             src="https://images.unsplash.com/photo-1500530855697-b586d89ba3ee"
             alt="Spiritual calm"
+             fill
+             priority
             className="w-full h-full object-cover scale-105 lg:scale-100"
+            sizes="100vw"
           />
         </div>
         <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/30 to-transparent" />
@@ -275,6 +282,7 @@ function Gallery({ img }) {
       <img
         src={img}
         alt="Life at MyAstrova"
+        loading="lazy"
         className="w-full h-full object-cover hover:scale-110 transition-transform duration-300"
       />
     </div>
