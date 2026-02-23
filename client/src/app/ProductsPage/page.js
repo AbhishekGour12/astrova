@@ -3,14 +3,12 @@ import { useState, useEffect } from "react";
 import Image from "next/image";
 import { motion } from "framer-motion";
 import { FaShoppingCart, FaStar, FaStarHalfAlt } from "react-icons/fa";
-import Navbar from "../components/Navbar";
+
 import { productAPI } from "../lib/product";
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination, EffectFade } from "swiper/modules";
-import "swiper/css";
-import "swiper/css/autoplay";
-import "swiper/css/pagination";
-import "swiper/css/effect-fade";
+
+
 import Link from "next/link";
 import { useSelector } from "react-redux";
 import { useRef } from "react";
@@ -19,7 +17,11 @@ import { useCart } from "../context/CartContext";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 
+import "swiper/css";
+import "swiper/css/pagination";
+import "swiper/css/autoplay";
 
+import "swiper/css/effect-fade";
 
 
 
@@ -55,45 +57,7 @@ const router = useRouter();
 
 
   // 🟠 Hero Banner Images - Using high-quality astro-themed images
-  const [heroBanners] = useState([
-    {
-      id: 1,
-      image: "https://images.unsplash.com/photo-1534447677768-be436bb09401?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1794&q=80",
-      title: "Cosmic Energy Collection",
-      subtitle: "Harness the power of universe",
-      description: "Special 30% off on all astral products",
-      buttonText: "Shop Now",
-      buttonColor: "bg-purple-600 hover:bg-purple-700"
-    },
-  
-    {
-      id: 3,
-      image: "https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      title: "Evil Eye Protection",
-      subtitle: "Guard against negative energies",
-      description: "Limited time offer - Buy 2 Get 1 Free",
-      buttonText: "Get Protection",
-      buttonColor: "bg-blue-600 hover:bg-blue-700"
-    },
-    {
-      id: 4,
-      image: "https://images.unsplash.com/photo-1446776653964-20c1d3a81b06?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1771&q=80",
-      title: "Festive Season Special",
-      subtitle: "Divine blessings for you & loved ones",
-      description: "Free shipping on orders above ₹999",
-      buttonText: "View Offers",
-      buttonColor: "bg-amber-600 hover:bg-amber-700"
-    },
-    {
-      id: 5,
-      image: "https://images.unsplash.com/photo-1462331940025-496dfbfc7564?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1770&q=80",
-      title: "Love & Relationships",
-      subtitle: "Strengthen your emotional bonds",
-      description: "New collection of love crystals & charms",
-      buttonText: "Find Love",
-      buttonColor: "bg-pink-600 hover:bg-pink-700"
-    }
-  ]);
+
 
   const [filters, setFilters] = useState({
     page: 1,
@@ -430,7 +394,7 @@ const handleAddToCart = async (e, productId) => {
     <Swiper
       spaceBetween={25}
       grabCursor={true}
-      loop={true}
+      loop={false}
       centeredSlides={false}
       autoplay={{
         delay: 3000,

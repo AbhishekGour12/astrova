@@ -1,15 +1,18 @@
 "use client";
 import Image from "next/image";
 import { motion } from "framer-motion";
-import { useEffect, useState } from "react";
-import {productAPI} from "../../lib/product"
-import { useRouter } from "next/navigation";
-import { adminAPI } from "../../lib/admin";
 
-import { Swiper, SwiperSlide } from "swiper/react";
+import { useRouter } from "next/navigation";
+
 import "swiper/css";
-import { Autoplay, Pagination } from "swiper/modules";
 import "swiper/css/pagination";
+import "swiper/css/autoplay";
+
+import "swiper/css/effect-fade";
+import { Swiper, SwiperSlide } from "swiper/react";
+
+import { Autoplay, Pagination } from "swiper/modules";
+
 import { useCart } from "../../context/CartContext";
 import { FaShoppingCart } from "react-icons/fa";
 

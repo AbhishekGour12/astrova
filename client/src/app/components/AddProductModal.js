@@ -48,7 +48,7 @@ const AddProductModal = ({ isOpen, onClose, onAdd }) => {
             </motion.button>
             <motion.button
               type="submit"
-              className="flex-1 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white py-3 rounded-2xl font-semibold"
+              className="flex-1 bg-linear-to-r from-[#C06014] to-[#D47C3A] text-white py-3 rounded-2xl font-semibold"
             >
               Add Product
             </motion.button>

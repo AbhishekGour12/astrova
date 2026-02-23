@@ -1,17 +1,13 @@
 
 import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import { Toaster } from "react-hot-toast";
-import Footer from './components/Footer'
-import 'swiper/css';
+
+
 import {Providers} from './providers'
 import {CartProvider} from './context/CartContext'
 import ClientLayout from './ClientLayout'
 import PathLayout from './PathLayout'
 import Script from "next/script";
-
-
-
 
 const geistSans = Geist({
   variable: "--font-geist-sans",

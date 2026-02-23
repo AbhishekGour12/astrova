@@ -60,7 +60,7 @@ const AstroProfileModal = ({ onClose }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center">
+    <div className="fixed inset-0 bg-black/50 z-9999 flex items-center justify-center">
       <motion.div
         initial={{ scale: 0.9, opacity: 0 }}
         animate={{ scale: 1, opacity: 1 }}

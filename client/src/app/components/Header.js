@@ -34,7 +34,7 @@ const Header = () => {
   return (
     <header
   
-  className={`fixed top-0 left-0 right-0 z-[9999]
+  className={`fixed top-0 left-0 right-0 z-9999
     transition-all duration-300
     ${isScrolled ? "bg-[#ECE5D3]/90 backdrop-blur-lg shadow-lg" : "bg-[#ECE5D3]"}
     py-5`}
@@ -47,7 +47,7 @@ const Header = () => {
           <div className="flex items-center space-x-3 group cursor-pointer">
             <div className="flex items-center space-x-3">
               <div className="relative">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#8B4513] to-[#D2691E] rounded-2xl flex items-center justify-center transform group-hover:rotate-12 transition-transform duration-500 shadow-lg">
+                <div className="w-12 h-12 bg-linear-to-br from-[#8B4513] to-[#D2691E] rounded-2xl flex items-center justify-center transform group-hover:rotate-12 transition-transform duration-500 shadow-lg">
                   <LuSparkles className="text-white" size={20} />
                 </div>
                 <div className="absolute -top-1 -right-1 w-4 h-4 bg-[#CD5C5C] rounded-full animate-pulse"></div>

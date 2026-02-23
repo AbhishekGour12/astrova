@@ -514,13 +514,13 @@ const handleOnlinePayment = async () => {
       {isCartOpen && (
         <>
           <motion.div
-            className="fixed inset-x-0 bottom-0 top-[90px] bg-black/40 z-[9998]"
+            className="fixed inset-x-0 bottom-0 top-[90px] bg-black/40 z-9999"
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={onClose}
           />
 
           <motion.div
-            className="fixed right-0 top-[90px] h-[calc(100vh-90px)] max-w-md w-full bg-white shadow-xl z-[9999]"
+            className="fixed right-0 top-[90px] h-[calc(100vh-90px)] max-w-md w-full bg-white shadow-xl z-9999"
             initial={{ x: "100%" }} animate={{ x: 0 }} exit={{ x: "100%" }}
           >
             {/* Header */}
@@ -796,7 +796,7 @@ const handleOnlinePayment = async () => {
 
             {/* Price Summary Bar */}
             
-<div className="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-[99999]">
+<div className="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-99999">
   <div onClick={() => setShowPriceDetails(!showPriceDetails)} className="flex justify-between cursor-pointer">
     <span className="font-bold text-[#003D33]">Total: ₹{finalAmount}</span>
     <span className="text-[#C06014] text-sm">{showPriceDetails ? "Hide Details ▲" : "View Details ▼"}</span>

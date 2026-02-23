@@ -65,24 +65,28 @@ export default function AstrologerListSection() {
   return (
     <section className="relative  bg-white mt-[5%] max-md:mt-[60%] max-sm:mt-[69%] md:py-28 overflow-hidden pt-10 pb-10">
       {/* Decorative Backgrounds */}
-      <div className="absolute top-30 w-[500px] opacity-5 -z-0 left-[-100px]">
+      <div className="absolute top-30 w-[500px] opacity-5 z-0 left-[-100px]">
+  <div className="relative w-full max-w-[500px] aspect-square"> {/* Add aspect ratio */}
   <Image 
     src="/productstar.png" 
     alt="Left Star" 
-    width={500} 
-    height={500} 
-    style={{ height: 'auto', width: 'auto' }} // Yeh line error hatayegi
-     // Optional: Agar ye image fold ke upar hai toh performance achi karega
+    fill
+    className="object-contain" // or object-cover based on your need
   />
 </div>
+</div>
 
-<div className="absolute right-[-50px] top-[50px] w-[250px] opacity-50 -z-0">
+<div className="absolute right-[-50px] top-[50px] w-[250px] opacity-50 z-0">
   <Image 
     src="/star.png" 
     alt="Right Star" 
-    width={250} 
-    height={250} 
-    style={{ height: 'auto', width: 'auto' }} // Yeh line bhi error hatayegi
+    width={500}
+    height={500}
+    style={{ 
+      width: '100%',    // Override width
+      height: 'auto',   // Override height to auto
+      maxWidth: '100%'  // Ensure it doesn't exceed container
+    }}
   />
 </div>
 
@@ -127,7 +131,7 @@ export default function AstrologerListSection() {
               1200: { slidesPerView: 3, spaceBetween: 30 },
               1600: { slidesPerView: 4, spaceBetween: 30 },
             }}
-            className="pb-14 !px-1 md:!px-4" // Reduced padding on mobile
+            className="pb-14 px-1! md:px-4!" // Reduced padding on mobile
           >
             {astrologers.map((astro) => {
               const avail = astro.availability || "NONE";
@@ -143,7 +147,7 @@ export default function AstrologerListSection() {
               const showMeet = isMeetAvailable;
 
               return (
-                <SwiperSlide key={astro._id} className="!h-auto">
+                <SwiperSlide key={astro._id} className="h-auto!">
                   <div
                     className="border border-gray-200 rounded-xl md:rounded-2xl shadow-sm hover:shadow-xl transition-all duration-300 bg-white overflow-hidden h-full flex flex-col group hover:cursor-pointer"
                     onClick={() => {
@@ -155,7 +159,7 @@ export default function AstrologerListSection() {
                     <div className="flex items-start p-3 sm:p-5 md:p-6 border-b border-gray-100 flex-1 relative">
                       
                       {/* Image - Responsive Size */}
-                      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden flex-shrink-0 border-2 border-[#E5DECED6] group-hover:border-[#7E5833] transition-colors">
+                      <div className="w-14 h-14 sm:w-16 sm:h-16 md:w-20 md:h-20 rounded-full overflow-hidden shrink-0 border-2 border-[#E5DECED6] group-hover:border-[#7E5833] transition-colors">
                         <img
                           src={
                             astro.profileImageUrl
@@ -174,7 +178,7 @@ export default function AstrologerListSection() {
                             {astro.fullName}
                           </h3>
                           {astro.averageRating > 0 && (
-                            <span className="text-[10px] sm:text-xs flex-shrink-0 flex items-center bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-md font-bold">
+                            <span className="text-[10px] sm:text-xs shrink-0 flex items-center bg-yellow-100 text-yellow-800 px-1.5 py-0.5 rounded-md font-bold">
                               <FaStar className="mr-1 text-yellow-600" />
                               {astro.averageRating.toFixed(1)}
                             </span>
@@ -183,7 +187,7 @@ export default function AstrologerListSection() {
 
                         <div className="text-xs sm:text-sm text-gray-600 space-y-1.5 mt-1.5">
                           <p className="flex items-start space-x-1.5">
-                            <FaLanguage className="mt-0.5 text-gray-400 flex-shrink-0" />
+                            <FaLanguage className="mt-0.5 text-gray-400 shrink-0" />
                             <span className="line-clamp-1 break-all">
                               {Array.isArray(astro.languages)
                                 ? astro.languages.join(", ")
@@ -192,12 +196,12 @@ export default function AstrologerListSection() {
                           </p>
 
                           <p className="flex items-center space-x-1.5">
-                            <FaUserGraduate className="text-gray-400 flex-shrink-0" />
+                            <FaUserGraduate className="text-gray-400 shrink-0" />
                             <span>{astro.experienceYears} Years Exp.</span>
                           </p>
 
                           <p className="flex items-start space-x-1.5">
-                            <MdWork className="mt-0.5 text-gray-400 flex-shrink-0" />
+                            <MdWork className="mt-0.5 text-gray-400 shrink-0" />
                             <span className="line-clamp-1 break-all">
                               {Array.isArray(astro.expertise)
                                 ? astro.expertise.join(", ")
