@@ -262,13 +262,11 @@ const loadRazorpay = () => {
 };
 
   const handleWalletRecharge = async () => {
-    console.log(process.env.NEXT_PUBLIC_API);
-console.log(localStorage.getItem("token"));
+    
 
     const token = localStorage.getItem("token");
 if (!token) {
   toast.error("Please login first");
-  router.push("/Login");
   return;
 }
     const amount = prompt("Enter recharge amount (₹)");
@@ -285,7 +283,8 @@ if (!token) {
       return;
     }
       const orderRes = await api.post("/payment/create-order", {
-        amount: Number(amount),
+        amount: Number(amount) * 100,
+        phone: user?.phone
       });
 
       const options = {
@@ -295,6 +294,31 @@ if (!token) {
         name: "My Astrova",
         description: "Wallet Recharge",
         order_id: orderRes.data.id,
+         modal: {
+                ondismiss: function () {
+                  setLoading(false);
+                },
+                handleback: true,
+                backdropclose: false,
+                // This ensures the modal stays on top of your slide-out
+                zIndex: 999999, 
+              },
+              config:{
+                display: {
+                  blocks:{
+                    utp:{
+                      name: "UPI Apps",
+                      instruments: [{ method: 'upi' }],
+                  },
+                },
+                sequence: ['block.utp'],
+                preferences: { show_default_blocks: true },
+                },
+              },
+             retry: {
+            enabled: true,
+            max_count: 3
+          },
         handler: async (response) => {
           try {
             const verifyRes = await api.post("/payment/verify", {

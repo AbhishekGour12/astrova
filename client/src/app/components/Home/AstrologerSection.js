@@ -90,9 +90,9 @@ export default function AstrologerListSection() {
   />
 </div>
 
-      <div className="max-w-[1440px] mx-auto px-4 md:px-12 relative z-10">
+      <div className="max-w-[1440px] mx-auto px-4 md:px-12 relative z-10 ">
         {/* Header */}
-        <div className="flex flex-col md:flex-row justify-between items-end mb-8 md:mb-10">
+        <div className="flex flex-col md:flex-row justify-between mb-8 md:mb-10">
           <div>
             <p className="inline-block px-4 py-1 bg-[#E5DECED6] text-[#7E5833] rounded-full text-sm font-medium mb-3">
               Expert Guidance
@@ -104,12 +104,14 @@ export default function AstrologerListSection() {
               Get instant clarity on love, career, and life from certified experts.
             </p>
           </div>
+          <div className="max-sm:flex justify-end"> 
           <Link
             href="/astrologers?service=ALL"
-            className="mt-6 md:mt-0 px-6 py-2 bg-[#003D33] text-white rounded-md font-medium hover:bg-[#002a23] transition"
+            className="mt-6 md:mt-0 px-6 py-2 bg-[#003D33] text-white rounded-md font-medium hover:bg-[#002a23] transition w-fit h-fit"
           >
             View All Astrologers
           </Link>
+          </div>
         </div>
 
         {/* SLIDER SECTION */}

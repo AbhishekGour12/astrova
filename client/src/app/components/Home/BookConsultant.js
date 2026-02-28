@@ -12,7 +12,7 @@ import Link from "next/link"
 export default function ConsultationSection() {
   return (
     <div className="relative z-[5] mt-[100px] overflow-visible h-[550px]">
-      <section className="relative bg-transparent text-white overflow-visible z-[10] min-h-[650px] md:min-h-[750px] lg:min-h-[850px]">
+      <section className="relative bg-transparent text-white overflow-visible z-[10] min-h-[650px] md:min-h-[750px] lg:min-h-[550px]">
         {/* ================= BACKGROUND ================= */}
         <div className="absolute inset-0 -z-10">
           <Image
@@ -20,7 +20,7 @@ export default function ConsultationSection() {
             alt="Background"
              fill
              priority
-            className="object-cover brightness-[0.35] h-[550px] w-[100%] max-md:h-[100%] "
+            className="object-cover brightness-[0.35] h-[550px] border w-[100%] max-md:h-[100%] "
           />
         </div>
 

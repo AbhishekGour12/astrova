@@ -408,7 +408,8 @@ export default function AstrologerProfile() {
 
     try {
       const orderRes = await api.post("/payment/create-order", {
-        amount: Number(amount),
+        amount: Number(amount) * 100,
+        phone: user?.phone
       });
 
       const options = {
@@ -418,6 +419,31 @@ export default function AstrologerProfile() {
         name: "MyAstrova",
         description: "Wallet Recharge",
         order_id: orderRes.data.id,
+         modal: {
+                ondismiss: function () {
+                  setLoading(false);
+                },
+                handleback: true,
+                backdropclose: false,
+                // This ensures the modal stays on top of your slide-out
+                zIndex: 999999, 
+              },
+              config:{
+                display: {
+                  blocks:{
+                    utp:{
+                      name: "UPI Apps",
+                      instruments: [{ method: 'upi' }],
+                  },
+                },
+                sequence: ['block.utp'],
+                preferences: { show_default_blocks: true },
+                },
+              },
+             retry: {
+            enabled: true,
+            max_count: 3
+          },
         handler: async (response) => {
           try {
             const verifyRes = await api.post("/payment/verify", {
