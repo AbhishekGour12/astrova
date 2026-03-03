@@ -4,8 +4,10 @@ import axios from "axios";
 import toast from "react-hot-toast";
 import api from "../lib/api";
 import { FiX, FiUser, FiMail, FiPhone, FiAlertCircle, FiCalendar } from "react-icons/fi";
+import { useSelector } from "react-redux";
 
 export default function RemedyModal({ remedy, onClose }) {
+  const user = useSelector((state) => state.auth.user);
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -53,6 +55,7 @@ useEffect(() => {
 
   const startPayment = async () => {
     if (!validateForm()) return;
+    if(!user) return toast.error("Please login to continue");
 
     try {
       setLoading(true);
@@ -64,7 +67,8 @@ useEffect(() => {
       }
 
       const orderRes = await api.post("/payment/create-order", {
-        amount: remedy.price,
+        amount: Number(remedy.price) * 100,
+        phone: user?.phone
       });
 
       const { id: razorpayOrderId, amount } = orderRes.data;

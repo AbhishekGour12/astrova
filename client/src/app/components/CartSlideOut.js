@@ -309,31 +309,31 @@ const amountToPay = Math.round(finalOnlineAmount * 100);
         currency: "INR",
         order_id: rpOrder.id,
         remember_customer: true,
-        modal: {
-        ondismiss: function () {
-          setLoading(false);
+          modal: {
+          ondismiss: function () {
+            setLoading(false);
+          },
+          handleback: true,
+          backdropclose: false,
+          // This ensures the modal stays on top of your slide-out
+          zIndex: 999999, 
         },
-        handleback: true,
-        backdropclose: false,
-        // This ensures the modal stays on top of your slide-out
-        zIndex: 999999, 
-      },
-      config:{
-        display: {
-          blocks:{
-            utp:{
-              name: "UPI Apps",
-              instruments: [{ method: 'upi' }],
+        config:{
+          display: {
+            blocks:{
+              utp:{
+                name: "UPI Apps",
+                instruments: [{ method: 'upi' }],
+            },
+          },
+          sequence: ['block.utp'],
+          preferences: { show_default_blocks: true },
           },
         },
-        sequence: ['block.utp'],
-        preferences: { show_default_blocks: true },
-        },
-      },
-     retry: {
-    enabled: true,
-    max_count: 3
-  },
+      retry: {
+      enabled: true,
+      max_count: 3
+    },
         handler: async (response) => {
           try {
           const verify = await paymentAPI.verifyPayment(response);
