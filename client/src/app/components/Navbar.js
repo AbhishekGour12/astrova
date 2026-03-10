@@ -86,15 +86,16 @@ ${
         className="flex  mx-auto justify-between items-center
   px-4 sm:px-6 lg:px-12
   h-[72px] lg:h-[88px]
-  text-[#E9C164] font-semibold  "
+
+  text-[#E9C164] font-semibold max-[1380px]:px-2  "
       >
         {/* LOGO */}
         {/* LOGO FIXED RESPONSIVE */}
         <div
           onClick={() => router.push("/")}
-          className="cursor-pointer flex items-center "
+          className="cursor-pointer flex items-center max-[1380px]:mr-[30px] max-[1240px]:mr-0 "
         >
-          <div className="relative w-[56px] h-[56px] lg:w-[100px] lg:h-[100px]  ">
+          <div className="relative  w-[56px] h-[56px] lg:w-[100px] lg:h-[100px]  ">
             <Image
               src="/logo2.png"
               alt="MyAstrovaLogo"
@@ -106,7 +107,7 @@ ${
             />
           </div>
           <span
-            className="ml-2 text-[20px] lg:text-[24px] font-bold max-sm:text-[15px] max-[380px]:text-[10px]"
+            className="max-[1380px]:text-[15px] max-[1240]:text-[24px] ml-2 text-[20px]  font-bold max-sm:text-[15px] max-[380px]:text-[10px]"
             style={{ fontFamily: "Noto Sans" }}
           >
             MYASTROVA
