@@ -203,6 +203,9 @@ const [showProfileModal, setShowProfileModal] = useState(false);
   const fetchData = useCallback(async () => {
     try {
       if(!user){
+        toast.error("Please login to access astrologers");
+        router.push("/")
+       
         return;
       }
       setLoading(true);
@@ -242,7 +245,7 @@ const [showProfileModal, setShowProfileModal] = useState(false);
 
   if (!hasSeenModal) {
     setShowProfileModal(true);
-    localStorage.setItem("astroProfileModalShown", "true");
+   // localStorage.setItem("astroProfileModalShown", "true");
   }
 }, [astrologers]);
 

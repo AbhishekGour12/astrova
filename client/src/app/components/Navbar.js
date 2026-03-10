@@ -185,7 +185,7 @@ ${
       <FaUser className="text-sm text-[#E9C164]" />
       <span className="text-[#E9C164] font-medium">
         {/* If name is missing (new signup), show "User", else show name */}
-        {user.username || user.shippingAddress?.username || "User"}
+        {user?.username?.split(" ")[0] || user?.shippingAddress?.username?.split(" ")[0] || user?.astroProfile?.fullName?.split(" ")[0] || "User"}
       </span>
     </div>
 
@@ -313,7 +313,7 @@ ${
         <FaUser className="text-[#E9C164]" />
         <span className="text-[#E9C164]">
           {/* Default to "User" if profile isn't complete yet */}
-          {user.username || user?.shippingAddress?.username || "My Profile"}
+          {user?.username?.split(" ")[0] || user?.shippingAddress?.username?.split(" ")[0] || user?.astroProfile?.fullName?.split(" ")[0] || "My Profile"}
         </span>
       </div>
 

@@ -3,6 +3,7 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import toast from "react-hot-toast";
 import { authAPI } from "../lib/auth";
+import { FaTimesCircle, FaXingSquare } from "react-icons/fa";
 
 const AstroProfileModal = ({ onClose }) => {
   const [loading, setLoading] = useState(false);
@@ -51,6 +52,7 @@ const AstroProfileModal = ({ onClose }) => {
     try {
       await authAPI.updateAstroProfile(form);
       toast.success("Profile completed!");
+      localStorage.setItem("astroProfileModalShown", "true");
       onClose();
       window.location.reload();
     } catch (err) {
@@ -66,6 +68,9 @@ const AstroProfileModal = ({ onClose }) => {
         animate={{ scale: 1, opacity: 1 }}
         className="bg-white rounded-2xl p-6 max-w-lg w-full max-h-[90vh] overflow-y-auto"
       >
+        <div className="flex justify-end p-3">
+          <FaTimesCircle className="text-xl cursor-pointer" onClick={onClose} />
+        </div>
         <h2 className="text-xl font-bold mb-4">
           Complete Your Astro Profile 🌙
         </h2>
