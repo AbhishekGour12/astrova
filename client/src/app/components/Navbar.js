@@ -93,7 +93,7 @@ ${
         {/* LOGO FIXED RESPONSIVE */}
         <div
           onClick={() => router.push("/")}
-          className="cursor-pointer flex items-center max-[1380px]:mr-[30px] max-[1240px]:mr-0 "
+          className="cursor-pointer flex items-center max-[1400px]:mr-[30px] max-[1240px]:mr-0 "
         >
           <div className="relative  w-[56px] h-[56px] lg:w-[100px] lg:h-[100px]  ">
             <Image
@@ -107,7 +107,7 @@ ${
             />
           </div>
           <span
-            className="max-[1380px]:text-[15px] max-[1240]:text-[24px] ml-2 text-[20px]  font-bold max-sm:text-[15px] max-[380px]:text-[10px]"
+            className="max-[1400px]:text-[15px] max-[1240]:text-[24px] ml-2 text-[20px]  font-bold max-sm:text-[15px] max-[380px]:text-[10px]"
             style={{ fontFamily: "Noto Sans" }}
           >
             MYASTROVA
@@ -127,7 +127,7 @@ ${
     max-w-[640px]
     flex-shrink-0
     mr-32 xl:mr-42
-    max-[1280px]:mr-16
+    max-[1400px]:mr-16
     
     
     pr-4 
