@@ -81,10 +81,13 @@ const swiperRef = useRef(null);
   
 const scrollToProducts = () => {
   if (productsRef.current) {
-    productsRef.current.scrollIntoView({ behavior: "smooth", block: "start" });
+    const yOffset = -120; // Adjust this value based on your Navbar height
+    const element = productsRef.current;
+    const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+
+    window.scrollTo({ top: y, behavior: "smooth" });
   }
 };
-
 
   // 🟤 Fetch all products (with filters)
   const fetchProducts = async () => {
@@ -124,7 +127,11 @@ const scrollToProducts = () => {
   
 
   const handleCategoryClick = (category) => {
-  scrollToProducts();
+    
+  // Give the state a millisecond to process so the scroll target is stable
+  setTimeout(() => {
+    scrollToProducts();
+  }, 100);
   setProducts([]);
   setFilters({ ...filters, category, page: 1 });
 };
@@ -271,12 +278,12 @@ const handleAddToCart = async (e, productId) => {
 
                     {/* Button */}
                     {slide.showButton && slide.buttonText && (
-                      <a
-                        href={slide.buttonLink}
+                      <button
+                        onClick={() => handleCategoryClick(slide.buttonLink)}
                         className={`${slide.buttonColor} inline-block text-white px-6 sm:px-7 md:px-8 py-3 sm:py-3.5 md:py-4 rounded-xl font-semibold text-sm sm:text-base md:text-lg shadow-xl hover:scale-[1.06] transition-all duration-300`}
                       >
                         {slide.buttonText}
-                      </a>
+                      </button>
                     )}
                   </motion.div>
                 </div>
@@ -519,8 +526,8 @@ onClick={() => {
 
 
         {/* 🛍 OUR PRODUCTS GRID */}
-        <section ref={productsRef} className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
-  <h2 className="text-xl sm:text-2xl md:text-3xl font-semibold text-[#111111] mb-6 text-center">
+        <section  className="max-w-7xl mx-auto px-3 sm:px-4 md:px-6">
+  <h2 ref={productsRef} className="text-xl sm:text-2xl md:text-3xl font-semibold text-[#111111] mb-6 text-center">
     Our Products
   </h2>
 
@@ -534,6 +541,7 @@ onClick={() => {
     gap-4 sm:gap-6 lg:gap-8 
     place-items-center
     max-[350px]:grid-cols-1
+    min-h-[500px]
     pb-6
   ">
     {products.map((p, i) => (
