@@ -33,16 +33,39 @@ export const registerAstrologer = async (req, res) => {
       ifsc
     } = req.body;
     
-    const phoneRegex = /^(?:\+91\s?)?[6-9]\d{9}$/;
+   // 1. Remove all non-numeric characters (spaces, dashes, brackets, etc.)
+    let cleanedPhone = phone.replace(/\D/g, "");
+
+    // 2. Handle different formats to ensure it ends up as +91XXXXXXXXXX
+    // If it starts with 91 and is 12 digits long (e.g., 919876543210)
+    if (cleanedPhone.length === 12 && cleanedPhone.startsWith("91")) {
+      cleanedPhone = `+${cleanedPhone}`;
+    } 
+    // If it's 10 digits long, just prepend +91
+    else if (cleanedPhone.length === 10) {
+      cleanedPhone = `+91${cleanedPhone}`;
+    } 
+    // If it's already +91 followed by 10 digits
+    else if (cleanedPhone.length === 11 && cleanedPhone.startsWith("91")) {
+       // This handles rare cases where user typed 91 + 9 digits or similar errors
+       return res.status(400).json({ message: "Invalid phone number length" });
+    }
+    else {
+      return res.status(400).json({ message: "Please enter a valid 10-digit phone number" });
+    }
+    // New simple regex to check if our final string is exactly +91 followed by 10 digits
+    const finalPhoneRegex = /^\+91[6-9]\d{9}$/;
+    if (!finalPhoneRegex.test(cleanedPhone)) {
+      return res.status(400).json({ message: "Invalid Indian phone number" });
+    }
     /* ================= BASIC VALIDATION ================= */
     if (!fullName || !email || !phone || !bio)
       return res.status(400).json({ message: "Missing required fields" });
 
-    if (!phoneRegex.test(phone))
-      return res.status(400).json({ message: "Invalid phone number" });
+    
 
     const exists = await Astrologer.findOne({
-      email: email
+      $and:[{email: email }, {phone: cleanedPhone}]
     });
     if (exists)
       return res.status(400).json({ message: "Email already registered" });
@@ -78,7 +101,7 @@ export const registerAstrologer = async (req, res) => {
     const astrologer = new Astrologer({
       fullName,
       email,
-      phone,
+      phone: cleanedPhone,
       bio,
       gender,
       age,
@@ -471,45 +494,57 @@ export const toggleAstrologerAvailability = async (req, res) => {
 };
 
 
-
 export const sendOTP = async (req, res) => {
-  const { phone } = req.body;
-  const user = await Astrologer.findOne({phone: phone});
-  
-  if(user){
-     return res.status(400).json({ success: false, message: "Phone no. already registered" });
+  let { phone } = req.body;
+try{
+  if (!phone) return res.status(500).json({ success: false, message: "Phone required" });
 
+  // 1. Strip and Clean
+  let cleaned = phone.replace(/\D/g, "");
+  let tenDigitNumber = "";
+
+  if (cleaned.length === 10) {
+    tenDigitNumber = cleaned;
+  } else if (cleaned.length === 12 && cleaned.startsWith("91")) {
+    tenDigitNumber = cleaned.substring(2);
+  } else {
+    return res.status(400).json({ success: false, message: "Invalid mobile number length" });
   }
 
-  if (!phone) {
-    return res.status(400).json({ success: false, message: "Phone required" });
+  // 2. VALIDATION: Check if it starts with 6, 7, 8, or 9
+  if (!/^[6-9]/.test(tenDigitNumber)) {
+    return res.status(400).json({ success: false, message: "Invalid Indian mobile number (Must start with 6-9)" });
+  }
+
+  const normalizedPhone = `+91${tenDigitNumber}`;
+
+  // 3. Database Check
+  const user = await Astrologer.findOne({ phone: normalizedPhone });
+  
+  if (user) {
+    return res.status(400).json({ success: false, message: "Phone number already registered" });
   }
 
   const otp = Math.floor(100000 + Math.random() * 900000);
-
-  otpStore.set(phone, {
-    otp,
-    expiresAt: Date.now() + 5 * 60 * 1000, // 5 minutes
-  });
+  otpStore.set(normalizedPhone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
 
   
-     // Country code (91)
-const countryCode = phone.substring(1, 3);
-
-// Mobile number
-const mobile = phone.substring(3);
-
-    // 3️⃣ Send SMS via CPaaS API
-const response = await axios.get (`https://cpaas.socialteaser.com/restapi/request.php?authkey=6aa45940ce7d45f2&mobile=${mobile}&country_code=${countryCode}&sid=29289&name=Twinkle&otp=${otp}` );
-      
-
-  res.status(200).json({ success: true, message: "OTP sent successfully" });
+    // Note: CPaaS API uses '91' for countryCode and the '10-digit' for mobile
+    await axios.get(
+      `https://cpaas.socialteaser.com/restapi/request.php?authkey=6aa45940ce7d45f2&mobile=${tenDigitNumber}&country_code=91&sid=29289&name=Twinkle&otp=${otp}`
+    );
+    res.status(200).json({ success: true, message: "OTP sent successfully" });
+  } catch (error) {
+    console.log(error)
+    res.status(400).json({ success: false, message: error.message || "Failed to send OTP" });
+  }
 };
 
 export const verifyOTP = async (req, res) => {
   const { phone, otp } = req.body;
-
-  const record = otpStore.get(phone);
+ const normalizedPhone = `+91${phone}`;
+  const record = otpStore.get(normalizedPhone);
+  
   if (!record) {
     return res.status(400).json({ success: false, message: "OTP expired or not found" });
   }
@@ -518,11 +553,11 @@ export const verifyOTP = async (req, res) => {
     otpStore.delete(phone);
     return res.status(400).json({ success: false, message: "OTP expired" });
   }
-
+  
   if (record.otp.toString() !== otp.toString()) {
     return res.status(400).json({ success: false, message: "Invalid OTP" });
   }
 
-  otpStore.delete(phone);
+  otpStore.delete(normalizedPhone);
   res.json({ success: true, message: "Phone verified" });
 };

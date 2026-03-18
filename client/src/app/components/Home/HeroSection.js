@@ -6,10 +6,11 @@ import MiniAdStrip from './MiniAdStrip'
 import axios from "axios";
 import { motion } from "framer-motion";
 import Link from "next/link";
+import { useSelector } from "react-redux";
 const HeroSection = () => {
   const [carousel, setCarousel] = useState()
   const router = useRouter()
-
+  const user = useSelector((state) => state.user);
 
 
   
@@ -166,7 +167,13 @@ const HeroSection = () => {
   },
 ], []);
 
-
+const button = () =>{
+  if(user){
+    router.push("/astrologers?service=ALL")
+  }else{
+    router.push("/Login")
+  }
+}
   return (
   <section className="  relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 overflow-hidden ">
 
@@ -230,7 +237,7 @@ opacity-5 relative">
   
 <motion.button
   className="relative  overflow-hidden inline-block rounded-full shadow-md text-sm sm:text-base font-medium"
-  onClick={() => router.push("/astrologers?service=ALL")}
+  onClick={button}
   animate={{
     scale: [1, 1.02, 1],
     boxShadow: [

@@ -176,13 +176,25 @@ const [phoneVerified, setPhoneVerified] = useState(false);
   };
 const sendOTP = async () => {
   if (!form.phone) return toast.error("Enter phone number first");
+  // Optional: Frontend validation before even calling the API
+  const cleanPhone = form.phone.replace(/\D/g, "");
+  if (cleanPhone.length < 10 || !/^[6-9]/.test(cleanPhone)) {
+    return toast.error("Please enter a valid Indian mobile number starting with 6-9");
+  }
 
   try {
     await api.post("/astrologer/send-otp", { phone: form.phone });
     setOtpSent(true);
     toast.success("OTP sent to phone");
   } catch (err) {
-    toast.error("Failed to send OTP");
+    // 1. Log the full data object to see what the backend sent
+    
+    // 2. Extract the specific message
+    // err.response.data matches exactly what you sent in res.status(400).json({...})
+    const backendMessage = err.response?.data?.message;
+    
+    // 3. Show it in the toast, or show a fallback if the backend is unreachable
+    toast.error(backendMessage || "Failed to send OTP");
   }
 };
 const verifyOTP = async () => {
@@ -301,10 +313,11 @@ const verifyOTP = async () => {
     <input
       name="phone"
       value={form.phone}
-      placeholder="phone no. format +91265656..."
+      placeholder="phone no."
       onChange={handleChange}
       disabled={phoneVerified}
       className="flex-1 border rounded-lg px-4 py-3"
+      maxLength={10}
     />
 
     {!phoneVerified && (

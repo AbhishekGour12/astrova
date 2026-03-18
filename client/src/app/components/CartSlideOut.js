@@ -123,6 +123,7 @@ useEffect(() => {
     const load = async () => {
       try {
         const data = await couponAPI.getAll();
+        console.log(data.coupons)
         setAvailableCoupons(data.coupons);
       } catch {}
     };
@@ -133,8 +134,8 @@ useEffect(() => {
   // RESET LOGIC
   // ================================
   useEffect(() => {
-    if (shippingCharge > 0 || couponDiscount > 0) {
-        setShippingCharge(0);
+    if ( couponDiscount > 0) {
+       // setShippingCharge(0);
         setCouponDiscount(0);
         setCouponCode("");
         setDeliveryETA(null);
@@ -617,57 +618,92 @@ const handleOnlinePayment = async () => {
                 </>
               )}
 
-              {checkoutStep === "coupon" && (
-                <>
-                    <h3 className="font-bold mb-3">Apply Coupon</h3>
-                    <div className="flex gap-2">
-                        <input 
-                            value={couponCode} 
-                            onChange={e => setCouponCode(e.target.value)} 
-                            className="flex-1 border px-3 py-2 rounded-lg"
-                            placeholder="Enter coupon"
-                        />
-                        <button 
-                            onClick={applyCoupon} 
-                            disabled={loading}
-                            className="px-4 py-2 bg-[#C06014] text-white rounded-lg"
-                        >
-                            {loading ? "..." : "Apply"}
-                        </button>
-                    </div>
+             {checkoutStep === "coupon" && (
+  <>
+    <h3 className="font-bold mb-3">Apply Coupon</h3>
+    <div className="flex gap-2 mb-4">
+      <input 
+        value={couponCode} 
+        onChange={e => setCouponCode(e.target.value)} 
+        className="flex-1 border px-3 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-[#003D33]"
+        placeholder="Enter coupon"
+      />
+      <button 
+        onClick={applyCoupon} 
+        disabled={loading}
+        className="px-4 py-2 bg-[#C06014] text-white rounded-lg font-medium hover:bg-[#a65212] transition-colors"
+      >
+        {loading ? "..." : "Apply"}
+      </button>
+    </div>
 
-                    <p className="font-semibold mt-4 mb-2 text-[#003D33]">Available Coupons</p>
-                    <div className="space-y-2">
-                        {availableCoupons.length ? (
-                            availableCoupons.map((cp) => (
-                                <button
-                                    key={cp._id}
-                                    onClick={() => setCouponCode(cp.code)}
-                                    className="w-full border p-3 rounded-lg text-left hover:bg-[#ECE5D3]"
-                                >
-                                    <p className="font-semibold">{cp.code}</p>
-                                    <p className="text-sm text-gray-600">
-                                        {cp.discountType === "percentage" ? `${cp.discountValue}% Off` : `Flat ₹${cp.discountValue} Off`}
-                                    </p>
-                                </button>
-                            ))
-                        ) : (
-                            <p className="text-gray-500">No coupons available.</p>
-                        )}
-                    </div>
+    <p className="font-semibold mb-2 text-[#003D33] flex items-center gap-2">
+      Available Coupons
+    </p>
 
-                    <button 
-                        onClick={() => {
-                            
-                                setCheckoutStep("payment");
-                            
-                        }} 
-                        className="w-full mt-6 bg-[#003D33] text-white py-3 rounded-xl"
-                    >
-                        Continue to Payment
-                    </button>
-                </>
-              )}
+    {/* SCROLLABLE CONTAINER */}
+    <div className="space-y-3 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
+      {availableCoupons.length ? (
+        availableCoupons.map((cp) => (
+          <div 
+            key={cp._id} 
+            className="border-2 border-dashed border-gray-300 rounded-xl p-3 bg-white hover:border-[#003D33] transition-all relative"
+          >
+            <div className="flex justify-between items-start">
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <span className="font-bold text-lg text-[#003D33]">{cp.code}</span>
+                  {cp.maxDiscount && (
+                    <span className="text-[10px] bg-green-100 text-green-700 px-2 py-0.5 rounded-full font-bold">
+                      SAVE UP TO ₹{cp.maxDiscount}
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm font-medium text-gray-800 mt-1">
+                  {cp.discountType === "percentage" 
+                    ? `Get ${cp.discountValue}% OFF` 
+                    : `Flat ₹${cp.discountValue} OFF`}
+                </p>
+              </div>
+              
+              <button 
+                onClick={() => setCouponCode(cp.code)}
+                className="text-[#C06014] font-bold text-sm hover:underline"
+              >
+                APPLY
+              </button>
+            </div>
+
+            {/* TERMS & CONDITIONS TOGGLE */}
+            <div className="mt-2 pt-2 border-t border-gray-100">
+              <details className="group">
+                <summary className="text-[11px] text-blue-600 cursor-pointer font-medium list-none flex items-center gap-1 group-open:mb-2">
+                  <span>Terms & Conditions</span>
+                  <span className="group-open:rotate-180 transition-transform text-[8px]">▼</span>
+                </summary>
+                <div className="text-[10px] text-gray-500 space-y-1 bg-gray-50 p-2 rounded">
+                  <li className="list-none">• Min. Order Value: <b>₹{cp.minAmount || 0}</b></li>
+                  {cp.maxDiscount && <li className="list-none">• Max. Discount: <b>₹{cp.maxDiscount}</b></li>}
+                  <li className="list-none">• Valid until: <b>{new Date(cp.expiresAt).toLocaleDateString()}</b></li>
+                  
+                </div>
+              </details>
+            </div>
+          </div>
+        ))
+      ) : (
+        <p className="text-gray-500 text-center py-10">No coupons available right now.</p>
+      )}
+    </div>
+
+    <button 
+      onClick={() => setCheckoutStep("payment")} 
+      className="w-full mt-6 bg-[#003D33] text-white py-3 rounded-xl font-bold shadow-lg active:scale-95 transition-all"
+    >
+      Continue to Payment
+    </button>
+  </>
+)}
 
             {checkoutStep === "payment" && (
   <div className="space-y-4 px-2">

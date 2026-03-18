@@ -8,8 +8,19 @@ import {
 } from "react-icons/fa";
 import Image from "next/image";
 import Link from "next/link"
+import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 
 export default function ConsultationSection() {
+  const user = useSelector((state) => state.user);
+  const router = useRouter();
+  const chat = () =>{
+    if(user){
+      router.push("/astrologers?service=ALL")
+    }else{
+      router.push("/Login")
+    }
+  }
   return (
     <div className="relative z-[5] mt-[100px] overflow-visible h-[550px]">
       <section className="relative bg-transparent text-white overflow-visible z-[10] min-h-[650px] md:min-h-[750px] lg:min-h-[550px]">
@@ -79,11 +90,11 @@ export default function ConsultationSection() {
 
             {/* ================= BUTTON ================= */}
             <div className="pt-6 flex justify-center md:justify-start">
-              <Link href="/astrologers?service=ALL">
-              <button className="px-6 sm:px-8 py-3 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow-md hover:bg-[#E8E3CF] transition-all duration-300 text-sm sm:text-base font-medium">
+             
+              <button className="px-6 sm:px-8 py-3 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow-md hover:bg-[#E8E3CF] transition-all duration-300 text-sm sm:text-base font-medium" onClick={chat}>
                 Book Now 
               </button>
-              </Link>
+              
               
               
             </div>

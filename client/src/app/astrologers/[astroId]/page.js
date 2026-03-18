@@ -93,9 +93,7 @@ export default function AstrologerProfile() {
   // Check for mobile screen
   useEffect(() => {
     const token = localStorage.getItem("token") || ""
-    if(!token){
-      router.push("/")
-    }
+   
     const checkMobile = () => {
       setIsMobile(window.innerWidth < 768);
     };
@@ -901,7 +899,7 @@ export default function AstrologerProfile() {
                       Login to connect with astrologer
                     </p>
                     <button
-                      onClick={() => router.push("/login")}
+                      onClick={() => router.push("/Login")}
                       className="px-4 py-2 bg-[#F7F3E9] border border-[#B2C5B2] rounded-full text-sm"
                     >
                       Login / Sign Up

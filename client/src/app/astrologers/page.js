@@ -202,27 +202,31 @@ const [showProfileModal, setShowProfileModal] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
-      if(!user){
-        toast.error("Please login to access astrologers");
-        router.push("/")
-       
-        return;
-      }
+     
       setLoading(true);
      
 
 
+     // Astrologer API (always run)
+const astroPromise = api.get('/astrologer', {
+  params: service !== "ALL" ? { service } : {}
+});
 
-      const [astroRes, walletRes] = await Promise.all([
-        api.get('/astrologer', {
-          params: service != "ALL" ? { service } : {}
-        }),
-        api.get('/auth/wallet')
-      ]);
-      
-      setAstrologers(astroRes?.data || []);
-      setWallet(walletRes.data?.balance || 0);
-      
+// Wallet API (only if user exists)
+const walletPromise = user ? api.get('/auth/wallet') : null;
+
+const [astroRes, walletRes] = await Promise.all([
+  astroPromise,
+  walletPromise
+]);
+
+// set astrologers always
+setAstrologers(astroRes?.data || []);
+
+// set wallet only if user exists
+if (walletRes) {
+  setWallet(walletRes.data?.balance || 0);
+}
       // Fetch active chats if user is logged in
       if (user) {
         await fetchActiveChats();
@@ -518,7 +522,7 @@ const showMeetBtn = (a) =>
   const openMeetModal = (astrologer) => {
     if (!user) {
       toast.error("Please login first");
-      router.push("/");
+     
       return;
     }
     
@@ -650,7 +654,8 @@ const testToken = async () => {
             
             <button
               onClick={handleWalletRecharge}
-              className="flex items-center gap-2 bg-gradient-to-r from-[#003D33] to-[#00695C] text-white px-4 py-2 rounded-full hover:from-[#00695C] hover:to-[#003D33] transition-all duration-300 shadow-md hover:shadow-lg"
+              className={`flex items-center gap-2 bg-gradient-to-r from-[#003D33] to-[#00695C] text-white px-4 py-2 rounded-full hover:from-[#00695C] hover:to-[#003D33] transition-all duration-300 shadow-md hover:shadow-lg  ${user ? "" : "cursor-not-allowed opacity-50"}`}
+              
             >
               <FaWallet className="text-lg" />
               <span className="font-medium">₹{wallet}</span>
