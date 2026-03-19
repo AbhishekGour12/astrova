@@ -795,7 +795,7 @@ const isMobileDevice = () => {
             </div>
             <div className="text-right">
               {/* Yahan Subtotal + Fees - 10% Discount dikh raha hai */}
-              <span className="block font-bold text-lg leading-none">₹{onlinePreviewTotal.toFixed(2)}
+              <span className="block font-bold text-lg leading-none">₹{onlinePreviewTotal.toFixed(0)}
 </span>
               <span className="text-[10px] line-through opacity-50">
               ₹{(subtotal - couponDiscount).toFixed(2)}
@@ -900,7 +900,7 @@ const isMobileDevice = () => {
             
 <div className="absolute bottom-0 left-0 right-0 bg-white border-t shadow-lg p-4 z-99999">
   <div onClick={() => setShowPriceDetails(!showPriceDetails)} className="flex justify-between cursor-pointer">
-    <span className="font-bold text-[#003D33]">Total: ₹{finalAmount}</span>
+    <span className="font-bold text-[#003D33]">Total: ₹{finalAmount.toFixed(0)}</span>
     <span className="text-[#C06014] text-sm">{showPriceDetails ? "Hide Details ▲" : "View Details ▼"}</span>
   </div>
   
