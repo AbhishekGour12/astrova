@@ -194,7 +194,7 @@ const shippingCharge = 0; // FREE SHIPPING
 
 // ❗ Discount sirf preview ke liye
 const onlineDiscountAmountPreview =
-  subtotal * (onlineDiscountPercent / 100);
+  Math.round(subtotal * (onlineDiscountPercent / 100));
 
 const onlinePreviewTotal =
   subtotal - couponDiscount - onlineDiscountAmountPreview;
@@ -207,7 +207,7 @@ const codTotal =
 
 const finalAmount =
   paymentMethod === "online"
-    ? Number(onlinePreviewTotal.toFixed(2))
+    ? Number(onlinePreviewTotal.toFixed(0))
     : isCOD
       ? Math.ceil(codTotal)
       : Number((subtotal - couponDiscount).toFixed(2));
@@ -280,16 +280,17 @@ const roundOffAmount =
 
   const handleRazorpay = async () => {
     //if (!user) return toast.error("Login required");
-    if (typeof window === "undefined" || !window.Razorpay) {
-    toast.error("Payment gateway is still loading. Please wait 2 seconds.");
-    return;
-  }
-  const discountAmount = subtotal * 0.10;
+   if (typeof window === "undefined" || !window.Razorpay) {
+  toast.error("Payment gateway is still loading. Please wait 2 seconds.");
+  return;
+}
+  const discountAmount = Number(subtotal * 0.10).toFixed(2);
 
 const finalOnlineAmount =
   subtotal - couponDiscount - discountAmount;
 
-const amountToPay = Math.round(finalOnlineAmount * 100);
+const roundedRupees = Math.round(finalOnlineAmount); // Remove decimals
+const amountToPay = roundedRupees * 100; // Convert to paise
   if (!amountToPay || amountToPay < 100) {
     toast.error("Invalid payment amount");
     return;
@@ -318,6 +319,10 @@ const amountToPay = Math.round(finalOnlineAmount * 100);
           backdropclose: false,
           // This ensures the modal stays on top of your slide-out
           zIndex: 999999, 
+           // Add these for mobile
+          confirm_close: true, // Ask before closing
+          animation: true,
+          escape: false // Disable escape key on mobile
         },
         config:{
           display: {
@@ -327,7 +332,14 @@ const amountToPay = Math.round(finalOnlineAmount * 100);
                 instruments: [{ method: 'upi' }],
             },
           },
-          sequence: ['block.utp'],
+           bank: {
+          name: "Cards & NetBanking",
+          instruments: [
+            { method: 'card' },
+            { method: 'netbanking' }
+          ]
+        },
+          sequence: ['block.utp', 'block.bank'],
           preferences: { show_default_blocks: true },
           },
         },
@@ -335,6 +347,14 @@ const amountToPay = Math.round(finalOnlineAmount * 100);
       enabled: true,
       max_count: 3
     },
+     // ✅ Ensure prefill data is complete
+  prefill: {
+    name: address.fullName,
+    email: address.email,
+    contact: address.phone,
+    method: 'upi' // Prefer UPI on mobile
+  },
+  theme: { color: "#C06014" },
         handler: async (response) => {
           try {
           const verify = await paymentAPI.verifyPayment(response);
@@ -349,12 +369,7 @@ const amountToPay = Math.round(finalOnlineAmount * 100);
           setLoading(false);
         }
         },
-        prefill: {
-        name: address.fullName,
-        email: address.email,
-        contact: address.phone,
-      },
-        theme: { color: "#C06014" },
+       
       };
       const rz = new window.Razorpay(options);
       // 3. Mobile Specific Error Handling
@@ -501,11 +516,62 @@ useEffect(() => {
     }
   }
 }, [isCartOpen]);
+useEffect(() => {
+  // Load Razorpay script dynamically if not present
+  const loadRazorpayScript = () => {
+    return new Promise((resolve) => {
+      if (window.Razorpay) {
+        resolve(true);
+        return;
+      }
+      
+      const script = document.createElement('script');
+      script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+      script.onload = () => resolve(true);
+      script.onerror = () => resolve(false);
+      document.body.appendChild(script);
+    });
+  };
+
+  if (isCartOpen && checkoutStep === 'payment') {
+    loadRazorpayScript();
+  }
+}, [isCartOpen, checkoutStep]);
 
 const handleOnlinePayment = async () => {
   setIsCOD(false);
   setPaymentMethod("online");
+  
+  // Check if Razorpay is loaded
+  if (!window.Razorpay) {
+    toast.loading("Loading payment gateway...", { id: 'razorpay-load' });
+    
+    // Load script dynamically
+    const script = document.createElement('script');
+    script.src = 'https://checkout.razorpay.com/v1/checkout.js';
+    script.onload = () => {
+      toast.dismiss('razorpay-load');
+      // Small delay to ensure script is fully initialized
+      setTimeout(() => {
+        handleRazorpay();
+      }, 100);
+    };
+    script.onerror = () => {
+      toast.dismiss('razorpay-load');
+      toast.error("Failed to load payment gateway. Please try again.");
+    };
+    document.body.appendChild(script);
+    return;
+  }
+  
+  // If Razorpay is already loaded, call directly
   handleRazorpay();
+};
+const isMobileDevice = () => {
+  if (typeof window === 'undefined') return false;
+  return /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+    navigator.userAgent
+  );
 };
   // ================================
   // 5. UI RENDER

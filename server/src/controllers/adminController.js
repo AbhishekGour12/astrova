@@ -315,16 +315,40 @@ export const approveAstrologer = async (req, res) => {
 
     /* ================= 5️⃣ EMAIL ================= */
     await sendEmail({
-      to: astrologer.email,
-      subject: "Astrologer Account Approved",
-      html: `
-        <h3>Welcome ${astrologer.fullName}</h3>
-        <p>Your account has been approved.</p>
-        <p><b>Email:</b> ${astrologer.email}</p>
-        <p><b>Password:</b> ${rawPassword}</p>
-        <p>Please login and change your password.</p>
-      `,
-    });
+  to: astrologer.email,
+  subject: "Astrologer Account Approved",
+  html: `
+    <h3>Welcome ${astrologer.fullName}</h3>
+    <p>Your account has been approved.</p>
+
+    <p><b>Email:</b> ${astrologer.email}</p>
+    <p><b>Password:</b> ${rawPassword}</p>
+
+    <p>Please login</p>
+
+    <br/>
+
+    <a href="https://myastrova.com/login" 
+       style="
+         display:inline-block;
+         padding:10px 20px;
+         background-color:#0d6efd;
+         color:#ffffff;
+         text-decoration:none;
+         border-radius:5px;
+         font-weight:bold;
+       ">
+       Login Now
+    </a>
+
+    <p style="margin-top:10px;">
+      Or copy this link: <br/>
+      <a href="https://myastrova.com/login">
+        https://myastrova.com/login
+      </a>
+    </p>
+  `,
+});
 
     res.json({
       success: true,

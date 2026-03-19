@@ -1,175 +1,153 @@
 import { motion } from "framer-motion";
-import { FaPlus, FaEye, FaEdit, FaTrash } from "react-icons/fa";
+import { FaPlus, FaEye, FaEdit, FaTrash, FaCheckCircle, FaTimesCircle } from "react-icons/fa";
+import { useEffect, useState } from "react";
+import axios from "axios";
+import toast from "react-hot-toast";
 
-const UsersTab = ({ users, searchTerm, onDeleteUser }) => {
+const UsersTab = () => {
+  const [users, setUsers] = useState([]);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [loading, setLoading] = useState(true);
+
+  const fetchUsers = async () => {
+    try {
+      setLoading(true);
+      const response = await axios.get(`${process.env.NEXT_PUBLIC_API}/api/admin/users`, {
+        headers: {
+          Authorization: `Bearer ${localStorage.getItem("token")}`
+        }
+      });
+      setUsers(response.data);
+    } catch (error) {
+      console.error("Error fetching users:", error);
+      toast.error("Failed to load users");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchUsers();
+  }, []);
+
   const filteredUsers = users.filter(
     (user) =>
-      user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      user.email.toLowerCase().includes(searchTerm.toLowerCase())
+      user.username?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      user.phone?.includes(searchTerm) ||
+      user.email?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const getStatusColor = (status) =>
-    status === "active"
-      ? "bg-green-100 text-green-700"
-      : "bg-gray-100 text-gray-700";
+  const StatusBadge = ({ condition }) => (
+    condition ? 
+    <span className="flex items-center gap-1 text-green-600 font-medium text-xs bg-green-50 px-2 py-1 rounded-lg">
+      <FaCheckCircle /> True
+    </span> : 
+    <span className="flex items-center gap-1 text-red-400 font-medium text-xs bg-red-50 px-2 py-1 rounded-lg">
+      <FaTimesCircle /> False
+    </span>
+  );
+
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#C06014]"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h2 className="text-2xl sm:text-3xl font-bold text-[#003D33]">
-            User Management
-          </h2>
-          <p className="text-[#00695C] text-sm sm:text-base">
-            Manage your cosmic community members
-          </p>
+          <h2 className="text-2xl font-bold text-[#003D33]">User Management</h2>
+          <p className="text-[#00695C] text-sm">Review cosmic community profiles and completion status</p>
         </div>
-
-        <div className="flex gap-3 items-center">
-          <span className="text-sm sm:text-base text-[#00695C] bg-[#ECE5D3] px-3 py-1 rounded-full">
-            {filteredUsers.length} users
-          </span>
-
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            className="flex items-center gap-2 px-4 py-2 text-sm sm:text-base
-              bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white rounded-xl"
-          >
-            <FaPlus /> Add User
-          </motion.button>
+        <div className="flex gap-3">
+          <input
+            type="text"
+            placeholder="Search by name or phone..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="px-4 py-2 border rounded-xl focus:ring-2 focus:ring-[#C06014] outline-none"
+          />
+          <div className="bg-[#ECE5D3] px-4 py-2 rounded-xl flex items-center font-bold text-[#003D33]">
+            {filteredUsers.length}
+          </div>
         </div>
       </div>
 
-      {/* Table on large screens — Cards on mobile */}
       <div className="bg-white rounded-2xl border shadow-sm overflow-hidden">
-        {/* Desktop Table */}
-        <div className="hidden md:block overflow-x-auto">
-          <table className="w-full">
+        <div className="overflow-x-auto">
+          <table className="w-full text-left border-collapse">
             <thead className="bg-[#F7F3E9] text-[#003D33]">
               <tr>
-                {["User", "Email", "Status", "Orders", "Last Active", "Actions"].map((head) => (
-                  <th key={head} className="px-6 py-4 text-left font-semibold text-sm">
-                    {head}
-                  </th>
-                ))}
+                <th className="px-6 py-4 font-semibold text-sm">User Details</th>
+                <th className="px-6 py-4 font-semibold text-sm">Contact</th>
+                <th className="px-6 py-4 font-semibold text-sm text-center">Profile Done?</th>
+                <th className="px-6 py-4 font-semibold text-sm text-center">Shipping</th>
+                <th className="px-6 py-4 font-semibold text-sm text-center">Astro Profile</th>
+               
               </tr>
             </thead>
-
             <tbody className="divide-y">
               {filteredUsers.map((user) => (
-                <motion.tr
-                  key={user._id}
-                  initial={{ opacity: 0 }}
-                  animate={{ opacity: 1 }}
-                  className="hover:bg-[#F7F3E9]"
-                >
+                <tr key={user._id} className="hover:bg-gray-50 transition-colors">
+                  {/* Name & ID */}
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-gradient-to-br from-[#C06014] to-[#D47C3A] rounded-xl flex items-center justify-center text-white font-semibold">
-                        {user.name.charAt(0)}
+                      <div className="w-10 h-10 bg-[#C06014] rounded-full flex items-center justify-center text-white font-bold">
+                        {user.username?.charAt(0) || "U"}
                       </div>
                       <div>
-                        <p className="font-semibold text-[#003D33]">{user.name}</p>
-                        <p className="text-xs text-[#00695C]">
-                          Joined {new Date(user.createdAt).toLocaleDateString()}
-                        </p>
+                        <p className="font-bold text-[#003D33]">{user.username || "Guest User"}</p>
+                        <p className="text-[10px] text-gray-400 uppercase tracking-tighter">ID: {user._id.slice(-8)}</p>
                       </div>
                     </div>
                   </td>
 
-                  <td className="px-6 py-4 text-[#003D33]">{user.email}</td>
-
+                  {/* Phone & Email */}
                   <td className="px-6 py-4">
-                    <span className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusColor(user.status)}`}>
-                      {user.status}
-                    </span>
+                    <p className="text-sm font-medium text-[#003D33]">{user.phone}</p>
+                    <p className="text-xs text-[#00695C]">{user.isProfileComplete ? user.email : "Email not provided"}</p>
                   </td>
 
-                  <td className="px-6 py-4 font-semibold">{user.orders}</td>
-
-                  <td className="px-6 py-4 text-sm text-[#00695C]">{user.lastActive}</td>
-
-                  <td className="px-6 py-4">
-                    <div className="flex gap-2">
-                      <ActionBtn icon={<FaEye />} color="text-blue-500" bg="hover:bg-blue-50" title="View" />
-                      <ActionBtn icon={<FaEdit />} color="text-amber-500" bg="hover:bg-amber-50" title="Edit" />
-                      <ActionBtn
-                        icon={<FaTrash />}
-                        color="text-red-500"
-                        bg="hover:bg-red-50"
-                        title="Delete"
-                        onClick={() => onDeleteUser(user._id)}
-                      />
+                  {/* Profile Complete Status */}
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex justify-center">
+                        <StatusBadge condition={user.isProfileComplete} />
                     </div>
                   </td>
-                </motion.tr>
+
+                  {/* Shipping Address Status */}
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex justify-center">
+                        <StatusBadge condition={!!user.shippingAddress} />
+                    </div>
+                  </td>
+
+                  {/* Astrology Profile Status */}
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex justify-center">
+                        <StatusBadge condition={!!user.astrologyProfile} />
+                    </div>
+                  </td>
+
+                  
+                </tr>
               ))}
             </tbody>
           </table>
-        </div>
-
-        {/* Mobile Cards */}
-        <div className="md:hidden p-4 space-y-4">
-          {filteredUsers.map((user) => (
-            <motion.div
-              key={user._id}
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="p-4 bg-[#F7F3E9] rounded-xl shadow-sm space-y-2"
-            >
-              <div className="flex gap-3">
-                <div className="w-12 h-12 bg-gradient-to-br from-[#C06014] to-[#D47C3A] rounded-xl flex items-center justify-center text-white font-semibold">
-                  {user.name.charAt(0)}
-                </div>
-                <div>
-                  <p className="font-semibold text-[#003D33]">{user.name}</p>
-                  <p className="text-xs text-[#00695C]">{user.email}</p>
-                </div>
-              </div>
-
-              <div className="flex justify-between text-sm text-[#003D33]">
-                <span>Status:</span>
-                <span className={`px-2 py-1 rounded-full ${getStatusColor(user.status)}`}>
-                  {user.status}
-                </span>
-              </div>
-
-              <div className="flex justify-between text-sm text-[#003D33]">
-                <span>Orders:</span> <span>{user.orders}</span>
-              </div>
-
-              <div className="text-xs text-[#00695C]">Last active: {user.lastActive}</div>
-
-              <div className="flex gap-3 pt-2 justify-end">
-                <ActionBtn icon={<FaEye />} color="text-blue-500" bg="hover:bg-blue-50" />
-                <ActionBtn icon={<FaEdit />} color="text-amber-500" bg="hover:bg-amber-50" />
-                <ActionBtn
-                  icon={<FaTrash />}
-                  color="text-red-500"
-                  bg="hover:bg-red-50"
-                  onClick={() => onDeleteUser(user._id)}
-                />
-              </div>
-            </motion.div>
-          ))}
         </div>
       </div>
     </div>
   );
 };
 
-// Action Button component
-const ActionBtn = ({ icon, color, bg, title, onClick }) => (
-  <motion.button
-    whileHover={{ scale: 1.1 }}
-    whileTap={{ scale: 0.9 }}
-    title={title}
-    onClick={onClick}
-    className={`p-2 rounded-xl transition ${color} ${bg}`}
-  >
+const ActionBtn = ({ icon, color, bg, onClick }) => (
+  <button onClick={onClick} className={`p-2 rounded-lg transition-all ${color} ${bg}`}>
     {icon}
-  </motion.button>
+  </button>
 );
 
 export default UsersTab;

@@ -13,11 +13,13 @@ import {
   FaTimes,
   FaAdversal,
   FaMoneyBill,
-  FaPhone, // Added Close Icon
+  FaPhone,
+  FaUser, // Added Close Icon
 } from 'react-icons/fa';
 
 const menuItems = [
   { id: 'dashboard', label: 'Dashboard', icon: FaChartLine },
+  { id: 'users', label: 'Users', icon: FaUser },
   { id: 'astrologers', label: 'Astrologers', icon: FaUserAstronaut },
   { id: 'products', label: 'Products', icon: FaShoppingBag },
   { id: 'orders', label: 'Orders', icon: FaBox },
