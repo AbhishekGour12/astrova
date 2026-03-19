@@ -39,7 +39,7 @@ const server = http.createServer(app);
 const allowedOrigins = [
   "https://www.myastrova.com",
   "https://myastrova.com",
-  "http://localhost:3000" // Local testing ke liye
+  "http://localhost:3001" // Local testing ke liye
 ];
 
 app.use(cors({

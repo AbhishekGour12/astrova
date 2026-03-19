@@ -168,11 +168,9 @@ const HeroSection = () => {
 ], []);
 
 const button = () =>{
-  if(user){
+ 
     router.push("/astrologers?service=ALL")
-  }else{
-    router.push("/Login")
-  }
+  
 }
   return (
   <section className="  relative min-h-screen flex flex-col lg:flex-row items-center justify-between font-poppins pt-24 overflow-hidden ">
