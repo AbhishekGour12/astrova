@@ -328,7 +328,7 @@ export const approveAstrologer = async (req, res) => {
 
     <br/>
 
-    <a href="https://myastrova.com/login" 
+    <a href="https://myastrova.com/Astrologer/login" 
        style="
          display:inline-block;
          padding:10px 20px;
@@ -343,8 +343,8 @@ export const approveAstrologer = async (req, res) => {
 
     <p style="margin-top:10px;">
       Or copy this link: <br/>
-      <a href="https://myastrova.com/login">
-        https://myastrova.com/login
+      <a href="https://myastrova.com/Astrologer/login">
+       Login Link
       </a>
     </p>
   `,
