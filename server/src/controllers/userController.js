@@ -165,7 +165,7 @@ const requestotp = async( req, res) =>{
     const otp = Math.floor(100000 + Math.random() * 900000);
 
     // 2️⃣ Store OTP temporarily (5 mins expiry)
-    otpStore.set(phone, { otp, expiresAt: Date.now() + 5 * 60 * 1000 });
+    otpStore.set(phone, { otp, expiresAt: Date.now() + 2 * 60 * 1000 });
     
      // Country code (91)
 const countryCode = phone.substring(1, 3);

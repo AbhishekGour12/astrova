@@ -246,8 +246,9 @@ if (walletRes) {
   if (!astrologers) return;
 
   const hasSeenModal = localStorage.getItem("astroProfileModalShown");
+  
 
-  if (!hasSeenModal) {
+  if (!hasSeenModal && user) {
     setShowProfileModal(true);
    // localStorage.setItem("astroProfileModalShown", "true");
   }
@@ -710,255 +711,535 @@ const testToken = async () => {
         </div>
       )}
 
-      {/* Astrologer Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-        {astrologers.map((astrologer) => {
-          const resumeChat = getResumeChatForAstrologer(astrologer._id);
-          
-          return (
-            <div
-              key={astrologer._id}
-              className="bg-white rounded-2xl p-5 border border-[#B2C5B2]/60 shadow-[0_8px_30px_rgba(0,61,51,0.08)] hover:shadow-[0_12px_40px_rgba(192,96,20,0.15)] transition-all duration-300 hover:-translate-y-1 relative"
-            >
-
-              {/* Status Badge - Updated with online/offline */}
-              <div className="flex justify-between items-center mb-3">
-                <div className="flex flex-col gap-1">
-                  {/* Online/Offline Status */}
-                  <div className="flex items-center gap-1">
-                    <FaCircle
-                      className={`text-xs ${astrologer.isAvailable ? 'text-green-500' : 'text-gray-400'}`}
-                    />
-                    <span className={`text-xs font-medium ${astrologer.isAvailable ? 'text-green-600' : 'text-gray-500'}`}>
-                      {astrologer.isAvailable ? 'Online' : 'Offline'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-              {/* Status Badge */}
-              <div className="flex justify-between items-center mb-3">
-                <div>
-                 {resumeChat && showChatBtn(astrologer) && (
-  <button
-    onClick={() => handleResumeChat(resumeChat.chatId)}
-    className="w-full p-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"
-  >
-    <FaHistory />
-    Resume Chat
-  </button>
-)}
-
-                </div>
-              <span
-  className={`px-3 py-1 rounded-full text-xs font-semibold ${
-   service === "MEET"
-      ? "bg-green-100 text-green-700"
-      :service === "CHAT"
-      ? astrologer.isBusyChat
-        ? "bg-red-100 text-red-700"
-        : "bg-green-100 text-green-700"
-      :service === "CALL"
-      ? astrologer.isBusyCall
-        ? "bg-red-100 text-red-700"
-        : "bg-green-100 text-green-700"
-      : astrologer.isBusy
-      ? "bg-red-100 text-red-700"
-      : "bg-green-100 text-green-700"
-  }`}
->
-  {service === "MEET"
-    ? "🟢 AVAILABLE"
-    :service === "CHAT"
-    ? astrologer.isBusyChat
-      ? "🔴 BUSY"
-      : "🟢 AVAILABLE"
-    :service === "CALL"
-    ? astrologer.isBusyCall
-      ? "🔴 BUSY"
-      : "🟢 AVAILABLE"
-    : astrologer.isBusy
-    ? "🔴 BUSY"
-    : "🟢 AVAILABLE"}
-</span>
-
-              </div>
-
-              {/* Profile */}
-              <div className="text-center">
-                <div className="relative inline-block">
-                  <img
-                    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${astrologer.profileImageUrl}`}
-                    alt={astrologer.fullName}
-                    className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
-                  />
-                  {astrologer.isVerified && (
-                    <div className="absolute -bottom-2 -right-2 bg-[#C06014] text-white p-1.5 rounded-full">
-                      <FaCheckCircle className="text-sm" />
-                    </div>
-                  )}
-                </div>
-                
-                <h3 className="font-serif font-bold text-[#003D33] mt-4 text-lg">
-                  {astrologer.fullName}
-                </h3>
-                
-                <p className="text-sm text-[#00695C] mt-1">
-                  {astrologer.specialization || "Vedic Astrologer"}
-                </p>
-                
-                {/* Rating */}
-                <div className="flex items-center justify-center gap-1 mt-2">
-                  <div className="flex text-[#FFB74D]">
-                    {[...Array(5)].map((_, i) => (
-                      <FaStar
-                        key={i}
-                        className={`${
-                          i < Math.floor(astrologer.averageRating || 0)
-                            ? "fill-current"
-                            : "text-gray-300"
-                        }`}
-                      />
-                    ))}
-                  </div>
-                  <span className="text-sm font-medium text-[#C06014] ml-1">
-                    {astrologer.averageRating?.toFixed(1) || "New"}
-                  </span>
-                  <span className="text-xs text-gray-500">
-                    ({astrologer.totalReviews || 0})
+      {/* Split Astrologers into Online and Offline */}
+      {(() => {
+        const onlineAstrologers = astrologers.filter(astro => astro.isAvailable === true);
+        const offlineAstrologers = astrologers.filter(astro => astro.isAvailable === false);
+        
+        return (
+          <>
+            {/* Online Astrologers Section */}
+            {onlineAstrologers.length > 0 && (
+              <div className="mb-12">
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                  <h2 className="text-xl font-bold text-[#003D33]">Online Astrologers</h2>
+                  <span className="bg-green-100 text-green-700 px-2 py-1 rounded-full text-xs font-medium">
+                    {onlineAstrologers.length} Available
                   </span>
                 </div>
                 
-                {/* Experience */}
-                <div className="flex items-center justify-center gap-2 mt-2 text-sm text-[#00695C]">
-                  <FaClock />
-                  <span>{astrologer.experienceYears || "5+"} years experience</span>
-                </div>
-                
-                {/* Languages */}
-                <div className="mt-3">
-                  <div className="flex flex-wrap justify-center gap-1">
-                    {(astrologer.languages || ["English", "Hindi"]).map((lang, idx) => (
-                      <span
-                        key={idx}
-                        className="px-2 py-1 bg-[#F7F3E9] text-[#00695C] text-xs rounded-full"
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                  {onlineAstrologers.map((astrologer) => {
+                    const resumeChat = getResumeChatForAstrologer(astrologer._id);
+                    
+                    return (
+                      <div
+                        key={astrologer._id}
+                        className="bg-white rounded-2xl p-5 border border-[#B2C5B2]/60 shadow-[0_8px_30px_rgba(0,61,51,0.08)] hover:shadow-[0_12px_40px_rgba(192,96,20,0.15)] transition-all duration-300 hover:-translate-y-1 relative"
                       >
-                        {lang}
-                      </span>
-                    ))}
-                  </div>
+                        {/* Status Badge - Updated with online/offline */}
+                        <div className="flex justify-between items-center mb-3">
+                          <div className="flex flex-col gap-1">
+                            {/* Online/Offline Status */}
+                            <div className="flex items-center gap-1">
+                              <FaCircle
+                                className={`text-xs ${astrologer.isAvailable ? 'text-green-500' : 'text-gray-400'}`}
+                              />
+                              <span className={`text-xs font-medium ${astrologer.isAvailable ? 'text-green-600' : 'text-gray-500'}`}>
+                                {astrologer.isAvailable ? 'Online' : 'Offline'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Status Badge */}
+                        <div className="flex justify-between items-center mb-3">
+                          <div>
+                           {resumeChat && showChatBtn(astrologer) && (
+                <button
+                  onClick={() => handleResumeChat(resumeChat.chatId)}
+                  className="w-full p-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"
+                >
+                  <FaHistory />
+                  Resume Chat
+                </button>
+              )}
+
+                          </div>
+                        <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+               service === "MEET"
+                  ? "bg-green-100 text-green-700"
+                  :service === "CHAT"
+                  ? astrologer.isBusyChat
+                    ? "bg-red-100 text-red-700"
+                    : "bg-green-100 text-green-700"
+                  :service === "CALL"
+                  ? astrologer.isBusyCall
+                    ? "bg-red-100 text-red-700"
+                    : "bg-green-100 text-green-700"
+                  : astrologer.isBusy
+                  ? "bg-red-100 text-red-700"
+                  : "bg-green-100 text-green-700"
+              }`}
+            >
+              {service === "MEET"
+                ? "🟢 AVAILABLE"
+                :service === "CHAT"
+                ? astrologer.isBusyChat
+                  ? "🔴 BUSY"
+                  : "🟢 AVAILABLE"
+                :service === "CALL"
+                ? astrologer.isBusyCall
+                  ? "🔴 BUSY"
+                  : "🟢 AVAILABLE"
+                : astrologer.isBusy
+                ? "🔴 BUSY"
+                : "🟢 AVAILABLE"}
+            </span>
+
+                        </div>
+
+                        {/* Profile */}
+                        <div className="text-center">
+                          <div className="relative inline-block">
+                            <img
+                              src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${astrologer.profileImageUrl}`}
+                              alt={astrologer.fullName}
+                              className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg"
+                            />
+                            {astrologer.isVerified && (
+                              <div className="absolute -bottom-2 -right-2 bg-[#C06014] text-white p-1.5 rounded-full">
+                                <FaCheckCircle className="text-sm" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <h3 className="font-serif font-bold text-[#003D33] mt-4 text-lg">
+                            {astrologer.fullName}
+                          </h3>
+                          
+                          <p className="text-sm text-[#00695C] mt-1">
+                            {astrologer.specialization || "Vedic Astrologer"}
+                          </p>
+                          
+                          {/* Rating */}
+                          <div className="flex items-center justify-center gap-1 mt-2">
+                            <div className="flex text-[#FFB74D]">
+                              {[...Array(5)].map((_, i) => (
+                                <FaStar
+                                  key={i}
+                                  className={`${
+                                    i < Math.floor(astrologer.averageRating || 0)
+                                      ? "fill-current"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-sm font-medium text-[#C06014] ml-1">
+                              {astrologer.averageRating?.toFixed(1) || "New"}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({astrologer.totalReviews || 0})
+                            </span>
+                          </div>
+                          
+                          {/* Experience */}
+                          <div className="flex items-center justify-center gap-2 mt-2 text-sm text-[#00695C]">
+                            <FaClock />
+                            <span>{astrologer.experienceYears || "5+"} years experience</span>
+                          </div>
+                          
+                          {/* Languages */}
+                          <div className="mt-3">
+                            <div className="flex flex-wrap justify-center gap-1">
+                              {(astrologer.languages || ["English", "Hindi"]).map((lang, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-1 bg-[#F7F3E9] text-[#00695C] text-xs rounded-full"
+                                >
+                                  {lang}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Pricing */}
+                        <div className="mt-4 space-y-2">
+
+              {showChatBtn(astrologer) && (
+                <div className="flex items-center justify-center gap-2">
+                  <FaComments className="text-[#C06014]" />
+                  <span className="font-medium text-[#003D33]">
+                    ₹{astrologer.pricing?.chatPerMinute || 50}/min
+                  </span>
+                </div>
+              )}
+
+           
+              {/* ✅ UPDATED: Call Button with Zego */}
+                              {showCallBtn(astrologer) && (
+                <button
+                  disabled={astrologer.isBusyCall || callConnecting || !astrologer.isAvailable}
+                  onClick={() => handleStartCall(astrologer._id)}
+                  className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 ${
+                    astrologer.isBusyCall || callConnecting
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-[#003D33] to-[#00695C] text-white hover:from-[#00695C] hover:to-[#003D33]"
+                  }`}
+                >
+                  {callConnecting ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Starting...
+                    </>
+                  ) : astrologer.isBusyCall ? (
+                    <>
+                      <FaPhoneSlash />
+                      Busy
+                    </>
+                  ) : (
+                    <>
+                      <FaPhone />
+                      Call
+                    </>
+                  )}
+                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+                    ₹{astrologer.pricing?.callPerMinute || 100}/min
+                  </span>
+                </button>
+              )}
+             
+
+              {showMeetBtn(astrologer) && (
+                  <button
+                    onClick={() => openMeetModal(astrologer)}
+                    className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-purple-800 text-white hover:from-purple-700 hover:to-purple-900 transition-all"
+                  >
+                    <FaUserCheck />
+                    Book Meet
+                  </button>
+                )}
+
+            </div>
+
+                          
+                          {/* Actions */}
+                         <div className="mt-6 space-y-2">
+
+              {/* RESUME CHAT */}
+              {resumeChat &&service !== "MEET" && (
+                <button
+                  disabled={!astrologer.isAvailable}
+                  onClick={() => handleResumeChat(resumeChat.chatId)}
+                  className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"
+                >
+                  <FaHistory />
+                  Resume Chat
+                </button>
+              )}
+
+              {/* CHAT */}
+              {showChatBtn(astrologer) && !resumeChat && (
+              <button
+                onClick={() => handleStartChat(astrologer._id)}
+                disabled={!astrologer.isAvailable}
+                className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 ${
+                  astrologer.isBusyChat
+                    ? "bg-gray-100 text-gray-400 "
+                    : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white"
+                }`}
+              >
+                <FaComments />
+                Chat
+              </button>
+            )}
+
+
+             
+
+ 
+
+              {/* PROFILE */}
+              <button
+                onClick={() => router.push(`/astrologers/${astrologer._id}`)}
+                className="w-full py-2.5 border border-[#B2C5B2] text-[#00695C] rounded-xl"
+              >
+                View Profile
+              </button>
+            </div>
+
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Offline Astrologers Section */}
+            {offlineAstrologers.length > 0 && (
+              <div>
+                <div className="flex items-center gap-2 mb-6">
+                  <div className="w-3 h-3 bg-gray-400 rounded-full"></div>
+                  <h2 className="text-xl font-bold text-[#003D33]">Offline Astrologers</h2>
+                  <span className="bg-gray-100 text-gray-600 px-2 py-1 rounded-full text-xs font-medium">
+                    {offlineAstrologers.length} Unavailable
+                  </span>
                 </div>
                 
-                {/* Pricing */}
-              <div className="mt-4 space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 opacity-75">
+                  {offlineAstrologers.map((astrologer) => {
+                    const resumeChat = getResumeChatForAstrologer(astrologer._id);
+                    
+                    return (
+                      <div
+                        key={astrologer._id}
+                        className="bg-white rounded-2xl p-5 border border-[#B2C5B2]/60 shadow-[0_8px_30px_rgba(0,61,51,0.08)] hover:shadow-[0_12px_40px_rgba(192,96,20,0.15)] transition-all duration-300 hover:-translate-y-1 relative"
+                      >
+                        {/* Status Badge - Updated with online/offline */}
+                        <div className="flex justify-between items-center mb-3">
+                          <div className="flex flex-col gap-1">
+                            {/* Online/Offline Status */}
+                            <div className="flex items-center gap-1">
+                              <FaCircle
+                                className={`text-xs ${astrologer.isAvailable ? 'text-green-500' : 'text-gray-400'}`}
+                              />
+                              <span className={`text-xs font-medium ${astrologer.isAvailable ? 'text-green-600' : 'text-gray-500'}`}>
+                                {astrologer.isAvailable ? 'Online' : 'Offline'}
+                              </span>
+                            </div>
+                          </div>
+                        </div>
+                        {/* Status Badge */}
+                        <div className="flex justify-between items-center mb-3">
+                          <div>
+                           {resumeChat && showChatBtn(astrologer) && (
+                <button
+                  onClick={() => handleResumeChat(resumeChat.chatId)}
+                  className="w-full p-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"
+                >
+                  <FaHistory />
+                  Resume Chat
+                </button>
+              )}
 
-  {showChatBtn(astrologer) && (
-    <div className="flex items-center justify-center gap-2">
-      <FaComments className="text-[#C06014]" />
-      <span className="font-medium text-[#003D33]">
-        ₹{astrologer.pricing?.chatPerMinute || 50}/min
-      </span>
-    </div>
-  )}
+                          </div>
+                        <span
+              className={`px-3 py-1 rounded-full text-xs font-semibold ${
+               service === "MEET"
+                  ? "bg-green-100 text-green-700"
+                  :service === "CHAT"
+                  ? astrologer.isBusyChat
+                    ? "bg-red-100 text-red-700"
+                    : "bg-green-100 text-green-700"
+                  :service === "CALL"
+                  ? astrologer.isBusyCall
+                    ? "bg-red-100 text-red-700"
+                    : "bg-green-100 text-green-700"
+                  : astrologer.isBusy
+                  ? "bg-red-100 text-red-700"
+                  : "bg-green-100 text-green-700"
+              }`}
+            >
+              {service === "MEET"
+                ? "🟢 AVAILABLE"
+                :service === "CHAT"
+                ? astrologer.isBusyChat
+                  ? "🔴 BUSY"
+                  : "🟢 AVAILABLE"
+                :service === "CALL"
+                ? astrologer.isBusyCall
+                  ? "🔴 BUSY"
+                  : "🟢 AVAILABLE"
+                : astrologer.isBusy
+                ? "🔴 BUSY"
+                : "🟢 AVAILABLE"}
+            </span>
 
- 
-{/* ✅ UPDATED: Call Button with Zego */}
-                  {showCallBtn(astrologer) && (
-  <button
-    disabled={astrologer.isBusyCall || callConnecting || !astrologer.isAvailable}
-    onClick={() => handleStartCall(astrologer._id)}
-    className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 ${
-      astrologer.isBusyCall || callConnecting
-        ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-        : "bg-gradient-to-r from-[#003D33] to-[#00695C] text-white hover:from-[#00695C] hover:to-[#003D33]"
-    }`}
-  >
-    {callConnecting ? (
-      <>
-        <FaSpinner className="animate-spin" />
-        Starting...
-      </>
-    ) : astrologer.isBusyCall ? (
-      <>
-        <FaPhoneSlash />
-        Busy
-      </>
-    ) : (
-      <>
-        <FaPhone />
-        Call
-      </>
-    )}
-    <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
-      ₹{astrologer.pricing?.callPerMinute || 100}/min
-    </span>
-  </button>
-)}
-   
+                        </div>
 
-  {showMeetBtn(astrologer) && (
-        <button
-          onClick={() => openMeetModal(astrologer)}
-          className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-purple-800 text-white hover:from-purple-700 hover:to-purple-900 transition-all"
-        >
-          <FaUserCheck />
-          Book Meet
-        </button>
-      )}
+                        {/* Profile */}
+                        <div className="text-center">
+                          <div className="relative inline-block">
+                            <img
+                              src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${astrologer.profileImageUrl}`}
+                              alt={astrologer.fullName}
+                              className="w-24 h-24 rounded-full object-cover border-4 border-white shadow-lg filter grayscale"
+                            />
+                            {astrologer.isVerified && (
+                              <div className="absolute -bottom-2 -right-2 bg-[#C06014] text-white p-1.5 rounded-full">
+                                <FaCheckCircle className="text-sm" />
+                              </div>
+                            )}
+                          </div>
+                          
+                          <h3 className="font-serif font-bold text-[#003D33] mt-4 text-lg">
+                            {astrologer.fullName}
+                          </h3>
+                          
+                          <p className="text-sm text-[#00695C] mt-1">
+                            {astrologer.specialization || "Vedic Astrologer"}
+                          </p>
+                          
+                          {/* Rating */}
+                          <div className="flex items-center justify-center gap-1 mt-2">
+                            <div className="flex text-[#FFB74D]">
+                              {[...Array(5)].map((_, i) => (
+                                <FaStar
+                                  key={i}
+                                  className={`${
+                                    i < Math.floor(astrologer.averageRating || 0)
+                                      ? "fill-current"
+                                      : "text-gray-300"
+                                  }`}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-sm font-medium text-[#C06014] ml-1">
+                              {astrologer.averageRating?.toFixed(1) || "New"}
+                            </span>
+                            <span className="text-xs text-gray-500">
+                              ({astrologer.totalReviews || 0})
+                            </span>
+                          </div>
+                          
+                          {/* Experience */}
+                          <div className="flex items-center justify-center gap-2 mt-2 text-sm text-[#00695C]">
+                            <FaClock />
+                            <span>{astrologer.experienceYears || "5+"} years experience</span>
+                          </div>
+                          
+                          {/* Languages */}
+                          <div className="mt-3">
+                            <div className="flex flex-wrap justify-center gap-1">
+                              {(astrologer.languages || ["English", "Hindi"]).map((lang, idx) => (
+                                <span
+                                  key={idx}
+                                  className="px-2 py-1 bg-[#F7F3E9] text-[#00695C] text-xs rounded-full"
+                                >
+                                  {lang}
+                                </span>
+                              ))}
+                            </div>
+                          </div>
+                          
+                          {/* Pricing */}
+                        <div className="mt-4 space-y-2">
 
-</div>
+              {showChatBtn(astrologer) && (
+                <div className="flex items-center justify-center gap-2">
+                  <FaComments className="text-[#C06014]" />
+                  <span className="font-medium text-[#003D33]">
+                    ₹{astrologer.pricing?.chatPerMinute || 50}/min
+                  </span>
+                </div>
+              )}
 
-                
-                {/* Actions */}
-               <div className="mt-6 space-y-2">
+           
+              {/* ✅ UPDATED: Call Button with Zego */}
+                              {showCallBtn(astrologer) && (
+                <button
+                  disabled={astrologer.isBusyCall || callConnecting || !astrologer.isAvailable}
+                  onClick={() => handleStartCall(astrologer._id)}
+                  className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 ${
+                    astrologer.isBusyCall || callConnecting
+                      ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                      : "bg-gradient-to-r from-[#003D33] to-[#00695C] text-white hover:from-[#00695C] hover:to-[#003D33]"
+                  }`}
+                >
+                  {callConnecting ? (
+                    <>
+                      <FaSpinner className="animate-spin" />
+                      Starting...
+                    </>
+                  ) : astrologer.isBusyCall ? (
+                    <>
+                      <FaPhoneSlash />
+                      Busy
+                    </>
+                  ) : (
+                    <>
+                      <FaPhone />
+                      Call
+                    </>
+                  )}
+                  <span className="text-xs bg-white/20 px-2 py-1 rounded-full">
+                    ₹{astrologer.pricing?.callPerMinute || 100}/min
+                  </span>
+                </button>
+              )}
+             
 
-  {/* RESUME CHAT */}
-  {resumeChat &&service !== "MEET" && (
-    <button
-      disabled={!astrologer.isAvailable}
-      onClick={() => handleResumeChat(resumeChat.chatId)}
-      className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"
-    >
-      <FaHistory />
-      Resume Chat
-    </button>
-  )}
+              {showMeetBtn(astrologer) && (
+                  <button
+                    onClick={() => openMeetModal(astrologer)}
+                    className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-purple-600 to-purple-800 text-white hover:from-purple-700 hover:to-purple-900 transition-all"
+                  >
+                    <FaUserCheck />
+                    Book Meet
+                  </button>
+                )}
 
-  {/* CHAT */}
-  {showChatBtn(astrologer) && !resumeChat && (
-  <button
-    onClick={() => handleStartChat(astrologer._id)}
-    disabled={!astrologer.isAvailable}
-    className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 ${
-      astrologer.isBusyChat
-        ? "bg-gray-100 text-gray-400 "
-        : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white"
-    }`}
-  >
-    <FaComments />
-    Chat
-  </button>
-)}
-
-
- 
-
-
- 
-
-  {/* PROFILE */}
-  <button
-    onClick={() => router.push(`/astrologers/${astrologer._id}`)}
-    className="w-full py-2.5 border border-[#B2C5B2] text-[#00695C] rounded-xl"
-  >
-    View Profile
-  </button>
-</div>
-
-              </div>
             </div>
-          );
-        })}
-      </div>
+
+                          
+                          {/* Actions */}
+                         <div className="mt-6 space-y-2">
+
+              {/* RESUME CHAT */}
+              {resumeChat &&service !== "MEET" && (
+                <button
+                  disabled={!astrologer.isAvailable}
+                  onClick={() => handleResumeChat(resumeChat.chatId)}
+                  className="w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 bg-gradient-to-r from-[#00695C] to-[#003D33] text-white"
+                >
+                  <FaHistory />
+                  Resume Chat
+                </button>
+              )}
+
+              {/* CHAT */}
+              {showChatBtn(astrologer) && !resumeChat && (
+              <button
+                onClick={() => handleStartChat(astrologer._id)}
+                disabled={!astrologer.isAvailable}
+                className={`w-full py-3 rounded-xl font-medium flex items-center justify-center gap-2 ${
+                  astrologer.isBusyChat
+                    ? "bg-gray-100 text-gray-400 "
+                    : "bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white"
+                }`}
+              >
+                <FaComments />
+                Chat
+              </button>
+            )}
+
+
+             
+
+ 
+
+              {/* PROFILE */}
+              <button
+                onClick={() => router.push(`/astrologers/${astrologer._id}`)}
+                className="w-full py-2.5 border border-[#B2C5B2] text-[#00695C] rounded-xl"
+              >
+                View Profile
+              </button>
+            </div>
+
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+          </>
+        );
+      })()}
       
       {/* Empty State */}
       {astrologers.length === 0 && !loading && (
