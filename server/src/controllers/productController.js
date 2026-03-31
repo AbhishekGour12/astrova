@@ -6,29 +6,25 @@ const XLSX = xlsx;
 
 
 
- const calculatePricing = ({
+const calculatePricing = ({
   price,
   offerPercent = 0,
-  gstPercent = 18,
 }) => {
   const basePrice = Number(price);
 
   const discount =
     offerPercent > 0 ? (basePrice * offerPercent) / 100 : 0;
 
-  const discountedPrice = Number((basePrice - discount).toFixed(2));
+  // ✅ Proper rounding (no decimal, no string)
+  const discountedPrice = Math.round(basePrice - discount);
 
-  const gstAmount = (((discountedPrice * gstPercent) / (100 + gstPercent)).toFixed(2));
-
-  const totalPrice = discountedPrice
+  const totalPrice = discountedPrice;
 
   return {
     discountedPrice,
-    gstAmount,
     totalPrice,
   };
 };
-
 // ✅ Get all products
 export const getProducts = async (req, res) => {
   try {
@@ -161,7 +157,7 @@ export const getProducts = async (req, res) => {
         offerPercent,
         discountedPrice: pricing.discountedPrice,
         gstPercent,
-        totalPrice: pricing.totalPrice,
+        totalPrice: Number(pricing.totalPrice).toFixed(0),
         imageUrls: productImages,
         rating: Number(product.rating) || 0,
       };
@@ -296,7 +292,7 @@ export const uploadBulkProductsWithImages = async (req, res) => {
         const stock = Number(row.stock);
         const weight = Number(row.weight) || 0.2;
         const rating = Number(row.rating) || 0;
-        const gstPercent = Number(row.gstpercent) || 18;
+      
         const offerPercent = Number(row.offerpercent) || 0;
 
         if (price <= 0 || isNaN(price)) {
@@ -311,13 +307,13 @@ export const uploadBulkProductsWithImages = async (req, res) => {
 
         const pricing = calculatePricing({
   price,
-  offerPercent,
-  gstPercent,
+  offerPercent
 });
 
 const discountedPrice = pricing.discountedPrice;
-const gstAmount = pricing.gstAmount;
-const totalPrice = pricing.totalPrice;
+//const gstAmount = pricing.gstAmount;
+const totalPrice = Math.round(pricing.totalPrice);
+console.log(totalPrice)
 
         // ✅ Image matching
         const productImages = [];
@@ -361,7 +357,6 @@ const totalPrice = pricing.totalPrice;
           productType: row.producttype.toString().trim(),
           category: row.category.toString().trim(),
           weight,
-          gstPercent,
           rating,
           isFeatured:
             row.isfeatured === "TRUE" ||
@@ -374,7 +369,7 @@ const totalPrice = pricing.totalPrice;
         const product = await Product.create(productData);
         products.push(product);
 
-        console.log(`✅ Added product: ${product.name}`);
+       // console.log(`✅ Added product: ${product.name}`);
       } catch (err) {
         console.error(`❌ Row ${i + 2} error:`, err.message);
         errors.push(`Row ${i + 2}: ${err.message}`);
