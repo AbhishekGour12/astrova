@@ -1,10 +1,12 @@
 import mongoose from "mongoose";
+// Helper function to ensure integer values
+const toInteger = (value) => Math.round(Number(value));
 
 const ProductSchema = new mongoose.Schema(
   {
     name: { type: String, required: true },
     description: { type: String },
-    price: { type: Number, required: true },
+    price: { type: Number, required: true , set: toInteger},
     stock: { type: Number, min: 0, default: 0 },
     productType: { type: String, required: true }, // 🟢 dynamic editable type
     availableTypes: {
@@ -15,7 +17,7 @@ const ProductSchema = new mongoose.Schema(
     weight: { type: Number, required: true }, // For shipping (in kg)
     imageUrls: { type: [String], default: [] },
     gstPercent: { type: Number, default: 18 },
-    totalPrice: { type: Number },
+    totalPrice: { type: Number, set: toInteger },
     isFeatured: { type: Boolean, default: false },
     rating: { type: Number, default: 0, min: 0, max: 5 },
     weight: { type: Number, default: 0.2 },   // KG
@@ -38,23 +40,7 @@ const ProductSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-// 🧮 Auto calculate total price
-ProductSchema.pre("save", function (next) {
-  let finalPrice = this.price;
 
-  if (this.offerPercent && this.offerPercent > 0) {
-    const discount = (this.price * this.offerPercent) / 100;
-    finalPrice = this.price - discount;
-    this.discountedPrice = finalPrice;
-  } else {
-    this.discountedPrice = this.price;
-  }
-
-  const gst = (finalPrice * this.gstPercent) / 100;
-  this.totalPrice = finalPrice + gst;
-
-  next();
-});
 
 
 export default mongoose.model("Product", ProductSchema);

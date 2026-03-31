@@ -22,7 +22,7 @@ const calculatePricing = ({
 
   return {
     discountedPrice,
-    totalPrice,
+    totalPrice
   };
 };
 // ✅ Get all products
@@ -313,7 +313,7 @@ export const uploadBulkProductsWithImages = async (req, res) => {
 const discountedPrice = pricing.discountedPrice;
 //const gstAmount = pricing.gstAmount;
 const totalPrice = Math.round(pricing.totalPrice);
-console.log(totalPrice)
+
 
         // ✅ Image matching
         const productImages = [];
@@ -363,7 +363,7 @@ console.log(totalPrice)
             row.isfeatured === true ||
             row.isfeatured === "true",
           imageUrls: productImages,
-          totalPrice,
+          totalPrice: totalPrice
         };
 
         const product = await Product.create(productData);
