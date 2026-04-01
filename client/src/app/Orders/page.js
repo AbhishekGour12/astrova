@@ -7,12 +7,14 @@ import { orderAPI } from "../lib/order";
 import toast from "react-hot-toast";
 import OrderTracking from "../components/OrderTracking";
 import { useSelector } from "react-redux";
+import { useRouter } from "next/navigation";
 
 const MyOrdersPage = () => {
   const [orders, setOrders] = useState([]);
   const [trackId, setTrackId] = useState(null);
   const [expanded, setExpanded] = useState({});
   const user = useSelector((state) => state.auth.user);
+  const router = useRouter()
 const normalizeStatus = (status = "") =>
   status.toLowerCase().replace(/_/g, " ").trim();
 
@@ -33,6 +35,7 @@ const normalizeStatus = (status = "") =>
     const token = localStorage.getItem("token" );
     if(!user && !token){
       toast.error("Please login to view your orders");
+      router.push("/Login")
       return;
     }
     loadOrders();

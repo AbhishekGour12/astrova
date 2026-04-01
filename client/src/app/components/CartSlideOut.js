@@ -15,6 +15,7 @@ import { orderAPI } from "../lib/order";
 import { useRouter } from "next/navigation";
 import { loginSuccess } from "../store/features/authSlice";
 import { config } from "process";
+import axios from "axios";
 
 const CartSlideOut = () => {
   const {
@@ -393,10 +394,10 @@ useEffect(() => {
   }
 }, [user]);
   const placeOrder = async (payMethod, paymentDetails = null) => {
-    
+  
     setLoading(true);
     try {
-      await orderAPI.createOrder({
+    const formData = {
         shippingAddress: address,
         paymentMethod: payMethod,
         paymentDetails,
@@ -410,7 +411,8 @@ useEffect(() => {
         items: mappedCart,
         userId: user?true:false,
       
-      });
+      };
+      const order = await axios.post(`${process.env.NEXT_PUBLIC_API}/api/order`, formData)
       toast.success("Order Placed!");
       await clearCart();
       localStorage.removeItem("cart")

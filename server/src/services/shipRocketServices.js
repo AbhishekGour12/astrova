@@ -6,14 +6,19 @@ import { getValidToken } from "../utils/shipRocketToken.js";
  */
 export const createShiprocketOrder = async (order, extra = {}) => {
   const token = await getValidToken();
-  console.log(order)
-
+  
+  // Debug logging
+  console.log("Token received:", token ? "Yes (length: " + token.length + ")" : "No");
+  console.log("Auth header being sent:", `Bearer ${token}`);
+  
+  if (!token) {
+    throw new Error("Failed to obtain Shiprocket token");
+  }
+  
   const payload = {
     order_id: order._id,
     order_date: new Date().toISOString().slice(0, 10),
-
-    pickup_location: "Warehouse",
-
+    pickup_location: "warehouse-1",
     billing_customer_name: order.shippingAddress.fullName,
     billing_last_name: "",
     billing_address: order.shippingAddress.addressLine1,
@@ -23,9 +28,7 @@ export const createShiprocketOrder = async (order, extra = {}) => {
     billing_country: "India",
     billing_email: order.shippingAddress.email,
     billing_phone: order.shippingAddress.phone,
-
     shipping_is_billing: true,
-
     order_items: order.items.map((item) => ({
       name: item.name,
       sku: item.product,
@@ -33,34 +36,33 @@ export const createShiprocketOrder = async (order, extra = {}) => {
       selling_price: Number(item.priceAtPurchase),
       discount: 0,
     })),
-
     payment_method: order.paymentMethod === "cod" ? "COD" : "Prepaid",
     sub_total: Number(order.totalAmount.toFixed(0)),
-
     length: 10,
     breadth: 10,
     height: 10,
     weight: Number(extra.weight || order.weight || 0.5)
   };
 
- 
-
   try {
     const res = await axios.post(
       "https://apiv2.shiprocket.in/v1/external/orders/create/adhoc",
       payload,
       {
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
       }
     );
-   
+    
+    console.log("Shiprocket response:", res.data);
     return res.data;
-
   } catch (err) {
-   console.log("🚨 SHIPROCKET RESPONSE ERROR RAW:", err.response?.data);
-   console.log("🚨 SHIPROCKET STATUS:", err.response?.status);
+    console.log("🚨 SHIPROCKET RESPONSE ERROR RAW:", err.response?.data);
+    console.log("🚨 SHIPROCKET STATUS:", err.response?.status);
+    console.log("🚨 SHIPROCKET HEADERS SENT:", err.config?.headers);
     console.log("🚨 SHIPROCKET FULL ERROR:", err);
-    return err.response?.data
     throw new Error(err.response?.data?.message || "Shiprocket error");
   }
 };
