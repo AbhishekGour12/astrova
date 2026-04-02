@@ -477,13 +477,19 @@ if (req.body.stock !== undefined) {
 
 export const getProductById = async (req, res) => {
   try {
-    const product = await Product.findById(req.params.id);
+    console.log("slug:", req.params.slug); // debug
+
+    const product = await Product.findOne({ slug: req.params.slug });
+
+    
+
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
-    res.json(product);
+
+    res.json(product); // better
   } catch (error) {
-    console.error("❌ getProductById error:", error);
+    console.error(error);
     res.status(500).json({ error: error.message });
   }
 };

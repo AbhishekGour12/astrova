@@ -138,7 +138,7 @@ ${
             <Link href="/">Home</Link>
           </li>
           <li className="hover:text-[#B49A77] transition">
-            <Link href="/ProductsPage">Products</Link>
+            <Link href="/products-page">Products</Link>
           </li>
 
           <li className="hover:text-[#B49A77] transition">
@@ -269,7 +269,7 @@ ${
                     <Link href="/">Home</Link>
                   </li>
                   <li className="border-b pb-3">
-                    <Link href="/ProductsPage">Products</Link>
+                    <Link href="/products-page">Products</Link>
                   </li>
                   <li className="border-b pb-3">
                     <Link href="/astrologers?service=CHAT">Chats</Link>
@@ -300,7 +300,7 @@ ${
                     <Link href="/astrologers?service=MEET">Meet</Link>
                   </li>
                   <li className="border-b pb-3">
-                    <Link href="/About">About</Link>
+                    <Link href="/about">About</Link>
                   </li>
                 </ul>
 

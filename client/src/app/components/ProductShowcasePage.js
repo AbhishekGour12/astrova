@@ -23,7 +23,7 @@ import { useSelector } from "react-redux";
 import useCheckLogin from "../useCheckLogin";
 import toast from "react-hot-toast";
 import { useCart } from "../context/CartContext";
-import { useRouter } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 
 import { Swiper, SwiperSlide } from "swiper/react";
 import { Autoplay, Pagination } from "swiper/modules";
@@ -64,9 +64,10 @@ const FloatingElements = () => {
   );
 };
 
-const ProductShowcasePage = ({ params }) => {
+const ProductShowcasePage = () => {
   // ✅ Correct way to read dynamic route param
-  const { id: productId } = React.use(params);
+ const params = useParams();
+const slug = params.slug;
 
   const { addToCart } = useCart();
   const user = useSelector((state) => state.auth.user);
@@ -93,65 +94,87 @@ const ProductShowcasePage = ({ params }) => {
   const [rating, setRating] = useState(0);
   const [review, setReview] = useState("");
   const [isLoading, setIsLoading] = useState(true);
+// Add this at the bottom of your ProductShowcasePage component temporarily for debugging
 
   // ------------------------------------------------------------------
   // Fetch product + reviews (optimized, parallel)
   // ------------------------------------------------------------------
-  const fetchProductPageData = useCallback(async () => {
-    if (!productId) return;
-    setIsLoading(true);
+const fetchProductPageData = useCallback(async () => {
+  if (!slug) return;
+  setIsLoading(true);
 
-    try {
-      // Product + Reviews in parallel
-      const [product, reviewsList] = await Promise.all([
-        productAPI.getProductById(productId),
-        productAPI.getProductRatings(productId),
-        
-      ]);
-      if(user){
-      const likesRes = await productAPI.getProductLikesCount(productId);
-setLikesCount(likesRes.count || 0);
-      }
+  try {
+    // First, fetch product by slug to get the product _id
+    const product = await productAPI.getProductById(slug);
+    console.log("Fetched product:", product);
+    
+    if (!product || !product._id) {
+      throw new Error("Product not found or missing ID");
+    }
 
+    const productId = product._id; // Get the actual MongoDB _id
+    
+    // Now use productId for all other API calls
+    const [reviewsData, likesRes] = await Promise.all([
+      productAPI.getProductRatings(productId),
+      user ? productAPI.getProductLikesCount(productId) : Promise.resolve({ count: 0 })
+    ]);
+    
+    // Handle reviews data - it might be an object with reviews array or direct array
+    let reviewsList = [];
+    if (Array.isArray(reviewsData)) {
+      reviewsList = reviewsData;
+    } else if (reviewsData && reviewsData.reviews && Array.isArray(reviewsData.reviews)) {
+      reviewsList = reviewsData.reviews;
+    } else if (reviewsData && reviewsData.data && Array.isArray(reviewsData.data)) {
+      reviewsList = reviewsData.data;
+    } else {
+      console.warn("Unexpected reviews data structure:", reviewsData);
+      reviewsList = [];
+    }
+    
+    console.log("Reviews list:", reviewsList);
+    setLikesCount(likesRes.count || 0);
+    setSelectedProduct(product);
+    setReviews(reviewsList);
 
-      setSelectedProduct(product);
-      setReviews(reviewsList);
-
-      // Rating summary
-      const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    // Rating summary
+    const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+    if (Array.isArray(reviewsList)) {
       reviewsList.forEach((r) => {
         if (breakdown[r.rating] !== undefined) breakdown[r.rating] += 1;
       });
-
-      setRatingSummary({
-        avg: product.rating || 0,
-        count: reviewsList.length,
-        breakdown,
-      });
-
-      // Similar products
-      const similar = await productAPI.getProducts({
-        type: product.productType,
-        featured: true,
-        limit: 4,
-      });
-      setSimilarProducts(similar.products || []);
-
-      // Wishlist state (only if logged in)
-      if (user) {
-       
-        const liked = await productAPI.checkUserInterest(productId);
-        setIsLiked(!!liked?.isLiked);
-      } else {
-        setIsLiked(false);
-      }
-    } catch (err) {
-      console.error(err);
-      toast.error("Failed to load product");
     }
 
-    setIsLoading(false);
-  }, [productId, user]);
+    setRatingSummary({
+      avg: product.rating || 0,
+      count: reviewsList.length || 0,
+      breakdown,
+    });
+
+    // Similar products
+    const similar = await productAPI.getProducts({
+      type: product.productType,
+      featured: true,
+      limit: 4,
+    });
+    setSimilarProducts(similar.products || []);
+
+    // Wishlist state (only if logged in)
+    if (user) {
+      const liked = await productAPI.checkUserInterest(productId);
+      setIsLiked(!!liked?.isLiked);
+    } else {
+      setIsLiked(false);
+    }
+  } catch (err) {
+    console.error("Error fetching product data:", err);
+    toast.error(err.message || "Failed to load product");
+    setSelectedProduct(null);
+  }
+
+  setIsLoading(false);
+}, [slug, user]);
 
   useEffect(() => {
     fetchProductPageData();
@@ -179,7 +202,7 @@ const decrementQty = () => {
   // ------------------------------------------------------------------
   const handleAddToCart = async () => {
     if (!selectedProduct) return;
-    await addToCart(productId, quantity); // context will handle guest/localStorage or API
+    await addToCart(slug, quantity); // context will handle guest/localStorage or API
   };
 
   // ------------------------------------------------------------------
@@ -188,7 +211,7 @@ const decrementQty = () => {
   const handleToggleLike = async () => {
   if (!checkLogin()) return;
   if(!user) return;
-
+  const productId = selectedProduct._id;
   try {
     if (isLiked) {
       await productAPI.removeUserInterest(productId);
@@ -215,38 +238,47 @@ const decrementQty = () => {
   // ------------------------------------------------------------------
   // SUBMIT RATING
   // ------------------------------------------------------------------
-  const handleSubmitRating = async (e) => {
+ const handleSubmitRating = async (e) => {
   e.preventDefault();
   if (!checkLogin()){
     router.push("/Login");
     return;
-  };
+  }
   if (!rating) return toast.error("Please select rating");
+  if (!selectedProduct?._id) return;
 
   try {
     await productAPI.submitRating({
-      productId,
+      productId: selectedProduct._id,
       rating: Number(rating),
       review,
     });
 
     toast.success("Review submitted!");
 
-    // 🔁 Re-fetch updated reviews
-    const updatedReviews = await productAPI.getProductRatings(productId);
+    // Re-fetch updated reviews using productId
+    const updatedReviewsData = await productAPI.getProductRatings(selectedProduct._id);
+    
+    // Handle the response structure
+    let updatedReviews = [];
+    if (Array.isArray(updatedReviewsData)) {
+      updatedReviews = updatedReviewsData;
+    } else if (updatedReviewsData && updatedReviewsData.reviews && Array.isArray(updatedReviewsData.reviews)) {
+      updatedReviews = updatedReviewsData.reviews;
+    } else if (updatedReviewsData && updatedReviewsData.data && Array.isArray(updatedReviewsData.data)) {
+      updatedReviews = updatedReviewsData.data;
+    }
+    
     setReviews(updatedReviews);
 
-    // 🔄 Recalculate summary
+    // Recalculate summary
     const breakdown = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
     updatedReviews.forEach((r) => {
       if (breakdown[r.rating] !== undefined) breakdown[r.rating] += 1;
     });
 
     const count = updatedReviews.length;
-    const avg =
-      count === 0
-        ? 0
-        : updatedReviews.reduce((sum, r) => sum + r.rating, 0) / count;
+    const avg = count === 0 ? 0 : updatedReviews.reduce((sum, r) => sum + r.rating, 0) / count;
 
     setRatingSummary({
       avg: avg.toFixed(1),
@@ -258,35 +290,31 @@ const decrementQty = () => {
     setShowRatingForm(false);
     setRating(0);
     setReview("");
-    fetchProductPageData()
   } catch (err) {
     toast.error(err.error || err.message || "Something went wrong");
   }
 };
 const handleShare = async () => {
-  const shareUrl = `${window.location.origin}/Product/${productId}`;
-  const productName = selectedProduct?.name;
-  const productImage = `${process.env.NEXT_PUBLIC_IMAGE_URL}${selectedProduct?.imageUrls[0]}`;
+  const shareUrl = `${window.location.origin}/product/${slug}`;
   
   const shareData = {
-    title: `${productName} | MyAstrova`,
-    text: `🌟 Discover ${productName} on MyAstrova - Sacred products for your spiritual journey ✨`,
+    title: `${selectedProduct?.name} | MyAstrova`,
+    text: `✨ ${selectedProduct?.name} ✨\n⭐ ${selectedProduct?.rating}★ (${selectedProduct?.reviewCount} reviews)\n💰 ₹${selectedProduct?.discountedPrice || selectedProduct?.price}\n📦 Free Shipping`,
     url: shareUrl,
-    
   };
 
   try {
-    // ✅ Modern browsers & mobile
     if (navigator.share) {
       await navigator.share(shareData);
     } else {
-      // ✅ Fallback for desktop - copy with rich preview
       await navigator.clipboard.writeText(shareUrl);
-      toast.success("Product link copied to clipboard! Share it to see the preview card.");
+      toast.success("Product link copied! The image will appear when you paste it in WhatsApp, Facebook, etc.");
     }
   } catch (err) {
-    console.error(err);
-    toast.error("Unable to share right now");
+    if (err.name !== 'AbortError') {
+      await navigator.clipboard.writeText(shareUrl);
+      toast.success("Link copied to clipboard!");
+    }
   }
 };
 
@@ -845,7 +873,7 @@ const handleShare = async () => {
 
               <button
                 className="text-sm sm:text-base text-[#C06014] font-semibold hover:text-[#D47C3A] transition-colors flex items-center gap-1 sm:gap-2"
-                onClick={() => router.push("/ProductsPage")}
+                onClick={() => router.push("/products-page")}
               >
                 View All <FaArrowRight />
               </button>
@@ -860,7 +888,7 @@ const handleShare = async () => {
                   className="bg-white hover:cursor-pointer rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300 "
                 onClick={() => {
     if (product.stock !== 0) {
-      router.push(`/Product/${product._id}`);
+      router.push(`/product/${product.slug}`);
     }
   }}
 

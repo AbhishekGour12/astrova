@@ -127,7 +127,7 @@ ${
     : "bg-white"}
 `}
 
-                onClick={() => router.push(`/Product/${product._id}`)}
+                onClick={() => router.push(`product/${product.slug}`)}
               >
                 {product.offerPercent > 0 && (
   <div className="absolute top-2 right-2 z-10 bg-red-600 text-white text-[10px] sm:text-xs font-bold px-2 py-1 rounded-full">
@@ -214,7 +214,7 @@ ${
 
             onClick={() => {
   if (product.stock === 0) return;
-  router.push(`/Product/${product._id}`);
+  router.push(`/product/${product.slug}`);
 }}
 
           >

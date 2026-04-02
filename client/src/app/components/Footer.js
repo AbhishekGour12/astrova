@@ -62,7 +62,7 @@ const meet = () => {
                 <Link href="/" className="hover:underline">Home</Link>
               </li>
               <li className="border-b pb-3 border-white/30">
-                <Link href="/ProductsPage" className="hover:underline">Products</Link>
+                <Link href="/products-page" className="hover:underline">Products</Link>
               </li>
               <li className="border-b pb-3 border-white/30">
                 <div className="hover:underline hover:cursor-pointer" onClick={chats}>Chats</div>

@@ -282,7 +282,7 @@ opacity-5 relative">
     <motion.button
       className="relative overflow-hidden w-full lg:w-auto rounded-full shadow-md text-sm sm:text-base font-medium"
       onClick={() => {
-        router.push("/ProductsPage");
+        router.push("/products-page");
       }}
       // 1. Pulsing Glow Animation
       animate={{
@@ -504,7 +504,7 @@ opacity-5 relative">
         </p>
       </motion.div>
     </Link>
-     <Link href="/ProductsPage">
+     <Link href="/products-page">
       <motion.div
         whileHover={{ scale: 1.05 }}
         className="

@@ -11,7 +11,7 @@ router.get('/profile/:token', authMiddleware, onlyUser, userProfile);
 router.delete('/:id', authMiddleware, onlyUser, deleteUser);
 router.get('/userfind/:phone', user);
 router.put('/requestotp/:phone', requestotp);
-router.get('/product/:id', getProductById);
+router.get('/product/:slug', getProductById);
 router.get("/product/type", getProductTypes);
 router.get("/carousel", getCarouselByPage)
 router.put("/astro-profile", authMiddleware, onlyUser, updateAstroProfile)

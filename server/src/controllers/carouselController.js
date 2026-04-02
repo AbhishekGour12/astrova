@@ -14,7 +14,7 @@ export const getAllCarousels = async (req, res) => {
 export const getCarouselByPage = async (req, res) => {
   try {
     const { page } = req.params;
-    console.log(page)
+   
     
     const carousel = await Carousel.findOne({ page });
     
@@ -22,7 +22,7 @@ export const getCarouselByPage = async (req, res) => {
       return res.json({ success: true, carousel: null });
     }
     
-    console.log(carousel)
+    
     res.json({ success: true, carousel: carousel });
   } catch (err) {
     res.status(500).json({ success: false, message: err.message });

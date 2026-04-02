@@ -374,7 +374,7 @@ if (!token) {
   const handleStartChat = async (astrologerId) => {
     try {
       if(!user){
-        toast.error("login first");
+        router.push("/Login")
         return;
       }
       // --- NEW LOGIC: Check Balance ---
@@ -453,7 +453,7 @@ if (!token) {
 const handleStartCall = async (astrologerId) => {
   if (!user) {
     toast.error("Please login to start a call");
-    router.push("/login");
+    router.push("/Login");
     return;
   }
 

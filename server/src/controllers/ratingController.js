@@ -67,9 +67,9 @@ export const submitRating = async (req, res) => {
 // controller: ratingController.js
 export const getProductRatings = async (req, res) => {
   try {
-    const { productId } = req.params;
+    const { slug } = req.params;
 
-    const reviews = await Rating.find({ productId })
+    const reviews = await Rating.findOne({ slug: slug })
       .populate("userId", "username phone") // show user info in review
       .sort({ createdAt: -1 });
      

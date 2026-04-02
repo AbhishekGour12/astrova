@@ -1,5 +1,5 @@
 import UserInterest from '../models/Interest.js';
-import Product from '../models/Products.js'
+
 
 export const getUserInterests = async (req, res) => {
   try {

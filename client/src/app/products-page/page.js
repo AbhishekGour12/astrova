@@ -25,7 +25,7 @@ import "swiper/css/effect-fade";
 
 
 
-export default function ProductsPage() {
+export default function productspage() {
   const [categories] = useState([
     { name: "Money", img: "/money.webp" },
     { name: "Love", img: "/Love.webp" },
@@ -436,7 +436,7 @@ const handleAddToCart = async (e, productId) => {
 `}
 onClick={() => {
     if (p.stock !== 0) {
-      router.push(`/Product/${p._id}`);
+      router.push(`/product/${p.slug}`);
     }
   }}
 
@@ -545,7 +545,7 @@ onClick={() => {
     pb-6
   ">
     {products.map((p, i) => (
-      <Link key={i} href={`/Product/${p._id}`} onClick={(e) => {
+      <Link key={i} href={`/product/${p.slug}`} onClick={(e) => {
   if (p.stock === 0) {
     e.preventDefault();
     return;

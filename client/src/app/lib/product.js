@@ -23,9 +23,9 @@ export const productAPI = {
       throw new Error(error.response?.data?.message || "Failed to load product types.");
     }
   },
-  getProductById: async (id) => {
+  getProductById: async (slug) => {
     try {
-      const res = await api.get(`/auth/product/${id}`);
+      const res = await api.get(`/auth/product/${slug}`);
       return res.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || "Failed to load product.");
@@ -115,8 +115,8 @@ checkUserInterest: async (productId) => {
   return response.data;
 },
 
-getProductLikesCount: async (productId) => {
-  const response = await api.get(`/user-interests/likeCount/${productId}`);
+getProductLikesCount: async (slug) => {
+  const response = await api.get(`/user-interests/likeCount/${slug}`);
   return response.data;
 },
 
