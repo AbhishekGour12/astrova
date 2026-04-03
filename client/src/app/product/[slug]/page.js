@@ -6,40 +6,20 @@ export async function generateMetadata({ params }) {
   const { slug } = await params;
 
   try {
-    const res = await fetch(`${process.env.NEXT_PUBLIC_API}/api/auth/product/${slug}`, {
-  cache: "no-store",
-});
+    const res = await fetch(
+      `${process.env.NEXT_PUBLIC_API}/api/auth/product/${slug}`,
+      { cache: "no-store" }
+    );
 
-const product = await res.json();
-console.log("Fetched product for metadata:", product);
+    if (!res.ok) throw new Error("API failed");
 
-    if (!product) {
-      return {
-        title: "Product Not Found | MyAstrova",
-        description: "Product not found",
-      };
-    }
+    const product = await res.json();
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_API || "https://yourdomain.com";
-    const imageBaseUrl = process.env.NEXT_PUBLIC_IMAGE_URL;
-
-    let imageUrl = null;
-
-    if (product.imageUrls?.length > 0) {
-      const imagePath = product.imageUrls[0].startsWith("/")
-        ? product.imageUrls[0].substring(1)
-        : product.imageUrls[0];
-
-      imageUrl = `${imageBaseUrl}${imagePath}`;
-    }
-
-    if (imageUrl && !imageUrl.startsWith("http")) {
-      imageUrl = `${baseUrl}${imageUrl}`;
-    }
-
-    const productUrl = `${baseUrl}/product/${slug}`;
-
+    const imageUrl =
+      product.imageUrls?.[0]?.startsWith("http")
+        ? product.imageUrls[0]
+        : `${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls?.[0]}`;
+   console.log("OG Image URL:", imageUrl);
     return {
       title: product.name,
       description: product.description,
@@ -47,7 +27,7 @@ console.log("Fetched product for metadata:", product);
       openGraph: {
         title: product.name,
         description: product.description,
-        url: productUrl,
+        url: `https://www.myastrova.com/product/${slug}`,
         images: [
           {
             url: imageUrl,
@@ -56,15 +36,23 @@ console.log("Fetched product for metadata:", product);
           },
         ],
       },
+
+      twitter: {
+        card: "summary_large_image",
+        title: product.name,
+        description: product.description,
+        images: [imageUrl],
+      },
     };
   } catch (err) {
+    console.error("OG ERROR:", err);
+
     return {
       title: "MyAstrova",
       description: "Spiritual Products",
     };
   }
 }
-
 export default function ProductPage() {
   return <ProductShowcasePage />;
 }
