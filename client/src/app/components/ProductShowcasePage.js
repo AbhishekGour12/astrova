@@ -106,7 +106,7 @@ const fetchProductPageData = useCallback(async () => {
   try {
     // First, fetch product by slug to get the product _id
     const product = await productAPI.getProductById(slug);
-    console.log("Fetched product:", product);
+    
     
     if (!product || !product._id) {
       throw new Error("Product not found or missing ID");

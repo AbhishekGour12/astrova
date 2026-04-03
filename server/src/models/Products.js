@@ -43,13 +43,28 @@ const ProductSchema = new mongoose.Schema(
 );
 
 // Save se pehle slug generate
-ProductSchema.pre("save", function (next) {
-  if (!this.slug && this.name) {
-    this.slug =
-      slugify(this.name, { lower: true, strict: true }) +
-      "-" +
-      Date.now(); // unique banane ke liye
+
+
+ProductSchema.pre("save", async function (next) {
+  if (this.isModified("name") || !this.slug) {
+    const baseSlug = slugify(this.name, {
+      lower: true,
+      strict: true,
+      trim: true,
+    });
+
+    let slug = baseSlug;
+    let count = 1;
+
+    // Check duplicates
+    while (await this.constructor.findOne({ slug })) {
+      slug = `${baseSlug}-${count}`;
+      count++;
+    }
+
+    this.slug = slug;
   }
+
   next();
 });
 

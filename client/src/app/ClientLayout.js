@@ -14,15 +14,15 @@ export default function ClientLayout({ children }) {
     pathname.startsWith("/astrologers/chat/") ||
     // 2. Check exact paths
     [
-      "/demo/user-call",
-      "/demo/astrologer-call",
-      "/Login",
-      "/Signup",
-      "/Astrologer/login",
-      "/Astrologer/register",
-      "/Astrologer",
-      "/Astrologer/call-dashboard",
-      "/Admin"
+      "/demo/user-call/",
+      "/demo/astrologer-call/",
+      "/Login/",
+      "/Signup/",
+      "/Astrologer/login/",
+      "/Astrologer/register/",
+      "/Astrologer/",
+      "/Astrologer/call-dashboard/",
+      "/Admin/"
     ].includes(pathname);
 
   return (
