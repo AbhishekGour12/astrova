@@ -299,7 +299,7 @@ const handleShare = async () => {
   
   const shareData = {
     title: `${selectedProduct?.name} | MyAstrova`,
-    text: `✨ ${selectedProduct?.name} ✨\n⭐ ${selectedProduct?.rating}★ (${selectedProduct?.reviewCount} reviews)\n💰 ₹${selectedProduct?.discountedPrice || selectedProduct?.price}\n📦 Free Shipping`,
+    text: `✨ ${selectedProduct?.name} ✨\n⭐ ${selectedProduct?.rating}★ \n💰 ₹${selectedProduct?.discountedPrice || selectedProduct?.price}\n📦 Free Shipping`,
     url: shareUrl,
   };
 

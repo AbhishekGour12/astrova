@@ -47,7 +47,46 @@ const [phoneVerified, setPhoneVerified] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
+    
+    // Restrict numbers for text fields (only allow letters, spaces, and basic punctuation)
+    const textFields = ['fullName',  'bio', 'expertise', 'languages', 'education', 'achievements', 'certificationTitle', 'bankName'];
+    
+    if (textFields.includes(name)) {
+      // Allow letters, spaces, hyphens, apostrophes, commas, periods, and @ for email
+      const regex = /^[a-zA-Z\s\-',.@]*$/;
+      if (regex.test(value)) {
+        setForm((p) => ({ ...p, [name]: value }));
+      }
+      return;
+    }
+    
+    // For other fields, allow any input
     setForm((p) => ({ ...p, [name]: value }));
+  };
+
+  // Special handler for phone to only allow numbers
+  const handlePhoneChange = (e) => {
+    const value = e.target.value.replace(/\D/g, ''); // Remove non-digits
+    if (value.length <= 10) { // Limit to 10 digits
+      setForm((p) => ({ ...p, phone: value }));
+    }
+  };
+
+  // Handler for numeric fields (age, experienceYears, rates)
+  const handleNumericChange = (e) => {
+    const { name, value } = e.target;
+    // Allow only numbers and decimal point for rates
+    if (name === 'chatPerMinute' || name === 'callPerMinute') {
+      const numericValue = value.replace(/[^0-9.]/g, '');
+      // Prevent multiple decimal points
+      const parts = numericValue.split('.');
+      if (parts.length > 2) return;
+      setForm((p) => ({ ...p, [name]: numericValue }));
+    } else {
+      // For integer fields (age, experienceYears)
+      const numericValue = value.replace(/\D/g, '');
+      setForm((p) => ({ ...p, [name]: numericValue }));
+    }
   };
 
   const handleImage = (e) => {
@@ -174,6 +213,7 @@ const [phoneVerified, setPhoneVerified] = useState(false);
       setLoading(false);
     }
   };
+  
 const sendOTP = async () => {
   if (!form.phone) return toast.error("Enter phone number first");
   // Optional: Frontend validation before even calling the API
@@ -313,8 +353,8 @@ const verifyOTP = async () => {
     <input
       name="phone"
       value={form.phone}
-      placeholder="phone no."
-      onChange={handleChange}
+      placeholder="Phone number (10 digits)"
+      onChange={handlePhoneChange}
       disabled={phoneVerified}
       className="flex-1 border rounded-lg px-4 py-3"
       maxLength={10}
@@ -361,10 +401,10 @@ const verifyOTP = async () => {
                   </label>
                   <input
                     name="age"
-                    type="number"
+                    type="text"
                     placeholder="Enter your age"
                     value={form.age}
-                    onChange={handleChange}
+                    onChange={handleNumericChange}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
                   />
                 </div>
@@ -432,6 +472,7 @@ const verifyOTP = async () => {
                     placeholder="e.g., English, Hindi, Tamil, Telugu"
                     value={form.languages}
                     onChange={handleChange}
+                    type="text"
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
                   />
                 </div>
@@ -442,10 +483,10 @@ const verifyOTP = async () => {
                   </label>
                   <input
                     name="experienceYears"
-                    type="number"
+                    type="text"
                     placeholder="Enter years of experience"
                     value={form.experienceYears}
-                    onChange={handleChange}
+                    onChange={handleNumericChange}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
                   />
                 </div>
@@ -616,10 +657,10 @@ const verifyOTP = async () => {
                       <span className="absolute left-3 top-3 text-gray-500">₹</span>
                       <input
                         name="chatPerMinute"
-                        type="number"
+                        type="text"
                         placeholder="e.g., 10"
                         value={form.chatPerMinute}
-                        onChange={handleChange}
+                        onChange={handleNumericChange}
                         className="w-full border border-gray-300 rounded-lg pl-8 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
                       />
                     </div>
@@ -637,10 +678,10 @@ const verifyOTP = async () => {
                       <span className="absolute left-3 top-3 text-gray-500">₹</span>
                       <input
                         name="callPerMinute"
-                        type="number"
+                        type="text"
                         placeholder="e.g., 20"
                         value={form.callPerMinute}
-                        onChange={handleChange}
+                        onChange={handleNumericChange}
                         className="w-full border border-gray-300 rounded-lg pl-8 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
                       />
                     </div>
@@ -691,7 +732,7 @@ const verifyOTP = async () => {
                     name="bankAccountNumber"
                     placeholder="Enter account number"
                     value={form.bankAccountNumber}
-                    onChange={handleChange}
+                    onChange={handleNumericChange}
                     className="w-full border border-gray-300 rounded-lg px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
                   />
                 </div>

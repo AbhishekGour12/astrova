@@ -4,7 +4,7 @@ import { usePathname } from "next/navigation";
 import Navbar from "./components/Navbar";
 import CartSlideOut from "./components/CartSlideOut";
 import Footer from "./components/Footer";
-
+import WhatsAppButton from  "./components/WhatsAppButton";
 export default function ClientLayout({ children }) {
   const pathname = usePathname();
 
@@ -29,7 +29,7 @@ export default function ClientLayout({ children }) {
     <>
       {!hideNavbar && <Navbar />}
       {!hideNavbar && <CartSlideOut />}
-
+      {!hideNavbar && <WhatsAppButton/>}
       {children}
 
       {!hideNavbar && <Footer />}
