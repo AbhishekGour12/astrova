@@ -9,7 +9,7 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
-
+client/public/sitemap*.xml
 # testing
 /coverage
 
