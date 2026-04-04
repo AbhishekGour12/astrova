@@ -56,7 +56,7 @@ const ProductsTab = ({ products: initialProducts, searchTerm }) => {
   const [editingProduct, setEditingProduct] = useState(null);
   const [activeTab, setActiveTab] = useState("manual");
   const [filters, setFilters] = useState(DEFAULT_FILTERS);
-
+const [imagesToDelete, setImagesToDelete] = useState([]);
   // Local UI filters (edited in inputs, applied on button click)
   const [uiFilters, setUiFilters] = useState({
     search: "",
@@ -267,70 +267,73 @@ const deleteProductType = async (type) => {
   };
 
   // Edit product
-  const openEditModal = (product) => {
-    setEditingProduct(product);
-    setEditForm({
-  name: product.name,
-  description: product.description || "",
-  price: product.price,
-  stock: product.stock,
-  productType: product.productType,
-  weight: product.weight,
-  gstPercent: product.gstPercent || 18,
-  rating: product.rating || 0,
-  isFeatured: product.isFeatured || false,
-  imageUrls: product.imageUrls || [],
-  category: product.category || "",
-  offerPercent: product.offerPercent || 0, // ✅ ADDED
-});
+const openEditModal = (product) => {
+  setEditingProduct(product);
+  setEditForm({
+    name: product.name,
+    description: product.description || "",
+    price: product.price,
+    stock: product.stock,
+    productType: product.productType,
+    weight: product.weight,
+    gstPercent: product.gstPercent || 18,
+    rating: product.rating || 0,
+    isFeatured: product.isFeatured || false,
+    imageUrls: product.imageUrls || [],
+    category: product.category || "",
+    offerPercent: product.offerPercent || 0,
+  });
+  setImagesToDelete([]);
+  setSelectedFiles([]);
+  setShowEditModal(true);
+};
 
-    setShowEditModal(true);
-  };
+ const updateProduct = async (e) => {
+  e.preventDefault();
+  if (!editingProduct) return;
 
-  const updateProduct = async (e) => {
-    e.preventDefault();
-    if (!editingProduct) return;
+  setLoading(true);
 
-    setLoading(true);
+  const formData = new FormData();
+  formData.append("name", editForm.name);
+  formData.append("description", editForm.description);
+  formData.append("price", editForm.price);
+  formData.append("stock", editForm.stock);
+  formData.append("productType", editForm.productType);
+  formData.append("weight", editForm.weight);
+  formData.append("gstPercent", editForm.gstPercent);
+  formData.append("isFeatured", editForm.isFeatured);
+  formData.append("category", editForm.category);
+  formData.append("offerPercent", editForm.offerPercent || 0);
+  
+  // Send images to delete
+  if (imagesToDelete.length > 0) {
+    formData.append("imagesToDelete", JSON.stringify(imagesToDelete));
+  }
 
-    const formData = new FormData();
-    formData.append("name", editForm.name);
-    formData.append("description", editForm.description);
-    formData.append("price", editForm.price);
-    formData.append("stock", editForm.stock);
-    formData.append("productType", editForm.productType);
-    formData.append("weight", editForm.weight);
-    formData.append("gstPercent", editForm.gstPercent);
-    formData.append("courierCharge", editForm.courierCharge || "");
-    formData.append("isFeatured", editForm.isFeatured);
-    formData.append("category", editForm.category);
-    formData.append("offerPercent", editForm.offerPercent || 0); // ✅ ADDED
+  // Add new images
+  selectedFiles.forEach((file) => {
+    formData.append("images", file);
+  });
 
+  try {
+    const response = await adminAPI.updateProduct(editingProduct._id, formData);
 
-    selectedFiles.forEach((file) => {
-      formData.append("images", file);
-    });
-
-    try {
-      const response = await adminAPI.updateProduct(editingProduct._id, formData);
-
-      if (response) {
-        await fetchProducts();
-        setShowEditModal(false);
-        setEditingProduct(null);
-        setSelectedFiles([]);
-        alert("Product updated successfully!");
-      } else {
-        const error = await response.json();
-        throw new Error(error.error || "Failed to update product");
-      }
-    } catch (error) {
-      console.error("Error updating product:", error);
-      alert(`Error updating product: ${error.message}`);
-    } finally {
-      setLoading(false);
+    if (response) {
+      await fetchProducts();
+      setShowEditModal(false);
+      setEditingProduct(null);
+      setSelectedFiles([]);
+      setImagesToDelete([]);
+      alert("Product updated successfully!");
     }
-  };
+  } catch (error) {
+    console.error("Error updating product:", error);
+    alert(`Error updating product: ${error.message}`);
+  } finally {
+    setLoading(false);
+  }
+};
 
   const deleteProduct = async (productId) => {
     if (!window.confirm("Are you sure you want to delete this product?")) return;
@@ -474,7 +477,23 @@ const deleteProductType = async (type) => {
       product.productType?.toLowerCase().includes(term)
     );
   });
+// Handle image deletion from the edit form
+const handleDeleteImage = (imageUrlToDelete) => {
+  setImagesToDelete(prev => [...prev, imageUrlToDelete]);
+  setEditForm(prev => ({
+    ...prev,
+    imageUrls: prev.imageUrls.filter(url => url !== imageUrlToDelete)
+  }));
+};
 
+// Restore a deleted image
+const handleRestoreImage = (imageUrlToRestore) => {
+  setImagesToDelete(prev => prev.filter(url => url !== imageUrlToRestore));
+  setEditForm(prev => ({
+    ...prev,
+    imageUrls: [...prev.imageUrls, imageUrlToRestore]
+  }));
+};
   // ---------- FILTER UI ACTIONS ----------
 
   const handleApplyFilters = () => {
@@ -1416,277 +1435,355 @@ const deleteProductType = async (type) => {
       )}
 
       {/* Edit Product Modal */}
-      {showEditModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+
+{showEditModal && (
+  <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <motion.div
+      initial={{ opacity: 0, scale: 0.9 }}
+      animate={{ opacity: 1, scale: 1 }}
+      className="bg-white rounded-3xl w-full max-w-2xl max-h-[90vh] overflow-y-auto"
+    >
+      <div className="p-6 border-b border-[#B2C5B2]">
+        <div className="flex items-center justify-between">
+          <h3 className="text-2xl font-bold text-[#003D33]">Edit Product</h3>
+          <button
+            onClick={() => setShowEditModal(false)}
+            className="p-2 hover:bg-[#F7F3E9] rounded-2xl transition-colors"
           >
-            <div className="p-6 border-b border-[#B2C5B2]">
-              <div className="flex items-center justify-between">
-                <h3 className="text-2xl font-bold text-[#003D33]">Edit Product</h3>
-                <button
-                  onClick={() => setShowEditModal(false)}
-                  className="p-2 hover:bg-[#F7F3E9] rounded-2xl transition-colors"
-                >
-                  <FaTimes className="text-[#00695C]" />
-                </button>
-              </div>
-            </div>
-
-            <form onSubmit={updateProduct} className="p-6 space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-[#003D33] font-semibold mb-2">
-                    Product Name *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    value={editForm.name}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, name: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[#003D33] font-semibold mb-2">
-                    Product Type *
-                  </label>
-                  <select
-                    required
-                    value={editForm.productType}
-                    onChange={(e) =>
-                      setEditForm({
-                        ...editForm,
-                        productType: e.target.value,
-                      })
-                    }
-                    className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
-                  >
-                    <option value="">Select Type</option>
-                    {productTypes.map((type, index) => (
-                      <option key={index} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[#003D33] font-semibold mb-2">
-                    Price (₹) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={editForm.price}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, price: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
-                  />
-                </div>
-                <div>
-  <label className="block text-[#003D33] font-semibold mb-2">
-    Offer Percentage (%)
-  </label>
-  <input
-    type="number"
-    min="0"
-    max="100"
-    value={editForm.offerPercent}
-    onChange={(e) =>
-      setEditForm({ ...editForm, offerPercent: e.target.value })
-    }
-    className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
-  />
-</div>
-
-
-                <div>
-                  <label className="block text-[#003D33] font-semibold mb-2">
-                    Stock *
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={editForm.stock}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, stock: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
-                    min={0}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[#003D33] font-semibold mb-2">
-                    Weight (kg) *
-                  </label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    required
-                    value={editForm.weight}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, weight: e.target.value })
-                    }
-                    className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[#003D33] font-semibold mb-2 text-sm">
-                    Product Category *
-                  </label>
-                  <select
-                    required
-                    value={editForm.category}
-                    onChange={(e) =>
-                      setEditForm({ ...editForm, category: e.target.value })
-                    }
-                    className="w-full px-3 py-2 bg-white border border-[#B2C5B2] rounded-xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33] text-sm"
-                  >
-                    <option value="">Select Type</option>
-                    {category.map((type, typeIndex) => (
-                      <option key={typeIndex} value={type}>
-                        {type}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[#003D33] font-semibold mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={editForm.description}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, description: e.target.value })
-                  }
-                  rows="3"
-                  className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
-                />
-              </div>
-
-              {editForm.imageUrls.length > 0 && (
-                <div>
-                  <label className="block text-[#003D33] font-semibold mb-2">
-                    Current Images
-                  </label>
-                  <div className="flex gap-2 flex-wrap">
-                    {editForm.imageUrls.map((url, index) => (
-                      <div
-                        key={index}
-                        className="w-20 h-20 rounded-2xl overflow-hidden border border-[#B2C5B2]"
-                      >
-                        <img
-                          src={`${process.env.NEXT_PUBLIC_API}${url}`}
-                          alt={`Product ${index + 1}`}
-                          className="w-20 h-20 object-cover"
-                        />
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              <div>
-                <label className="block text-[#003D33] font-semibold mb-2">
-                  Add New Images
-                </label>
-                <div className="border-2 border-dashed border-[#B2C5B2] rounded-2xl p-6 text-center bg-[#F7F3E9]">
-                  <FaUpload className="text-3xl text-[#00695C] mx-auto mb-3" />
-                  <p className="text-[#003D33] mb-3">
-                    Drag & drop new images or click to browse
-                  </p>
-                  <input
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="edit-product-images"
-                  />
-                  <label
-                    htmlFor="edit-product-images"
-                    className="inline-block bg-[#C06014] text-white px-6 py-2 rounded-2xl cursor-pointer hover:bg-[#A05010] transition-colors"
-                  >
-                    Browse Files
-                  </label>
-                  {selectedFiles.length > 0 && (
-                    <div className="mt-3">
-                      <p className="text-sm text-[#00695C]">
-                        {selectedFiles.length} new file(s) selected
-                      </p>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[#003D33] font-semibold mb-2">
-                  Rating (1–5)
-                </label>
-                <input
-                  type="number"
-                  min="0"
-                  max="5"
-                  step="0.1"
-                  value={editForm.rating}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, rating: e.target.value })
-                  }
-                  className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
-                />
-              </div>
-
-              <div className="flex items-center gap-3">
-                <input
-                  type="checkbox"
-                  id="edit-isFeatured"
-                  checked={editForm.isFeatured}
-                  onChange={(e) =>
-                    setEditForm({ ...editForm, isFeatured: e.target.checked })
-                  }
-                  className="w-4 h-4 text-[#C06014] bg-gray-100 border-gray-300 rounded focus:ring-[#C06014]"
-                />
-                <label
-                  htmlFor="edit-isFeatured"
-                  className="text-[#003D33] font-semibold"
-                >
-                  Feature this product
-                </label>
-              </div>
-
-              <div className="flex flex-col md:flex-row gap-4 pt-4">
-                <button
-                  type="button"
-                  onClick={() => setShowEditModal(false)}
-                  className="flex-1 px-6 py-3 border border-[#B2C5B2] text-[#003D33] rounded-2xl hover:bg-[#F7F3E9] transition-colors"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={loading}
-                  className="flex-1 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white px-6 py-3 rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
-                >
-                  <FaSave />
-                  {loading ? "Updating..." : "Update Product"}
-                </button>
-              </div>
-            </form>
-          </motion.div>
+            <FaTimes className="text-[#00695C]" />
+          </button>
         </div>
-      )}
+      </div>
+
+      <form onSubmit={updateProduct} className="p-6 space-y-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div>
+            <label className="block text-[#003D33] font-semibold mb-2">
+              Product Name *
+            </label>
+            <input
+              type="text"
+              required
+              value={editForm.name}
+              onChange={(e) =>
+                setEditForm({ ...editForm, name: e.target.value })
+              }
+              className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[#003D33] font-semibold mb-2">
+              Product Type *
+            </label>
+            <select
+              required
+              value={editForm.productType}
+              onChange={(e) =>
+                setEditForm({
+                  ...editForm,
+                  productType: e.target.value,
+                })
+              }
+              className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+            >
+              <option value="">Select Type</option>
+              {productTypes.map((type, index) => (
+                <option key={index} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="block text-[#003D33] font-semibold mb-2">
+              Price (₹) *
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              required
+              value={editForm.price}
+              onChange={(e) =>
+                setEditForm({ ...editForm, price: e.target.value })
+              }
+              className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-[#003D33] font-semibold mb-2">
+              Offer Percentage (%)
+            </label>
+            <input
+              type="number"
+              min="0"
+              max="100"
+              value={editForm.offerPercent}
+              onChange={(e) =>
+                setEditForm({ ...editForm, offerPercent: e.target.value })
+              }
+              className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[#003D33] font-semibold mb-2">
+              Stock *
+            </label>
+            <input
+              type="number"
+              required
+              value={editForm.stock}
+              onChange={(e) =>
+                setEditForm({ ...editForm, stock: e.target.value })
+              }
+              className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+              min={0}
+            />
+          </div>
+
+          <div>
+            <label className="block text-[#003D33] font-semibold mb-2">
+              Weight (kg) *
+            </label>
+            <input
+              type="number"
+              step="0.01"
+              required
+              value={editForm.weight}
+              onChange={(e) =>
+                setEditForm({ ...editForm, weight: e.target.value })
+              }
+              className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-[#003D33] font-semibold mb-2">
+              Product Category *
+            </label>
+            <select
+              required
+              value={editForm.category}
+              onChange={(e) =>
+                setEditForm({ ...editForm, category: e.target.value })
+              }
+              className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+            >
+              <option value="">Select Category</option>
+              {category.map((type, typeIndex) => (
+                <option key={typeIndex} value={type}>
+                  {type}
+                </option>
+              ))}
+            </select>
+          </div>
+        </div>
+
+        <div>
+          <label className="block text-[#003D33] font-semibold mb-2">
+            Description
+          </label>
+          <textarea
+            value={editForm.description}
+            onChange={(e) =>
+              setEditForm({ ...editForm, description: e.target.value })
+            }
+            rows="3"
+            className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+          />
+        </div>
+
+        {/* Current Images with Delete Option */}
+        {editForm.imageUrls.length > 0 && (
+          <div>
+            <label className="block text-[#003D33] font-semibold mb-2">
+              Current Images
+              <span className="text-xs text-red-500 ml-2">(Click × to delete)</span>
+            </label>
+            <div className="flex gap-3 flex-wrap">
+              {editForm.imageUrls.map((url, index) => (
+                <div key={index} className="relative group">
+                  <div className="w-24 h-24 rounded-2xl overflow-hidden border-2 border-[#B2C5B2] bg-[#F7F3E9]">
+                    <img
+                      src={`${process.env.NEXT_PUBLIC_API}${url}`}
+                      alt={`Product ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteImage(url)}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                    title="Delete this image"
+                  >
+                    <FaTimes size={12} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Deleted Images Preview (Optional: Show what will be deleted) */}
+        {imagesToDelete.length > 0 && (
+          <div className="bg-red-50 border border-red-200 rounded-2xl p-3">
+            <p className="text-sm text-red-600 font-semibold mb-2">
+              Images marked for deletion ({imagesToDelete.length}):
+            </p>
+            <div className="flex gap-2 flex-wrap">
+              {imagesToDelete.map((url, index) => (
+                <div key={index} className="bg-white rounded-lg px-2 py-1 text-xs text-red-500 flex items-center gap-1">
+                  <span className="truncate max-w-[100px]">{url.split('/').pop()}</span>
+                  <button
+                    type="button"
+                    onClick={() => handleRestoreImage(url)}
+                    className="text-green-500 hover:text-green-700"
+                    title="Restore image"
+                  >
+                    <FaCheck size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Add New Images */}
+        <div>
+          <label className="block text-[#003D33] font-semibold mb-2">
+            Add New Images
+          </label>
+          <div className="border-2 border-dashed border-[#B2C5B2] rounded-2xl p-6 text-center bg-[#F7F3E9]">
+            <FaUpload className="text-3xl text-[#00695C] mx-auto mb-3" />
+            <p className="text-[#003D33] mb-3">
+              Drag & drop new images or click to browse
+            </p>
+            <input
+              type="file"
+              multiple
+              accept="image/*"
+              onChange={(e) => {
+                const files = Array.from(e.target.files);
+                setSelectedFiles(prev => [...prev, ...files]);
+              }}
+              className="hidden"
+              id="edit-product-images"
+            />
+            <label
+              htmlFor="edit-product-images"
+              className="inline-block bg-[#C06014] text-white px-6 py-2 rounded-2xl cursor-pointer hover:bg-[#A05010] transition-colors"
+            >
+              Browse Files
+            </label>
+            {selectedFiles.length > 0 && (
+              <div className="mt-3">
+                <p className="text-sm text-[#00695C]">
+                  {selectedFiles.length} new file(s) selected
+                </p>
+                <div className="flex gap-2 flex-wrap mt-2">
+                  {selectedFiles.map((file, idx) => (
+                    <div key={idx} className="text-xs bg-white px-2 py-1 rounded-lg">
+                      {file.name}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* New Images Preview */}
+        {selectedFiles.length > 0 && (
+          <div>
+            <label className="block text-[#003D33] font-semibold mb-2">
+              New Images Preview
+            </label>
+            <div className="flex gap-3 flex-wrap">
+              {selectedFiles.map((file, index) => (
+                <div key={index} className="relative">
+                  <div className="w-20 h-20 rounded-2xl overflow-hidden border-2 border-[#B2C5B2] bg-[#F7F3E9]">
+                    <img
+                      src={URL.createObjectURL(file)}
+                      alt={`Preview ${index + 1}`}
+                      className="w-full h-full object-cover"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedFiles(prev => prev.filter((_, i) => i !== index))}
+                    className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs hover:bg-red-600"
+                  >
+                    <FaTimes size={10} />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <div>
+          <label className="block text-[#003D33] font-semibold mb-2">
+            Rating (1–5)
+          </label>
+          <input
+            type="number"
+            min="0"
+            max="5"
+            step="0.1"
+            value={editForm.rating}
+            onChange={(e) =>
+              setEditForm({ ...editForm, rating: e.target.value })
+            }
+            className="w-full px-4 py-3 bg-[#F7F3E9] border border-[#B2C5B2] rounded-2xl focus:outline-none focus:ring-2 focus:ring-[#C06014] text-[#003D33]"
+          />
+        </div>
+
+        <div className="flex items-center gap-3">
+          <input
+            type="checkbox"
+            id="edit-isFeatured"
+            checked={editForm.isFeatured}
+            onChange={(e) =>
+              setEditForm({ ...editForm, isFeatured: e.target.checked })
+            }
+            className="w-4 h-4 text-[#C06014] bg-gray-100 border-gray-300 rounded focus:ring-[#C06014]"
+          />
+          <label
+            htmlFor="edit-isFeatured"
+            className="text-[#003D33] font-semibold"
+          >
+            Feature this product
+          </label>
+        </div>
+
+        <div className="flex flex-col md:flex-row gap-4 pt-4">
+          <button
+            type="button"
+            onClick={() => {
+              setShowEditModal(false);
+              setImagesToDelete([]);
+              setSelectedFiles([]);
+            }}
+            className="flex-1 px-6 py-3 border border-[#B2C5B2] text-[#003D33] rounded-2xl hover:bg-[#F7F3E9] transition-colors"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={loading}
+            className="flex-1 bg-gradient-to-r from-[#C06014] to-[#D47C3A] text-white px-6 py-3 rounded-2xl font-semibold disabled:opacity-50 flex items-center justify-center gap-2"
+          >
+            <FaSave />
+            {loading ? "Updating..." : "Update Product"}
+          </button>
+        </div>
+      </form>
+    </motion.div>
+  </div>
+)}
 
       {/* Manage Types Modal */}
       {showTypesModal && (

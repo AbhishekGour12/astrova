@@ -434,6 +434,9 @@ export const deleteProduct = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+// controllers/productController.js - Update the updateProduct function
+
 export const updateProduct = async (req, res) => {
   try {
     const { id } = req.params;
@@ -450,19 +453,42 @@ export const updateProduct = async (req, res) => {
       gstPercent,
     });
 
+    // Handle image deletion
+    let currentImages = [...product.imageUrls];
+    const imagesToDelete = req.body.imagesToDelete ? JSON.parse(req.body.imagesToDelete) : [];
+    
+    if (imagesToDelete.length > 0) {
+      // Remove images from database array
+      currentImages = currentImages.filter(img => !imagesToDelete.includes(img));
+      
+      // Delete physical image files
+      for (const imagePath of imagesToDelete) {
+        try {
+          const fullPath = path.join(process.cwd(), imagePath.replace(/^\//, ''));
+          if (fs.existsSync(fullPath)) {
+            fs.unlinkSync(fullPath);
+            console.log(`Deleted image: ${fullPath}`);
+          }
+        } catch (err) {
+          console.error(`Error deleting image ${imagePath}:`, err);
+        }
+      }
+    }
+
+    // Add new images
     let newImages = [];
     if (req.files?.length) {
       newImages = req.files.map(
         (f) => `/uploads/products/${path.basename(f.path)}`
       );
     }
- let stock;
-if (req.body.stock !== undefined) {
-  stock = Math.max(0, Number(req.body.stock));
-} else {
-  stock = product.stock;
-}
 
+    let stock;
+    if (req.body.stock !== undefined) {
+      stock = Math.max(0, Number(req.body.stock));
+    } else {
+      stock = product.stock;
+    }
 
     const updatedProduct = await Product.findByIdAndUpdate(
       id,
@@ -475,13 +501,12 @@ if (req.body.stock !== undefined) {
         category: req.body.category ?? product.category,
         weight: req.body.weight ?? product.weight,
         rating: req.body.rating ?? product.rating,
-        isFeatured:
-          req.body.isFeatured === "true" || req.body.isFeatured === true,
+        isFeatured: req.body.isFeatured === "true" || req.body.isFeatured === true,
         gstPercent,
         offerPercent,
         discountedPrice: pricing.discountedPrice,
         totalPrice: pricing.totalPrice,
-        imageUrls: [...product.imageUrls, ...newImages],
+        imageUrls: [...currentImages, ...newImages],
       },
       { new: true }
     );
