@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { FaCheckCircle, FaTrash, FaStar, FaDownload, FaEye, FaTimes, FaPhone, FaComments, FaUserClock } from "react-icons/fa";
+import { FaCheckCircle, FaTrash, FaStar, FaDownload, FaEye, FaTimes, FaPhone, FaComments, FaUserClock, FaEdit, FaSave, FaAlignRight, FaArrowRight } from "react-icons/fa";
 import { MdEmail, MdLocationOn } from "react-icons/md";
 import { FiPhone, FaRupeeSign } from "react-icons/fa";
 import toast from "react-hot-toast";
@@ -14,6 +14,8 @@ export default function AstrologersTab() {
   const [loading, setLoading] = useState(false);
   const [selectedAstrologer, setSelectedAstrologer] = useState(null);
   const [selectedDocument, setSelectedDocument] = useState(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editFormData, setEditFormData] = useState({});
 
   /* ================= FETCH ASTROLOGERS ================= */
   const fetchAstrologers = async () => {
@@ -35,21 +37,17 @@ export default function AstrologersTab() {
   /* ================= APPROVE ASTROLOGER ================= */
   const approveAstrologer = async (id) => {
     if (!confirm("Approve this astrologer? Password will be emailed.")) return;
-      const loadingToast = toast.loading("Approving astrologer...");
+    const loadingToast = toast.loading("Approving astrologer...");
     try {
-     
       await api.patch(`/admin/astrologers/approve/${id}`);
-      // Replace loader with success
-    toast.success("Astrologer approved & credentials sent", {
-      id: loadingToast,
-    });
-     
+      toast.success("Astrologer approved & credentials sent", {
+        id: loadingToast,
+      });
       fetchAstrologers();
     } catch (err) {
-      // Replace loader with error
-    toast.error(err.response?.data?.message || "Approval failed", {
-      id: loadingToast,
-    });
+      toast.error(err.response?.data?.message || "Approval failed", {
+        id: loadingToast,
+      });
     }
   };
 
@@ -63,6 +61,26 @@ export default function AstrologersTab() {
       fetchAstrologers();
     } catch (err) {
       toast.error("Delete failed");
+    }
+  };
+
+  /* ================= UPDATE ASTROLOGER ================= */
+  const updateAstrologer = async (id, updatedData) => {
+    const loadingToast = toast.loading("Updating astrologer details...");
+    try {
+      const response = await api.put(`/admin/astrologers/${id}`, updatedData);
+      toast.success("Astrologer updated successfully", {
+        id: loadingToast,
+      });
+      fetchAstrologers();
+      setIsEditing(false);
+      setSelectedAstrologer(response.data.astrologer);
+      return response.data;
+    } catch (err) {
+      toast.error(err.response?.data?.message || "Update failed", {
+        id: loadingToast,
+      });
+      throw err;
     }
   };
 
@@ -85,19 +103,83 @@ export default function AstrologersTab() {
     }
   };
 
+  /* ================= HANDLE EDIT ================= */
+  const handleEditClick = () => {
+    setIsEditing(true);
+    setEditFormData({
+      fullName: selectedAstrologer.fullName || "",
+      email: selectedAstrologer.email || "",
+      phone: selectedAstrologer.phone || "",
+      age: selectedAstrologer.age || "",
+      gender: selectedAstrologer.gender || "",
+      languages: Array.isArray(selectedAstrologer.languages) 
+        ? selectedAstrologer.languages.join(", ") 
+        : selectedAstrologer.languages || "",
+      expertise: Array.isArray(selectedAstrologer.expertise)
+        ? selectedAstrologer.expertise.join(", ")
+        : selectedAstrologer.expertise || "",
+      experienceYears: selectedAstrologer.experienceYears || "",
+      education: selectedAstrologer.education || "",
+      certificationTitle: selectedAstrologer.certificationTitle || "",
+      availability: selectedAstrologer.availability || "BOTH",
+      chatPerMinute: selectedAstrologer.pricing?.chatPerMinute || "",
+      callPerMinute: selectedAstrologer.pricing?.callPerMinute || "",
+      bio: selectedAstrologer.bio || "",
+      achievements: Array.isArray(selectedAstrologer.achievements)
+        ? selectedAstrologer.achievements.join("\n")
+        : selectedAstrologer.achievements || "",
+      bankName: selectedAstrologer.bankName || "",
+      bankAccountNumber: selectedAstrologer.bankAccountNumber || "",
+      ifsc: selectedAstrologer.ifsc || "",
+    });
+  };
+
+  const handleEditChange = (e) => {
+    const { name, value } = e.target;
+    setEditFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleEditSubmit = async (e) => {
+    e.preventDefault();
+    
+    // Prepare update data
+    const updateData = {
+      fullName: editFormData.fullName,
+      email: editFormData.email,
+      phone: editFormData.phone,
+      age: editFormData.age ? parseInt(editFormData.age) : undefined,
+      gender: editFormData.gender,
+      languages: editFormData.languages ? editFormData.languages.split(",").map(l => l.trim()) : [],
+      expertise: editFormData.expertise ? editFormData.expertise.split(",").map(e => e.trim()) : [],
+      experienceYears: editFormData.experienceYears ? parseInt(editFormData.experienceYears) : 0,
+      education: editFormData.education,
+      certificationTitle: editFormData.certificationTitle,
+      availability: editFormData.availability,
+      pricing: {
+        chatPerMinute: editFormData.chatPerMinute ? parseInt(editFormData.chatPerMinute) : 0,
+        callPerMinute: editFormData.callPerMinute ? parseInt(editFormData.callPerMinute) : 0,
+      },
+      bio: editFormData.bio,
+      achievements: editFormData.achievements ? editFormData.achievements.split("\n").filter(a => a.trim()) : [],
+      bankName: editFormData.bankName,
+      bankAccountNumber: editFormData.bankAccountNumber,
+      ifsc: editFormData.ifsc,
+    };
+
+    await updateAstrologer(selectedAstrologer._id, updateData);
+  };
+
   /* ================= FILTER ================= */
- const filteredAstrologers = astrologers.filter((a) => {
-  const search = searchTerm.toLowerCase();
-
-  return (
-    a.fullName?.toLowerCase().includes(search) ||
-    (Array.isArray(a.expertise)
-      ? a.expertise.join(" ").toLowerCase().includes(search)
-      : a.expertise?.toLowerCase().includes(search)) ||
-    a.email?.toLowerCase().includes(search)
-  );
-});
-
+  const filteredAstrologers = astrologers.filter((a) => {
+    const search = searchTerm.toLowerCase();
+    return (
+      a.fullName?.toLowerCase().includes(search) ||
+      (Array.isArray(a.expertise)
+        ? a.expertise.join(" ").toLowerCase().includes(search)
+        : a.expertise?.toLowerCase().includes(search)) ||
+      a.email?.toLowerCase().includes(search)
+    );
+  });
 
   /* ================= AVAILABILITY BADGE ================= */
   const getAvailabilityBadge = (availability) => {
@@ -213,8 +295,8 @@ export default function AstrologersTab() {
               <div className="space-y-2 text-xs mb-4">
                 <InfoRow label="Email" value={ast.email} truncate={true} />
                 <InfoRow label="Phone" value={ast.phone} />
-                <InfoRow label="Chat Rate" value={`₹${ast.pricing.chatPerMinute || 0}/min`} />
-                <InfoRow label="Call Rate" value={`₹${ast.pricing.callPerMinute || 0}/min`} />
+                <InfoRow label="Chat Rate" value={`₹${ast.pricing?.chatPerMinute || 0}/min`} />
+                <InfoRow label="Call Rate" value={`₹${ast.pricing?.callPerMinute || 0}/min`} />
                 <div className="flex justify-between">
                   <span className="text-[#00695C]">Status</span>
                   <span className={`px-2 py-1 rounded-full text-xs ${ast.isApproved ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>
@@ -268,220 +350,497 @@ export default function AstrologersTab() {
           <div className="bg-white rounded-2xl w-full max-w-4xl max-h-[90vh] overflow-y-auto p-6 relative">
             {/* Close Button */}
             <button
-              onClick={() => setSelectedAstrologer(null)}
-              className="absolute top-4 right-4 text-gray-500 hover:text-black text-xl"
+              onClick={() => {
+                setSelectedAstrologer(null);
+                setIsEditing(false);
+              }}
+              className="  absolute top-1 right-2 text-gray-500 hover:text-black text-xl"
             >
               <FaTimes />
             </button>
 
-            {/* Header */}
-            <div className="flex flex-col md:flex-row gap-6 items-start mb-6">
-              <div className="relative">
-                {selectedAstrologer.profileImageUrl ? (
-                  <img
-                    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${selectedAstrologer.profileImageUrl}`}
-                    className="w-32 h-32 rounded-xl object-cover border-4 border-white shadow-lg"
-                  />
-                ) : (
-                  <div className="w-32 h-32 rounded-xl bg-gradient-to-br from-[#ECE5D3] to-[#D8C9A3] flex items-center justify-center text-4xl font-bold text-[#003D33] shadow-lg">
-                    {selectedAstrologer.fullName?.[0]}
+            {!isEditing ? (
+              // View Mode
+              <>
+                {/* Header */}
+                <div className="flex flex-col md:flex-row gap-6 items-start mb-6">
+                  <div className="relative">
+                    {selectedAstrologer.profileImageUrl ? (
+                      <img
+                        src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${selectedAstrologer.profileImageUrl}`}
+                        className="w-32 h-32 rounded-xl object-cover border-4 border-white shadow-lg"
+                      />
+                    ) : (
+                      <div className="w-32 h-32 rounded-xl bg-gradient-to-br from-[#ECE5D3] to-[#D8C9A3] flex items-center justify-center text-4xl font-bold text-[#003D33] shadow-lg">
+                        {selectedAstrologer.fullName?.[0]}
+                      </div>
+                    )}
+                    <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-medium ${selectedAstrologer.isApproved ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>
+                      {selectedAstrologer.isApproved ? "Approved" : "Pending Approval"}
+                    </div>
                   </div>
-                )}
-                <div className={`absolute -bottom-2 -right-2 px-3 py-1 rounded-full text-xs font-medium ${selectedAstrologer.isApproved ? "bg-green-100 text-green-600" : "bg-amber-100 text-amber-600"}`}>
-                  {selectedAstrologer.isApproved ? "Approved" : "Pending Approval"}
+
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <h2 className="text-2xl font-bold text-[#003D33]">
+                        {selectedAstrologer.fullName}
+                        {selectedAstrologer.gender && <span className="text-lg text-gray-600 ml-2">({selectedAstrologer.gender})</span>}
+                      </h2>
+                      <button
+                        onClick={handleEditClick}
+                        className="flex items-center gap-2 px-4 py-2 bg-[#003D33] text-white rounded-lg text-sm hover:bg-[#002822] transition-colors"
+                      >
+                        <FaEdit /> Edit Profile
+                      </button>
+                    </div>
+                    
+                    <div className="flex flex-wrap items-center gap-3 mt-2">
+                      <div className={`flex items-center px-3 py-1 rounded-full text-sm ${getAvailabilityBadge(selectedAstrologer.availability).color}`}>
+                        {getAvailabilityBadge(selectedAstrologer.availability).icon}
+                        {getAvailabilityBadge(selectedAstrologer.availability).text}
+                      </div>
+                      
+                      <div className="flex items-center gap-1">
+                        <span className="text-gray-600">({selectedAstrologer.totalConsultations || 0} consults)</span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
+                      <div className="flex items-center gap-2">
+                        <MdEmail className="text-gray-400" />
+                        <span className="text-sm truncate">{selectedAstrologer.email}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FaPhone className="text-gray-400" />
+                        <span className="text-sm">{selectedAstrologer.phone}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <FaRupeeSign className="text-gray-400" />
+                        <span className="text-sm">₹{selectedAstrologer.paidEarnings || 0} earned</span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-              </div>
 
-              <div className="flex-1">
-                <h2 className="text-2xl font-bold text-[#003D33]">
-                  {selectedAstrologer.fullName}
-                  {selectedAstrologer.gender && <span className="text-lg text-gray-600 ml-2">({selectedAstrologer.gender})</span>}
-                </h2>
-                
-                <div className="flex flex-wrap items-center gap-3 mt-2">
-                  <div className={`flex items-center px-3 py-1 rounded-full text-sm ${getAvailabilityBadge(selectedAstrologer.availability).color}`}>
-                    {getAvailabilityBadge(selectedAstrologer.availability).icon}
-                    {getAvailabilityBadge(selectedAstrologer.availability).text}
-                  </div>
-                  
-                  <div className="flex items-center gap-1">
+                {/* Main Content Grid */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Left Column */}
+                  <div className="space-y-6">
+                    {/* Personal Information */}
+                    <Section title="Personal Information">
+                      <ProfileRow label="Full Name" value={selectedAstrologer.fullName} />
+                      <ProfileRow label="Email" value={selectedAstrologer.email} />
+                      <ProfileRow label="Phone" value={selectedAstrologer.phone} />
+                      <ProfileRow label="Age" value={selectedAstrologer.age} />
+                      <ProfileRow label="Gender" value={selectedAstrologer.gender} />
+                      <ProfileRow label="Languages" value={Array.isArray(selectedAstrologer.languages) ? selectedAstrologer.languages.join(", ") : selectedAstrologer.languages} />
+                    </Section>
 
-                   
-                    <span className="text-gray-600">({selectedAstrologer.totalConsultations || 0} consults)</span>
-                  </div>
-                </div>
+                    {/* Professional Information */}
+                    <Section title="Professional Information">
+                      <ProfileRow label="Expertise" value={Array.isArray(selectedAstrologer.expertise) ? selectedAstrologer.expertise.join(", ") : selectedAstrologer.expertise} />
+                      <ProfileRow label="Experience" value={`${selectedAstrologer.experienceYears || 0} years`} />
+                      <ProfileRow label="Education" value={selectedAstrologer.education} />
+                      <ProfileRow label="Certification Title" value={selectedAstrologer.certificationTitle} />
+                    </Section>
 
-                <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4">
-                  <div className="flex items-center gap-2">
-                    <MdEmail className="text-gray-400" />
-                    <span className="text-sm truncate">{selectedAstrologer.email}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaPhone className="text-gray-400" />
-                    <span className="text-sm">{selectedAstrologer.phone}</span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <FaRupeeSign className="text-gray-400" />
-                    <span className="text-sm">₹{selectedAstrologer.paidEarnings || 0} earned</span>
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Left Column */}
-              <div className="space-y-6">
-                {/* Personal Information */}
-                <Section title="Personal Information">
-                  <ProfileRow label="Full Name" value={selectedAstrologer.fullName} />
-                  <ProfileRow label="Email" value={selectedAstrologer.email} />
-                  <ProfileRow label="Phone" value={selectedAstrologer.phone} />
-                  <ProfileRow label="Age" value={selectedAstrologer.age} />
-                  <ProfileRow label="Gender" value={selectedAstrologer.gender} />
-                  <ProfileRow label="Languages" value={Array.isArray(selectedAstrologer.languages) ? selectedAstrologer.languages.join(", ") : selectedAstrologer.languages} />
-                </Section>
-
-                {/* Professional Information */}
-                <Section title="Professional Information">
-                  <ProfileRow label="Expertise" value={Array.isArray(selectedAstrologer.expertise) ? selectedAstrologer.expertise.join(", ") : selectedAstrologer.expertise} />
-                  <ProfileRow label="Experience" value={`${selectedAstrologer.experienceYears || 0} years`} />
-                  <ProfileRow label="Education" value={selectedAstrologer.education} />
-                  <ProfileRow label="Certification Title" value={selectedAstrologer.certificationTitle} />
-                </Section>
-
-                {/* Pricing Information */}
-                <Section title="Pricing Information">
-                  <ProfileRow label="Availability" value={selectedAstrologer.availability} />
-                  {(selectedAstrologer.availability === "CHAT" || selectedAstrologer.availability === "BOTH" || selectedAstrologer.availability === "ALL") && (
-                    <ProfileRow label="Chat Rate" value={`₹${selectedAstrologer.pricing.chatPerMinute || 0} per minute`} />
-                  )}
-                  {(selectedAstrologer.availability === "CALL" || selectedAstrologer.availability === "BOTH" || selectedAstrologer.availability === "ALL") && (
-                    <ProfileRow label="Call Rate" value={`₹${selectedAstrologer.pricing.callPerMinute || 0} per minute`} />
-                  )}
-                  {(selectedAstrologer.availability === "MEET" || selectedAstrologer.availability === "ALL") && (
-                    <ProfileRow label="Meet Service" value="Available (Rate to be discussed directly)" />
-                  )}
-                </Section>
-              </div>
-
-              {/* Right Column */}
-              <div className="space-y-6">
-                {/* Bio & Achievements */}
-                <Section title="Bio">
-                  <p className="text-gray-700 text-sm leading-relaxed p-3 bg-gray-50 rounded-lg">
-                    {selectedAstrologer.bio || "No bio provided"}
-                  </p>
-                </Section>
-
-                {selectedAstrologer.achievements && selectedAstrologer.achievements.length > 0 && (
-                  <Section title="Achievements">
-                    <ul className="space-y-2">
-                      {Array.isArray(selectedAstrologer.achievements) ? selectedAstrologer.achievements.map((achievement, index) => (
-                        <li key={index} className="flex items-start gap-2">
-                          <span className="text-green-500 mt-1">•</span>
-                          <span className="text-sm text-gray-700">{achievement}</span>
-                        </li>
-                      )) : (
-                        <p className="text-sm text-gray-700">{selectedAstrologer.achievements}</p>
+                    {/* Pricing Information */}
+                    <Section title="Pricing Information">
+                      <ProfileRow label="Availability" value={selectedAstrologer.availability} />
+                      {(selectedAstrologer.availability === "CHAT" || selectedAstrologer.availability === "BOTH" || selectedAstrologer.availability === "ALL") && (
+                        <ProfileRow label="Chat Rate" value={`₹${selectedAstrologer.pricing?.chatPerMinute || 0} per minute`} />
                       )}
-                    </ul>
+                      {(selectedAstrologer.availability === "CALL" || selectedAstrologer.availability === "BOTH" || selectedAstrologer.availability === "ALL") && (
+                        <ProfileRow label="Call Rate" value={`₹${selectedAstrologer.pricing?.callPerMinute || 0} per minute`} />
+                      )}
+                      {(selectedAstrologer.availability === "MEET" || selectedAstrologer.availability === "ALL") && (
+                        <ProfileRow label="Meet Service" value="Available (Rate to be discussed directly)" />
+                      )}
+                    </Section>
+                  </div>
+
+                  {/* Right Column */}
+                  <div className="space-y-6">
+                    {/* Bio & Achievements */}
+                    <Section title="Bio">
+                      <p className="text-gray-700 text-sm leading-relaxed p-3 bg-gray-50 rounded-lg">
+                        {selectedAstrologer.bio || "No bio provided"}
+                      </p>
+                    </Section>
+
+                    {selectedAstrologer.achievements && selectedAstrologer.achievements.length > 0 && (
+                      <Section title="Achievements">
+                        <ul className="space-y-2">
+                          {Array.isArray(selectedAstrologer.achievements) ? selectedAstrologer.achievements.map((achievement, index) => (
+                            <li key={index} className="flex items-start gap-2">
+                              <span className="text-green-500 mt-1">•</span>
+                              <span className="text-sm text-gray-700">{achievement}</span>
+                            </li>
+                          )) : (
+                            <p className="text-sm text-gray-700">{selectedAstrologer.achievements}</p>
+                          )}
+                        </ul>
+                      </Section>
+                    )}
+
+                    {/* Bank Details */}
+                    <Section title="Bank Details">
+                      <ProfileRow label="Bank Name" value={selectedAstrologer.bankName} />
+                      <ProfileRow label="Account Number" value={selectedAstrologer.bankAccountNumber} />
+                      <ProfileRow label="IFSC Code" value={selectedAstrologer.ifsc} />
+                    </Section>
+
+                    {/* Documents Section */}
+                    <Section title="Documents">
+                      {/* Certification Documents */}
+                      {selectedAstrologer.certifications && selectedAstrologer.certifications.length > 0 && (
+                        <div className="mb-4">
+                          <h4 className="font-medium text-gray-700 mb-2">Certifications:</h4>
+                          <div className="space-y-2">
+                            {selectedAstrologer.certifications.map((doc, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                  <p className="text-sm font-medium">{doc.title || `Certification ${index + 1}`}</p>
+                                  <p className="text-xs text-gray-500">{doc.fileUrl?.split('/').pop()}</p>
+                                </div>
+                                <button
+                                  onClick={() => downloadDocument(doc.fileUrl, `certification_${index + 1}.${doc.fileUrl?.split('.').pop()}`)}
+                                  className="flex items-center gap-2 px-3 py-1 bg-[#003D33] text-white rounded text-sm hover:bg-[#002822]"
+                                >
+                                  <FaDownload /> Download
+                                </button>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Verification Documents */}
+                      {selectedAstrologer.verificationDocuments && selectedAstrologer.verificationDocuments.length > 0 && (
+                        <div>
+                          <h4 className="font-medium text-gray-700 mb-2">Verification Documents:</h4>
+                          <div className="space-y-2">
+                            {selectedAstrologer.verificationDocuments.map((doc, index) => (
+                              <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                                <div>
+                                  <p className="text-sm font-medium">
+                                    {doc.originalName || `Verification Doc ${index + 1}`}
+                                  </p>
+                                  <p className="text-xs text-gray-500">{doc.fileUrl?.split('/').pop()}</p>
+                                </div>
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() => window.open(`${process.env.NEXT_PUBLIC_API}${doc}`, '_blank')}
+                                    className="flex items-center gap-1 px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
+                                  >
+                                    <FaEye /> View
+                                  </button>
+                                  <button
+                                    onClick={() => downloadDocument(doc, doc.originalName || `verification_${index + 1}.${doc?.split('.').pop()}`)}
+                                    className="flex items-center gap-1 px-3 py-1 bg-[#C06014] text-white rounded text-sm hover:bg-[#A35010]"
+                                  >
+                                    <FaDownload /> Download
+                                  </button>
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+
+                      {(!selectedAstrologer.certifications || selectedAstrologer.certifications.length === 0) && 
+                       (!selectedAstrologer.verificationDocuments || selectedAstrologer.verificationDocuments.length === 0) && (
+                        <p className="text-gray-500 text-sm italic">No documents uploaded</p>
+                      )}
+                    </Section>
+                  </div>
+                </div>
+
+                {/* Footer Actions */}
+                <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-3">
+                  <button
+                    onClick={() => setSelectedAstrologer(null)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                  >
+                    Close
+                  </button>
+                  {!selectedAstrologer.isApproved && (
+                    <button
+                      onClick={() => {
+                        approveAstrologer(selectedAstrologer._id);
+                        setSelectedAstrologer(null);
+                      }}
+                      className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center gap-2"
+                    >
+                      <FaCheckCircle /> Approve & Send Credentials
+                    </button>
+                  )}
+                </div>
+              </>
+            ) : (
+              // Edit Mode Form
+              <form onSubmit={handleEditSubmit} className="space-y-6 ">
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-2xl font-bold text-[#003D33]">Edit Astrologer Profile</h2>
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="text-gray-500 hover:text-gray-700 "
+                  >
+                    <FaArrowRight size={20} />
+                  </button>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  {/* Personal Information */}
+                  <Section title="Personal Information">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Full Name *</label>
+                        <input
+                          type="text"
+                          name="fullName"
+                          value={editFormData.fullName}
+                          onChange={handleEditChange}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Email *</label>
+                        <input
+                          type="email"
+                          name="email"
+                          value={editFormData.email}
+                          onChange={handleEditChange}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Phone *</label>
+                        <input
+                          type="tel"
+                          name="phone"
+                          value={editFormData.phone}
+                          onChange={handleEditChange}
+                          required
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Age</label>
+                        <input
+                          type="number"
+                          name="age"
+                          value={editFormData.age}
+                          onChange={handleEditChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Gender</label>
+                        <select
+                          name="gender"
+                          value={editFormData.gender}
+                          onChange={handleEditChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        >
+                          <option value="">Select</option>
+                          <option value="Male">Male</option>
+                          <option value="Female">Female</option>
+                          <option value="Other">Other</option>
+                        </select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Languages (comma separated)</label>
+                        <input
+                          type="text"
+                          name="languages"
+                          value={editFormData.languages}
+                          onChange={handleEditChange}
+                          placeholder="Hindi, English, Tamil"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                    </div>
                   </Section>
-                )}
 
-                {/* Bank Details */}
-                <Section title="Bank Details">
-                  <ProfileRow label="Bank Name" value={selectedAstrologer.bankName} />
-                  <ProfileRow label="Account Number" value={selectedAstrologer.bankAccountNumber} />
-                  <ProfileRow label="IFSC Code" value={selectedAstrologer.ifsc} />
-                </Section>
-
-                {/* Documents Section */}
-                <Section title="Documents">
-                  {/* Certification Documents */}
-                  {selectedAstrologer.certifications && selectedAstrologer.certifications.length > 0 && (
-                    <div className="mb-4">
-                      <h4 className="font-medium text-gray-700 mb-2">Certifications:</h4>
-                      <div className="space-y-2">
-                        {selectedAstrologer.certifications.map((doc, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                              <p className="text-sm font-medium">{doc.title || `Certification ${index + 1}`}</p>
-                              <p className="text-xs text-gray-500">{doc.fileUrl?.split('/').pop()}</p>
-                            </div>
-                            <button
-                              onClick={() => downloadDocument(doc.fileUrl, `certification_${index + 1}.${doc.fileUrl?.split('.').pop()}`)}
-                              className="flex items-center gap-2 px-3 py-1 bg-[#003D33] text-white rounded text-sm hover:bg-[#002822]"
-                            >
-                              <FaDownload /> Download
-                            </button>
-                          </div>
-                        ))}
+                  {/* Professional Information */}
+                  <Section title="Professional Information">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Expertise (comma separated)</label>
+                        <input
+                          type="text"
+                          name="expertise"
+                          value={editFormData.expertise}
+                          onChange={handleEditChange}
+                          placeholder="Vedic Astrology, Palmistry, Tarot"
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Experience (years)</label>
+                        <input
+                          type="number"
+                          name="experienceYears"
+                          value={editFormData.experienceYears}
+                          onChange={handleEditChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Education</label>
+                        <input
+                          type="text"
+                          name="education"
+                          value={editFormData.education}
+                          onChange={handleEditChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Certification Title</label>
+                        <input
+                          type="text"
+                          name="certificationTitle"
+                          value={editFormData.certificationTitle}
+                          onChange={handleEditChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
                       </div>
                     </div>
-                  )}
+                  </Section>
 
-                  {/* Verification Documents */}
-                  {selectedAstrologer.verificationDocuments && selectedAstrologer.verificationDocuments.length > 0 && (
+                  {/* Pricing & Availability */}
+                  <Section title="Pricing & Availability">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Availability</label>
+                        <select
+                          name="availability"
+                          value={editFormData.availability}
+                          onChange={handleEditChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        >
+                          <option value="CHAT">Chat Only</option>
+                          <option value="CALL">Call Only</option>
+                          <option value="BOTH">Chat + Call</option>
+                          <option value="MEET">Meet Only</option>
+                          <option value="ALL">All Services</option>
+                        </select>
+                      </div>
+                      {(editFormData.availability === "CHAT" || editFormData.availability === "BOTH" || editFormData.availability === "ALL") && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Chat Rate (₹/minute)</label>
+                          <input
+                            type="number"
+                            name="chatPerMinute"
+                            value={editFormData.chatPerMinute}
+                            onChange={handleEditChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                          />
+                        </div>
+                      )}
+                      {(editFormData.availability === "CALL" || editFormData.availability === "BOTH" || editFormData.availability === "ALL") && (
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-1">Call Rate (₹/minute)</label>
+                          <input
+                            type="number"
+                            name="callPerMinute"
+                            value={editFormData.callPerMinute}
+                            onChange={handleEditChange}
+                            className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                          />
+                        </div>
+                      )}
+                    </div>
+                  </Section>
+
+                  {/* Bank Details */}
+                  <Section title="Bank Details">
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Bank Name</label>
+                        <input
+                          type="text"
+                          name="bankName"
+                          value={editFormData.bankName}
+                          onChange={handleEditChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Account Number</label>
+                        <input
+                          type="text"
+                          name="bankAccountNumber"
+                          value={editFormData.bankAccountNumber}
+                          onChange={handleEditChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">IFSC Code</label>
+                        <input
+                          type="text"
+                          name="ifsc"
+                          value={editFormData.ifsc}
+                          onChange={handleEditChange}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        />
+                      </div>
+                    </div>
+                  </Section>
+
+                  {/* Bio & Achievements */}
+                  <Section title="Bio">
                     <div>
-                      <h4 className="font-medium text-gray-700 mb-2">Verification Documents:</h4>
-                      <div className="space-y-2">
-                        {selectedAstrologer.verificationDocuments.map((doc, index) => (
-                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                            <div>
-                              <p className="text-sm font-medium">
-                                {doc.originalName || `Verification Doc ${index + 1}`}
-                              </p>
-                              <p className="text-xs text-gray-500">{doc.fileUrl?.split('/').pop()}</p>
-                            </div>
-                            <div className="flex gap-2">
-                              <button
-                                onClick={() => window.open(`${process.env.NEXT_PUBLIC_API}${doc}`, '_blank')}
-                                className="flex items-center gap-1 px-3 py-1 border border-gray-300 rounded text-sm hover:bg-gray-100"
-                              >
-                                <FaEye /> View
-                              </button>
-                              <button
-                                onClick={() => downloadDocument(doc, doc.originalName || `verification_${index + 1}.${doc?.split('.').pop()}`)}
-                                className="flex items-center gap-1 px-3 py-1 bg-[#C06014] text-white rounded text-sm hover:bg-[#A35010]"
-                              >
-                                <FaDownload /> Download
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                      <textarea
+                        name="bio"
+                        value={editFormData.bio}
+                        onChange={handleEditChange}
+                        rows={4}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        placeholder="Enter bio here..."
+                      />
                     </div>
-                  )}
+                  </Section>
 
-                  {(!selectedAstrologer.certifications || selectedAstrologer.certifications.length === 0) && 
-                   (!selectedAstrologer.verificationDocuments || selectedAstrologer.verificationDocuments.length === 0) && (
-                    <p className="text-gray-500 text-sm italic">No documents uploaded</p>
-                  )}
-                </Section>
-              </div>
-            </div>
+                  <Section title="Achievements">
+                    <div>
+                      <textarea
+                        name="achievements"
+                        value={editFormData.achievements}
+                        onChange={handleEditChange}
+                        rows={4}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#003D33] focus:border-transparent"
+                        placeholder="One achievement per line..."
+                      />
+                      <p className="text-xs text-gray-500 mt-1">Enter each achievement on a new line</p>
+                    </div>
+                  </Section>
+                </div>
 
-            {/* Footer Actions */}
-            <div className="mt-8 pt-6 border-t border-gray-200 flex justify-end gap-3">
-              <button
-                onClick={() => setSelectedAstrologer(null)}
-                className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
-              >
-                Close
-              </button>
-              {!selectedAstrologer.isApproved && (
-                <button
-                  onClick={() => {
-                    approveAstrologer(selectedAstrologer._id);
-                    setSelectedAstrologer(null);
-                  }}
-                  className="px-4 py-2 bg-green-600 text-white rounded-lg text-sm hover:bg-green-700 flex items-center gap-2"
-                >
-                  <FaCheckCircle /> Approve & Send Credentials
-                </button>
-              )}
-            </div>
+                {/* Form Actions */}
+                <div className="flex justify-end gap-3 pt-4 border-t">
+                  <button
+                    type="button"
+                    onClick={() => setIsEditing(false)}
+                    className="px-4 py-2 border border-gray-300 rounded-lg text-sm hover:bg-gray-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="px-4 py-2 bg-[#003D33] text-white rounded-lg text-sm hover:bg-[#002822] flex items-center gap-2"
+                  >
+                    <FaSave /> Save Changes
+                  </button>
+                </div>
+              </form>
+            )}
           </div>
         </div>
       )}

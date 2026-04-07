@@ -5,8 +5,7 @@
   "scripts": {
     "dev": "next dev --webpack",
     "build": "next build --webpack",
-    "start": "next start",
-    "postbuild": "next-sitemap"
+    "start": "next start"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",

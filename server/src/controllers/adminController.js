@@ -723,3 +723,73 @@ export const getQuickStats = async (req, res) => {
     });
   }
 };
+
+
+export const updateAstrologer = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const updateData = req.body;
+
+    // Find existing astrologer
+    const astrologer = await Astrologer.findById(id);
+    if (!astrologer) {
+      return res.status(404).json({ message: "Astrologer not found" });
+    }
+
+    // Fields that can be updated
+    const allowedUpdates = [
+      'fullName', 'email', 'phone', 'age', 'gender', 'languages',
+      'expertise', 'experienceYears', 'education', 'certificationTitle',
+      'availability', 'pricing', 'bio', 'achievements', 'bankName',
+      'bankAccountNumber', 'ifsc'
+    ];
+
+    // Apply updates
+    allowedUpdates.forEach(field => {
+      if (updateData[field] !== undefined) {
+        if (field === 'pricing') {
+          // Handle nested pricing object
+          if (!astrologer.pricing) astrologer.pricing = {};
+          if (updateData.pricing.chatPerMinute !== undefined) {
+            astrologer.pricing.chatPerMinute = updateData.pricing.chatPerMinute;
+          }
+          if (updateData.pricing.callPerMinute !== undefined) {
+            astrologer.pricing.callPerMinute = updateData.pricing.callPerMinute;
+          }
+        } else {
+          astrologer[field] = updateData[field];
+        }
+      }
+    });
+
+    // Save updated astrologer
+    await astrologer.save();
+
+    // If email was changed, update Razorpay contact (optional)
+    if (updateData.email && updateData.email !== astrologer.email && astrologer.razorpayContactId) {
+      try {
+        await razorpayX.patch(`/contacts/${astrologer.razorpayContactId}`, {
+          email: updateData.email,
+          name: updateData.fullName || astrologer.fullName,
+          contact: updateData.phone || astrologer.phone,
+        });
+      } catch (razorpayError) {
+        console.error("Failed to update Razorpay contact:", razorpayError.message);
+        // Don't fail the whole operation for Razorpay update failure
+      }
+    }
+
+    res.json({
+      success: true,
+      message: "Astrologer updated successfully",
+      astrologer
+    });
+
+  } catch (error) {
+    console.error("Update astrologer error:", error);
+    res.status(500).json({
+      success: false,
+      message: error.message || "Failed to update astrologer"
+    });
+  }
+};

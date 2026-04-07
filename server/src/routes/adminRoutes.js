@@ -20,6 +20,7 @@ import {
   getQuickStats,
   deleteALLProduct,
   deleteALLUser,
+  updateAstrologer,
  
 } from "../controllers/adminController.js";
 import {
@@ -52,6 +53,7 @@ router.delete("/users/:id", deleteUser);
 router.get("/astrologers", getAllAstrologers);
 router.patch("/astrologers/approve/:id", approveAstrologer);
 router.delete("/astrologers/:id", deleteAstrologer);
+router.put("/astrologers/:id", updateAstrologer);
 
 // Get all carousels (for admin)
 router.get("/carousel", getAllCarousels);
