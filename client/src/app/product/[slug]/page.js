@@ -18,7 +18,7 @@ export async function generateMetadata({ params }) {
     const imageUrl =
       product.imageUrls?.[0]?.startsWith("http")
         ? product.imageUrls[0]
-        : `${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls?.[0]}`;
+        : `${process.env.NEXT_PUBLIC_API}${product.imageUrls?.[0]}`;
    console.log("OG Image URL:", imageUrl);
     return {
       title: product.name,

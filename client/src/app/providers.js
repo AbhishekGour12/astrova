@@ -88,7 +88,7 @@ export function Providers({ children }) {
 
       
 
-      <Toaster position="bottom-left" />
+      <Toaster position="top-center" />
     </Provider>
   );
 }

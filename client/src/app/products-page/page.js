@@ -244,7 +244,7 @@ const handleAddToCart = async (e, productId) => {
             <div className="relative h-[70vh]  w-full overflow-hidden">
               {/* Background Image */}
               <img
-                src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${slide.image}`}
+                src={`${process.env.NEXT_PUBLIC_API}${slide.image}`}
                 alt={slide.title}
                 className="w-full h-full object-cover scale-100 transition-transform duration-700 hover:scale-[1.02] rounded-none"
               />
@@ -452,7 +452,7 @@ onClick={() => {
               <div className="w-full h-[200px] relative overflow-hidden">
 
                 <img
-                  src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
+                  src={`${process.env.NEXT_PUBLIC_API}${p.imageUrls?.[0] || "/placeholder.jpg"}`}
                   alt={p.name}
                   className="object-cover w-full h-full"
                 />
@@ -565,7 +565,7 @@ onClick={() => {
         >
          <div className="relative">
   <img
-    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${p.imageUrls?.[0]}`}
+    src={`${process.env.NEXT_PUBLIC_API}${p.imageUrls?.[0]}`}
     alt={p.name}
     className="object-cover h-32 sm:h-40 md:h-48 w-full"
   />

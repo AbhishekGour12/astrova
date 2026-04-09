@@ -5,7 +5,6 @@ import fs from 'fs';
 const XLSX = xlsx;
 
 
-
 const calculatePricing = ({
   price,
   offerPercent = 0,
@@ -124,13 +123,16 @@ export const getProducts = async (req, res) => {
  *  - Field "products" (JSON string of array)
  *  - Field "images" (multiple image files)
  **/
- export const addBulkProductsWithImages = async (req, res) => {
+ // Updated addBulkProductsWithImages function
+
+export const addBulkProductsWithImages = async (req, res) => {
   try {
     const productsData = JSON.parse(req.body.products);
     const uploadedFiles = req.files || [];
 
+    // Files are already compressed and converted to WebP by middleware
     const imageUrls = uploadedFiles.map(
-      (file) => `/uploads/products/${file.filename}`
+      (file) => file.path // Now returns WebP path
     );
 
     let fileIndex = 0;
@@ -166,13 +168,269 @@ export const getProducts = async (req, res) => {
     const saved = await Product.insertMany(processedProducts);
 
     res.status(201).json({
-      message: "✅ Products added successfully",
+      message: "✅ Products added successfully with optimized images",
       count: saved.length,
       products: saved,
+      imageInfo: {
+        format: "webp",
+        compressed: true
+      }
     });
   } catch (err) {
     console.error("❌ Bulk add error:", err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+// productController.js (fixed version)
+export const uploadBulkProductsWithImages = async (req, res) => {
+  try {
+    console.log("🟢 Files received:", Object.keys(req.files || {}));
+
+    const excelFile = req.files?.excelFile?.[0];
+    const imageFiles = req.files?.productImages || [];
+
+    if (!excelFile) {
+      return res.status(400).json({ error: "Excel file is required" });
+    }
+
+    // ✅ Validate Excel format
+    const excelExt = path.extname(excelFile.originalname).toLowerCase();
+    if (![".xlsx", ".xls", ".csv"].includes(excelExt)) {
+      return res.status(400).json({ error: "Invalid Excel file format" });
+    }
+
+    // ✅ Check if excel file exists
+    if (!fs.existsSync(excelFile.path)) {
+      return res.status(400).json({ error: "Excel file not found on server" });
+    }
+
+    // ✅ Read Excel
+    let workbook;
+    try {
+      workbook = XLSX.readFile(excelFile.path);
+    } catch (err) {
+      console.error("Excel read error:", err);
+      return res.status(400).json({ error: "Failed to read Excel file. Please ensure it's a valid Excel file." });
+    }
+    
+    const sheetName = workbook.SheetNames[0];
+    const worksheet = workbook.Sheets[sheetName];
+    const rawData = XLSX.utils.sheet_to_json(worksheet);
+
+    console.log(`📘 Processing ${rawData.length} rows from Excel`);
+    console.log(`🖼️ Processing ${imageFiles.length} images available`);
+
+    // ✅ Create a map of images by original name (case insensitive)
+    const imageMap = new Map();
+    imageFiles.forEach(img => {
+      const baseName = path.basename(img.originalname, path.extname(img.originalname)).toLowerCase();
+      const fullName = img.originalname.toLowerCase();
+      const nameWithoutExt = baseName;
+      
+      // Store image with multiple keys for flexible matching
+      imageMap.set(fullName, img);
+      imageMap.set(nameWithoutExt, img);
+      imageMap.set(baseName, img);
+      
+      // Also store without special characters
+      const cleanName = nameWithoutExt.replace(/[^a-z0-9]/g, '');
+      imageMap.set(cleanName, img);
+    });
+
+    console.log(`📸 Image map created with ${imageMap.size} entries`);
+
+    const products = [];
+    const errors = [];
+
+    for (let i = 0; i < rawData.length; i++) {
+      try {
+        // 🔹 Normalize headers
+        const row = {};
+        for (const key in rawData[i]) {
+          row[key.trim().toLowerCase()] = rawData[i][key];
+        }
+
+        // ✅ Required fields
+        const required = ["name", "price", "stock", "producttype", "category"];
+        const missing = required.filter((f) => !row[f]);
+        if (missing.length) {
+          errors.push(
+            `Row ${i + 2}: Missing required fields (${missing.join(", ")})`
+          );
+          continue;
+        }
+
+        // ✅ Parse numeric values safely
+        const price = Number(row.price);
+        const stock = Number(row.stock);
+        const weight = Number(row.weight) || 0.2;
+        const rating = Number(row.rating) || 0;
+        const offerPercent = Number(row.offerpercent) || 0;
+
+        if (price <= 0 || isNaN(price)) {
+          errors.push(`Row ${i + 2}: Invalid price`);
+          continue;
+        }
+
+        if (stock < 0 || isNaN(stock)) {
+          errors.push(`Row ${i + 2}: Invalid stock`);
+          continue;
+        }
+
+        const pricing = calculatePricing({
+          price,
+          offerPercent
+        });
+
+        const discountedPrice = pricing.discountedPrice;
+        const totalPrice = Math.round(pricing.totalPrice);
+
+        // ✅ Image matching - DON'T remove images from map
+        const productImages = [];
+        if (row.images) {
+          const imageNames = row.images
+            .split(",")
+            .map((n) => n.trim().toLowerCase())
+            .filter(n => n.length > 0);
+
+          console.log(`Row ${i + 2}: Looking for images:`, imageNames);
+
+          for (const imgName of imageNames) {
+            // Try multiple matching strategies
+            let matchedImage = null;
+            
+            // Strategy 1: Exact match with original name
+            if (imageMap.has(imgName)) {
+              matchedImage = imageMap.get(imgName);
+            }
+            // Strategy 2: Match without extension
+            else {
+              const nameWithoutExt = imgName.replace(/\.[^/.]+$/, "");
+              if (imageMap.has(nameWithoutExt)) {
+                matchedImage = imageMap.get(nameWithoutExt);
+              }
+              // Strategy 3: Match by cleaning special characters
+              else {
+                const cleanName = nameWithoutExt.replace(/[^a-z0-9]/g, '');
+                for (const [key, value] of imageMap.entries()) {
+                  const cleanKey = key.replace(/[^a-z0-9]/g, '');
+                  if (cleanKey === cleanName) {
+                    matchedImage = value;
+                    break;
+                  }
+                }
+              }
+            }
+            
+            if (matchedImage && matchedImage.path) {
+              // Verify image file exists
+              const fullImagePath = path.join(process.cwd(), matchedImage.path);
+              if (fs.existsSync(fullImagePath)) {
+                productImages.push(matchedImage.path);
+                console.log(`✅ Row ${i + 2}: Matched image "${imgName}" -> ${matchedImage.path}`);
+              } else {
+                errors.push(`Row ${i + 2}: Image file not found on disk for "${imgName}"`);
+                console.log(`❌ Row ${i + 2}: Image file missing at ${fullImagePath}`);
+              }
+            } else {
+              errors.push(`Row ${i + 2}: Image "${imgName}" not found in upload`);
+              console.log(`❌ Row ${i + 2}: No match found for "${imgName}"`);
+            }
+          }
+        }
+
+        // ✅ Final product object
+        const productData = {
+          name: row.name.toString().trim(),
+          description: (row.description || "").toString().trim(),
+          price,
+          discountedPrice,
+          offerPercent,
+          stock,
+          productType: row.producttype.toString().trim(),
+          category: row.category.toString().trim(),
+          weight,
+          rating,
+          isFeatured: row.isfeatured === "TRUE" || row.isfeatured === true || row.isfeatured === "true",
+          imageUrls: productImages.length > 0 ? productImages : [],
+          totalPrice: totalPrice,
+          imageFormat: productImages.length > 0 ? "webp" : null,
+          compressed: productImages.length > 0
+        };
+
+        const product = await Product.create(productData);
+        products.push(product);
+        console.log(`✅ Added product: ${product.name} with ${productImages.length} images`);
+      } catch (err) {
+        console.error(`❌ Row ${i + 2} error:`, err.message);
+        errors.push(`Row ${i + 2}: ${err.message}`);
+      }
+    }
+
+    // 📊 Response
+    const totalProcessed = products.length;
+    const totalErrors = errors.length;
+
+    // Log summary
+    console.log(`\n📊 Upload Summary:`);
+    console.log(`✅ Products created: ${totalProcessed}`);
+    console.log(`❌ Errors: ${totalErrors}`);
+    console.log(`🖼️ Total images available: ${imageFiles.length}`);
+
+    if (errors.length > 0) {
+      return res.status(207).json({
+        message: `Uploaded with partial errors. ${totalProcessed} products created, ${totalErrors} errors.`,
+        created: totalProcessed,
+        errors: errors.slice(0, 50), // Limit error messages
+        products,
+        imageInfo: {
+          format: "webp",
+          compressed: true,
+          totalImagesAvailable: imageFiles.length,
+          optimization: "Images converted to WebP format with 80% quality"
+        }
+      });
+    }
+
+    res.status(201).json({
+      message: `${products.length} products uploaded successfully with optimized WebP images`,
+      products,
+      imageInfo: {
+        format: "webp",
+        compressed: true,
+        totalImagesUsed: products.reduce((sum, p) => sum + p.imageUrls.length, 0),
+        optimization: "All images converted to WebP for better performance"
+      }
+    });
+  } catch (error) {
+    console.error("💥 Excel upload error:", error);
+    res.status(500).json({ error: error.message });
+  } finally {
+    // Cleanup temp files (but keep processed images in products folder)
+    try {
+      if (req.files) {
+        // Delete temp excel file
+        if (req.files.excelFile && req.files.excelFile[0] && req.files.excelFile[0].path) {
+          if (fs.existsSync(req.files.excelFile[0].path)) {
+            fs.unlinkSync(req.files.excelFile[0].path);
+            console.log("🧹 Cleaned up temp Excel file");
+          }
+        }
+        
+        // Delete temp image files (original uploads before processing)
+        if (req.files.productImages) {
+          req.files.productImages.forEach(file => {
+            if (file.path && fs.existsSync(file.path) && file.path.includes('temp')) {
+              fs.unlinkSync(file.path);
+              console.log(`🧹 Cleaned up temp image: ${file.originalname}`);
+            }
+          });
+        }
+      }
+    } catch (cleanupErr) {
+      console.warn("⚠️ Cleanup error:", cleanupErr.message);
+    }
   }
 };
 
@@ -239,170 +497,6 @@ export const deleteProductType = async (req, res) => {
 };
 
 
-// ✅ Bulk upload products via Excel (ENHANCED WITH OFFER LOGIC)
-export const uploadBulkProductsWithImages = async (req, res) => {
-  try {
-    console.log("🟢 Files received:", Object.keys(req.files || {}));
-
-    const excelFile = req.files?.excelFile?.[0];
-    const imageFiles = req.files?.productImages || [];
-
-    if (!excelFile) {
-      return res.status(400).json({ error: "Excel file is required" });
-    }
-
-    // ✅ Validate Excel format
-    const excelExt = path.extname(excelFile.originalname).toLowerCase();
-    if (![".xlsx", ".xls", ".csv"].includes(excelExt)) {
-      fs.unlinkSync(excelFile.path);
-      return res.status(400).json({ error: "Invalid Excel file format" });
-    }
-
-    // ✅ Read Excel
-    const workbook = XLSX.readFile(excelFile.path);
-    const sheetName = workbook.SheetNames[0];
-    const worksheet = workbook.Sheets[sheetName];
-    const rawData = XLSX.utils.sheet_to_json(worksheet);
-
-    console.log(`📘 Processing ${rawData.length} rows from Excel`);
-
-    const products = [];
-    const errors = [];
-
-    for (let i = 0; i < rawData.length; i++) {
-      try {
-        // 🔹 Normalize headers
-        const row = {};
-        for (const key in rawData[i]) {
-          row[key.trim().toLowerCase()] = rawData[i][key];
-        }
-
-        // ✅ Required fields
-        const required = ["name", "price", "stock", "producttype", "category"];
-        const missing = required.filter((f) => !row[f]);
-        if (missing.length) {
-          errors.push(
-            `Row ${i + 2}: Missing required fields (${missing.join(", ")})`
-          );
-          continue;
-        }
-
-        // ✅ Parse numeric values safely
-        const price = Number(row.price);
-        const stock = Number(row.stock);
-        const weight = Number(row.weight) || 0.2;
-        const rating = Number(row.rating) || 0;
-      
-        const offerPercent = Number(row.offerpercent) || 0;
-
-        if (price <= 0 || isNaN(price)) {
-          errors.push(`Row ${i + 2}: Invalid price`);
-          continue;
-        }
-
-        if (stock < 0 || isNaN(stock)) {
-          errors.push(`Row ${i + 2}: Invalid stock`);
-          continue;
-        }
-
-        const pricing = calculatePricing({
-  price,
-  offerPercent
-});
-
-const discountedPrice = pricing.discountedPrice;
-//const gstAmount = pricing.gstAmount;
-const totalPrice = Math.round(pricing.totalPrice);
-
-
-        // ✅ Image matching
-        const productImages = [];
-        if (row.images) {
-          const imageNames = row.images
-            .split(",")
-            .map((n) => n.trim().toLowerCase());
-
-          for (const imgName of imageNames) {
-            const img = imageFiles.find(
-              (f) => f.originalname.toLowerCase() === imgName
-            );
-
-            if (img) {
-              const ext = path.extname(img.originalname);
-              const uniqueName = `product-${Date.now()}-${Math.round(
-                Math.random() * 1e9
-              )}${ext}`;
-
-              const targetPath = path.join("uploads", "products", uniqueName);
-              fs.mkdirSync(path.dirname(targetPath), { recursive: true });
-              fs.renameSync(img.path, targetPath);
-
-              productImages.push(`/uploads/products/${uniqueName}`);
-            } else {
-              errors.push(
-                `Row ${i + 2}: Image "${imgName}" not found`
-              );
-            }
-          }
-        }
-
-        // ✅ Final product object
-        const productData = {
-          name: row.name.toString().trim(),
-          description: (row.description || "").toString().trim(),
-          price,
-          discountedPrice,
-          offerPercent,
-          stock,
-          productType: row.producttype.toString().trim(),
-          category: row.category.toString().trim(),
-          weight,
-          rating,
-          isFeatured:
-            row.isfeatured === "TRUE" ||
-            row.isfeatured === true ||
-            row.isfeatured === "true",
-          imageUrls: productImages,
-          totalPrice: totalPrice
-        };
-
-        const product = await Product.create(productData);
-        products.push(product);
-
-       // console.log(`✅ Added product: ${product.name}`);
-      } catch (err) {
-        console.error(`❌ Row ${i + 2} error:`, err.message);
-        errors.push(`Row ${i + 2}: ${err.message}`);
-      }
-    }
-
-    // 🧹 Cleanup temp files
-    try {
-      if (fs.existsSync(excelFile.path)) fs.unlinkSync(excelFile.path);
-      imageFiles.forEach((f) => fs.existsSync(f.path) && fs.unlinkSync(f.path));
-    } catch (cleanupErr) {
-      console.warn("⚠️ Cleanup error:", cleanupErr.message);
-    }
-
-    // 📊 Response
-    if (errors.length > 0) {
-      return res.status(207).json({
-        message: "Uploaded with partial errors",
-        created: products.length,
-        errors,
-        products,
-      });
-    }
-
-    res.status(201).json({
-      message: `${products.length} products uploaded successfully`,
-      products,
-    });
-  } catch (error) {
-    console.error("💥 Excel upload error:", error);
-    res.status(500).json({ error: error.message });
-  }
-};
 
 
 export const deleteProduct = async (req, res) => {

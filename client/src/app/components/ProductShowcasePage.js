@@ -122,16 +122,9 @@ const fetchProductPageData = useCallback(async () => {
     
     // Handle reviews data - it might be an object with reviews array or direct array
     let reviewsList = [];
-    if (Array.isArray(reviewsData)) {
+    
       reviewsList = reviewsData;
-    } else if (reviewsData && reviewsData.reviews && Array.isArray(reviewsData.reviews)) {
-      reviewsList = reviewsData.reviews;
-    } else if (reviewsData && reviewsData.data && Array.isArray(reviewsData.data)) {
-      reviewsList = reviewsData.data;
-    } else {
-      console.warn("Unexpected reviews data structure:", reviewsData);
-      reviewsList = [];
-    }
+    
     
     console.log("Reviews list:", reviewsList);
     setLikesCount(likesRes.count || 0);
@@ -402,7 +395,7 @@ const handleShare = async () => {
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 1 }}
                   transition={{ duration: 0.3 }}
-                  src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${selectedProduct?.imageUrls[selectedImageIndex]}`}
+                  src={`${process.env.NEXT_PUBLIC_API}${selectedProduct?.imageUrls[selectedImageIndex]}`}
                   alt={selectedProduct?.name}
                   className="w-full h-64 sm:h-80 lg:h-96 object-cover rounded-2xl cursor-zoom-in"
                 />
@@ -424,7 +417,7 @@ const handleShare = async () => {
                     onClick={() => setSelectedImageIndex(index)}
                   >
                     <img
-                      src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${image}`}
+                      src={`${process.env.NEXT_PUBLIC_API}${image}`}
                       alt={`thumb-${index}`}
                       className="w-full h-full object-cover"
                     />
@@ -817,7 +810,7 @@ const handleShare = async () => {
  <div className="space-y-6 max-h-[200px] overflow-y-auto pr-2
                 scrollbar-thin scrollbar-thumb-[#C06014]/60
                 scrollbar-track-transparent">
-  {reviews.map((r) => (
+  {reviews?reviews.map((r) => (
     <div
       key={r._id}
       className="border-b border-[#B2C5B2]/60 pb-5 last:border-none"
@@ -850,7 +843,7 @@ const handleShare = async () => {
         {new Date(r.createdAt).toLocaleDateString()}
       </p>
     </div>
-  ))}
+  )):'No reviews yet. Be the first to share your experience 🌟'}
 </div>
 
     
@@ -895,7 +888,7 @@ const handleShare = async () => {
                 >
                   <div className="relative overflow-hidden">
                     <img
-                      src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
+                      src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
                       alt={product.name}
                       className="w-full h-48 object-cover transition-transform duration-300 hover:scale-105"
                     />
@@ -941,7 +934,7 @@ const handleShare = async () => {
                       className="bg-white rounded-3xl border border-[#B2C5B2] overflow-hidden shadow-lg transition-all duration-300"
                     >
                       <img
-                        src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
+                        src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
                         alt={product.name}
                         className="w-full h-48 object-cover"
                       />

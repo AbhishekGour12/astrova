@@ -36,8 +36,9 @@ import {
   deleteProductType,
 } from "../controllers/productController.js";
 import multer from "multer";
-import  { uploadExcelAndImages, uploadImages } from "../utils/multer.js";
+import  { cleanupTempFiles, processFieldImages, processUploadedImages, uploadExcelAndImages, uploadImages } from "../utils/multer.js";
 import { addSlide, deleteSlide, getAllCarousels, getCarouselByPage, updateSlide } from "../controllers/carouselController.js";
+
 
 
 const router = express.Router()
@@ -74,7 +75,9 @@ router.delete("/carousel/:page/:slideId", deleteSlide);
 
 router.post(
   "/product",
-  uploadImages.array("images", 100), // allow up to 50 product images
+  uploadImages.array("images", 100),
+  processUploadedImages,
+  cleanupTempFiles,
   addBulkProductsWithImages
 );
 
@@ -85,6 +88,8 @@ router.post(
     { name: "excelFile", maxCount: 1 },
     { name: "productImages", maxCount: 100 },
   ]),
+  processFieldImages,
+  cleanupTempFiles,
   uploadBulkProductsWithImages
 );
 

@@ -139,7 +139,7 @@ ${
                  
             <div className="h-[200px] xs:h-[160px] sm:h-[180px] md:h-[200px] lg:h-[220px] relative">
               <img
-                src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
+                src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
                 alt={product.name}
                width="400"
                height="400"
@@ -233,7 +233,7 @@ ${
 `}>
 
               <img
-                src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls[0]}`}
+                src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls[0]}`}
                 alt={product.name}
                 className="object-cover rounded-lg sm:rounded-xl w-full h-full"
               />

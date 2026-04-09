@@ -69,7 +69,7 @@ export const getProductRatings = async (req, res) => {
   try {
     const { slug } = req.params;
 
-    const reviews = await Rating.findOne({ slug: slug })
+    const reviews = await Rating.find({ slug: slug })
       .populate("userId", "username phone") // show user info in review
       .sort({ createdAt: -1 });
      

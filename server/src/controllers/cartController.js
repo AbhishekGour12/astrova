@@ -1,33 +1,27 @@
 import Cart from '../models/Cart.js';
+import Product from '../models/Products.js'; // 👈 Import Product model
+import mongoose from 'mongoose';
 
-
-export const getCart = async (req, res) => {
-  try {
-    const userId = req.user.id;
-
-    let cart = await Cart.findOne({ userId })
-  .populate("items.product");
-
-   if (cart) {
-    cart.items = cart.items.filter(item => item.product !== null);
-   }
-
-
-
-
-    res.json({ cart });
-  } catch (err) {
-    res.status(500).json({ message: err.message });
+// Helper: resolve product identifier (id or slug) to ObjectId
+const resolveProductId = async (identifier) => {
+  // If it's already a valid ObjectId, return it
+  if (mongoose.Types.ObjectId.isValid(identifier)) {
+    return identifier;
   }
+  // Otherwise treat as slug and find product
+  const product = await Product.findOne({ slug: identifier }).select('_id');
+  if (!product) throw new Error(`Product not found for slug: ${identifier}`);
+  return product._id;
 };
-
 
 export const addToCart = async (req, res) => {
   try {
     const userId = req.user.id;
-    console.log(userId)
-    const { productId, quantity } = req.body;
-console.log(productId, quantity)
+    let { productId, quantity } = req.body;
+
+    // ✅ Resolve product identifier to actual ObjectId
+    const resolvedProductId = await resolveProductId(productId);
+
     let cart = await Cart.findOne({ userId });
 
     if (!cart) {
@@ -35,26 +29,26 @@ console.log(productId, quantity)
     }
 
     const item = cart.items.find(
-      (i) => i.product.toString() === productId
+      (i) => i.product.toString() === resolvedProductId.toString()
     );
 
     if (item) {
       item.quantity += quantity;
     } else {
-      cart.items.push({ product: productId, quantity });
+      cart.items.push({ product: resolvedProductId, quantity });
     }
 
     await cart.save();
 
     const populatedCart = await Cart.findOne({ userId })
       .populate("items.product");
-     console.log(populatedCart)
+
     res.json({
       message: "Item added",
       cart: populatedCart
     });
   } catch (err) {
-    console.log(err.message)
+    console.log(err.message);
     res.status(500).json({ message: err.message });
   }
 };
@@ -62,7 +56,7 @@ console.log(productId, quantity)
 export const updateCartItem = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { itemId } = req.params;
+    let { itemId } = req.params;
     const { quantity } = req.body;
 
     if (!itemId) 
@@ -70,106 +64,131 @@ export const updateCartItem = async (req, res) => {
 
     const q = Number(quantity);
 
-    // -------------------------------------------
-    // CASE 1 — If quantity = 0 → DELETE the item
-    // -------------------------------------------
-    if (q === 0) {
-      const removed = await Cart.findOneAndUpdate(
-        { userId, "items._id": itemId },
-        { $pull: { items: { _id: itemId } } },
-        { new: true }
-      ).populate({ path: "items.product", select: "name price imageUrls" });
-
-      // Fallback if frontend sent productId instead of itemId
-      if (!removed) {
-        const removedByProduct = await Cart.findOneAndUpdate(
-          { userId, "items.product": itemId },
-          { $pull: { items: { product: itemId } } },
+    // Helper to handle update by either item._id or product._id (slug or id)
+    const updateCart = async (filter) => {
+      if (q === 0) {
+        // Remove item
+        return await Cart.findOneAndUpdate(
+          { userId, ...filter },
+          { $pull: { items: filter } },
           { new: true }
         ).populate({ path: "items.product", select: "name price imageUrls" });
-
-        if (!removedByProduct) {
-          return res.status(404).json({ message: "Item not found" });
-        }
-
-        return res.json({ cart: removedByProduct });
+      } else {
+        // Update quantity
+        return await Cart.findOneAndUpdate(
+          { userId, ...filter },
+          { $set: { "items.$.quantity": q } },
+          { new: true }
+        ).populate({ path: "items.product", select: "name price imageUrls" });
       }
+    };
 
-      return res.json({ cart: removed });
+    let updatedCart;
+
+    // Try treating itemId as item._id first
+    if (mongoose.Types.ObjectId.isValid(itemId)) {
+      updatedCart = await updateCart({ "items._id": itemId });
+      if (updatedCart) return res.json({ cart: updatedCart });
     }
 
-    // -------------------------------------------
-    // CASE 2 — Update the quantity
-    // -------------------------------------------
-    const updated = await Cart.findOneAndUpdate(
-      { userId, "items._id": itemId },
-      { $set: { "items.$.quantity": q } },
-      { new: true }
-    ).populate({ path: "items.product", select: "name price imageUrls" });
-
-    if (!updated) {
-      // Maybe frontend sent productId instead of itemId
-      const alt = await Cart.findOneAndUpdate(
-        { userId, "items.product": itemId },
-        { $set: { "items.$.quantity": q } },
-        { new: true }
-      ).populate({ path: "items.product", select: "name price imageUrls" });
-
-      if (!alt) return res.status(404).json({ message: "Item not found" });
-      return res.json({ cart: alt });
+    // If not found, treat itemId as product slug or product ID
+    let productObjectId;
+    if (mongoose.Types.ObjectId.isValid(itemId)) {
+      productObjectId = itemId;
+    } else {
+      const product = await Product.findOne({ slug: itemId }).select('_id');
+      if (product) productObjectId = product._id;
     }
 
-    return res.json({ cart: updated });
+    if (productObjectId) {
+      if (q === 0) {
+        updatedCart = await Cart.findOneAndUpdate(
+          { userId },
+          { $pull: { items: { product: productObjectId } } },
+          { new: true }
+        ).populate("items.product");
+      } else {
+        updatedCart = await Cart.findOneAndUpdate(
+          { userId, "items.product": productObjectId },
+          { $set: { "items.$.quantity": q } },
+          { new: true }
+        ).populate("items.product");
+      }
+    }
 
+    if (!updatedCart) {
+      return res.status(404).json({ message: "Item not found" });
+    }
+
+    return res.json({ cart: updatedCart });
   } catch (error) {
     console.error("updateCartItem error:", error);
     res.status(500).json({ message: error.message });
   }
 };
 
-
-
 export const removeFromCart = async (req, res) => {
   try {
     const userId = req.user.id;
-    const { itemId } = req.params; // can be either itemId or productId
-    console.log(itemId)
+    let { itemId } = req.params;
+
     const cart = await Cart.findOne({ userId });
     if (!cart) return res.status(404).json({ message: "Cart not found" });
 
-    // Remove by item._id  OR by product._id
-    cart.items = cart.items.filter(
-      (item) =>
-        item._id.toString() !== itemId &&
-        item.product.toString() !== itemId
-    );
+    // Resolve itemId to product ObjectId if it's a slug
+    let productObjectId = null;
+    if (!mongoose.Types.ObjectId.isValid(itemId)) {
+      const product = await Product.findOne({ slug: itemId }).select('_id');
+      if (product) productObjectId = product._id;
+    }
+
+    // Filter out items matching either item._id or product._id (resolved)
+    cart.items = cart.items.filter((item) => {
+      const matchesItemId = item._id.toString() === itemId;
+      const matchesProductId = productObjectId 
+        ? item.product.toString() === productObjectId.toString()
+        : item.product.toString() === itemId;
+      return !matchesItemId && !matchesProductId;
+    });
 
     await cart.save();
 
-    const populatedCart = await Cart.findOne({ userId }).populate(
-      "items.product"
-    );
-
+    const populatedCart = await Cart.findOne({ userId }).populate("items.product");
     res.json({ cart: populatedCart });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
 };
 
-
+// clearCart remains unchanged
 export const clearCart = async (req, res) => {
   try {
     const cart = await Cart.findOne({ userId: req.user.id });
-    
     if (!cart) {
       return res.status(404).json({ message: 'Cart not found' });
     }
-    
     cart.items = [];
     await cart.save();
-    
     res.json({ message: 'Cart cleared successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Error clearing cart', error: error.message });
+  }
+};
+
+export const getCart = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    let cart = await Cart.findOne({ userId }).populate("items.product");
+    if (cart) {
+      // Remove items where product was deleted
+      const validItems = cart.items.filter(item => item.product !== null);
+      if (validItems.length !== cart.items.length) {
+        cart.items = validItems;
+        await cart.save();
+      }
+    }
+    res.json({ cart });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };

@@ -724,9 +724,10 @@ const handleRestoreImage = (imageUrlToRestore) => {
           >
             <div className="flex gap-3">
               <img
-                src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls?.[0]}`}
+                src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls?.[0]}`}
                 className="w-16 h-16 rounded-xl object-cover flex-shrink-0"
                 alt={product.name}
+            
               />
               <div className="flex-1">
                 <div className="flex justify-between items-start gap-2">
@@ -857,7 +858,7 @@ const handleRestoreImage = (imageUrlToRestore) => {
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
                       <img
-                        src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${product.imageUrls?.[0]}`}
+                        src={`${process.env.NEXT_PUBLIC_API}${product.imageUrls?.[0]}`}
                         className="w-12 h-12 rounded-xl object-cover"
                         alt={product.name}
                       />
