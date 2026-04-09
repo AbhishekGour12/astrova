@@ -3,6 +3,7 @@ import xlsx from "xlsx";
 import path from 'path';
 import fs from 'fs';
 const XLSX = xlsx;
+import mongoose from "mongoose";
 
 
 const calculatePricing = ({
@@ -615,21 +616,31 @@ export const updateProduct = async (req, res) => {
   }
 };
 
+
+
 export const getProductById = async (req, res) => {
   try {
-    console.log("slug:", req.params.slug); // debug
+    const { id } = req.params;
 
-    const product = await Product.findOne({ slug: req.params.slug });
+    console.log("Param received:", id);
 
-    
+    let product;
+
+    // Check if it's a valid MongoDB ObjectId
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      product = await Product.findById(id);
+    } else {
+      // Otherwise treat it as slug
+      product = await Product.findOne({ slug: id });
+    }
 
     if (!product) {
       return res.status(404).json({ error: "Product not found" });
     }
 
-    res.json(product); // better
+    res.status(200).json(product);
   } catch (error) {
-    console.error(error);
+    console.error("Error fetching product:", error);
     res.status(500).json({ error: error.message });
   }
 };

@@ -23,14 +23,16 @@ export const productAPI = {
       throw new Error(error.response?.data?.message || "Failed to load product types.");
     }
   },
-  getProductById: async (slug) => {
+  getProductById: async (id) => {
     try {
-      const res = await api.get(`/auth/product/${slug}`);
+      const res = await api.get(`/auth/product/${id}`);
       return res.data;
     } catch (error) {
       throw new Error(error.response?.data?.message || "Failed to load product.");
     }
   },
+
+  
 
   // Cart method
   getCart: async () => {

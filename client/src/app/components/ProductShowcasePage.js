@@ -104,8 +104,9 @@ const fetchProductPageData = useCallback(async () => {
   setIsLoading(true);
 
   try {
+    const id = slug;
     // First, fetch product by slug to get the product _id
-    const product = await productAPI.getProductById(slug);
+    const product = await productAPI.getProductById(id);
     
     
     if (!product || !product._id) {

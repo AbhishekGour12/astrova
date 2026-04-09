@@ -56,16 +56,22 @@ const CartSlideOut = () => {
     setLoadingProducts(true);
     try {
       const final = [];
+      console.log("Cart Items:", cartItems); // debug
       for (const item of cartItems) {
         // 1. Check if product data is already available in the item
         if (item.product && item.product._id && item.product.offerPercent !== undefined) {
-          final.push(item);
+          const id = item.product?._id || item.productId;
+          if (id) {
+            const p = await productAPI.getProductById(id);
+            final.push({ ...item, product: p });
+          }
         } 
         // 2. Otherwise fetch from API (Login ke baad guest items ke liye)
         else {
-          const productId = item.product?._id || item.productId;
-          if (productId) {
-            const p = await productAPI.getProductById(productId);
+
+          const id = item.product?._id || item.productId;
+          if (id) {
+            const p = await productAPI.getProductById(id);
             final.push({ ...item, product: p });
           }
         }
