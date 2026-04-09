@@ -196,7 +196,7 @@ const decrementQty = () => {
   // ------------------------------------------------------------------
   const handleAddToCart = async () => {
     if (!selectedProduct) return;
-    await addToCart(slug, quantity); // context will handle guest/localStorage or API
+    await addToCart(selectedProduct._id, quantity); // context will handle guest/localStorage or API
   };
 
   // ------------------------------------------------------------------
