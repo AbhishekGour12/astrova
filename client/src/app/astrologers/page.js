@@ -63,7 +63,7 @@ function AstrologerContent() {
   const searchParams = useSearchParams();
   const service = searchParams?.get("service") || "ALL";
   const [showProfileModal, setShowProfileModal] = useState(false);
-
+const normalizeString = (str) => str?.trim().toLowerCase() || "";
   // Filter states
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedExpertise, setSelectedExpertise] = useState("");
@@ -239,51 +239,75 @@ function AstrologerContent() {
     }
   }, [astrologers]);
 
-  // Extract unique expertise and languages from astrologers for filter dropdowns
-  const getAllExpertise = () => {
-    const expertiseSet = new Set();
-    astrologers.forEach(astro => {
-      if (astro.expertise && Array.isArray(astro.expertise)) {
-        astro.expertise.forEach(exp => expertiseSet.add(exp));
-      }
-    });
-    return Array.from(expertiseSet).sort();
-  };
+  // Extract unique expertise (case‑insensitive, trim)
+const getAllExpertise = () => {
+  const expertiseMap = new Map(); // key: normalised, value: original
+  astrologers.forEach((astro) => {
+    if (astro.expertise && Array.isArray(astro.expertise)) {
+      astro.expertise.forEach((exp) => {
+        const normalized = normalizeString(exp);
+        if (!expertiseMap.has(normalized)) {
+          expertiseMap.set(normalized, exp.trim()); // store trimmed original
+        }
+      });
+    }
+  });
+  return Array.from(expertiseMap.values()).sort();
+};
 
-  const getAllLanguages = () => {
-    const langSet = new Set();
-    astrologers.forEach(astro => {
-      if (astro.languages && Array.isArray(astro.languages)) {
-        astro.languages.forEach(lang => langSet.add(lang));
-      }
-    });
-    return Array.from(langSet).sort();
-  };
+// Extract unique languages (case‑insensitive, trim)
+const getAllLanguages = () => {
+  const langMap = new Map();
+  astrologers.forEach((astro) => {
+    if (astro.languages && Array.isArray(astro.languages)) {
+      astro.languages.forEach((lang) => {
+        const normalized = normalizeString(lang);
+        if (!langMap.has(normalized)) {
+          langMap.set(normalized, lang.trim());
+        }
+      });
+    }
+  });
+  return Array.from(langMap.values()).sort();
+};
 
   // Filter astrologers based on search, expertise, languages, experience
-  const filterAstrologers = (astroList) => {
-    return astroList.filter(astro => {
-      // Search by name
-      if (searchTerm && !astro.fullName?.toLowerCase().includes(searchTerm.toLowerCase())) {
-        return false;
-      }
-      // Filter by expertise
-      if (selectedExpertise && (!astro.expertise || !astro.expertise.includes(selectedExpertise))) {
-        return false;
-      }
-      // Filter by language
-      if (selectedLanguage && (!astro.languages || !astro.languages.includes(selectedLanguage))) {
-        return false;
-      }
-      // Filter by experience
-      const exp = astro.experienceYears || 0;
-      if (experienceRange === "0-2" && (exp < 0 || exp > 2)) return false;
-      if (experienceRange === "3-5" && (exp < 3 || exp > 5)) return false;
-      if (experienceRange === "6-10" && (exp < 6 || exp > 10)) return false;
-      if (experienceRange === "10+" && exp < 10) return false;
-      return true;
-    });
-  };
+  // Updated filter logic – use normalised values for expertise & language
+const filterAstrologers = (astroList) => {
+  return astroList.filter((astro) => {
+    // Search by name (already case‑insensitive)
+    if (searchTerm && !astro.fullName?.toLowerCase().includes(searchTerm.toLowerCase())) {
+      return false;
+    }
+
+    // Expertise filter (case‑insensitive, trim)
+    if (selectedExpertise) {
+      const normalizedSelected = normalizeString(selectedExpertise);
+      const hasExpertise = astro.expertise?.some(
+        (exp) => normalizeString(exp) === normalizedSelected
+      );
+      if (!hasExpertise) return false;
+    }
+
+    // Language filter (case‑insensitive, trim)
+    if (selectedLanguage) {
+      const normalizedSelected = normalizeString(selectedLanguage);
+      const hasLanguage = astro.languages?.some(
+        (lang) => normalizeString(lang) === normalizedSelected
+      );
+      if (!hasLanguage) return false;
+    }
+
+    // Experience filter (unchanged)
+    const exp = astro.experienceYears || 0;
+    if (experienceRange === "0-2" && (exp < 0 || exp > 2)) return false;
+    if (experienceRange === "3-5" && (exp < 3 || exp > 5)) return false;
+    if (experienceRange === "6-10" && (exp < 6 || exp > 10)) return false;
+    if (experienceRange === "10+" && exp < 10) return false;
+
+    return true;
+  });
+};
 
   const filteredAstrologers = filterAstrologers(astrologers);
   const onlineAstrologers = filteredAstrologers.filter((astro) => astro.isAvailable === true);
@@ -602,8 +626,10 @@ function AstrologerContent() {
           shadow-sm hover:shadow-md transition-all
           flex p-2 items-center justify-between
           min-h-[160px] max-h-[160px]
+          hover:border-[#C06014] cursor-pointer
           ${isOffline ? "opacity-70 grayscale bg-gray-100" : ""}
         `}
+        onClick={() =>router.push(`/astrologers/${astrologer._id}`)}
       >
         {/* LEFT - PROFILE */}
         <div className="grid justify-center w-[35%]">

@@ -15,11 +15,9 @@ export default function ConsultationSection() {
   const user = useSelector((state) => state.user);
   const router = useRouter();
   const chat = () =>{
-    if(user){
+   
       router.push("/astrologers?service=ALL")
-    }else{
-      router.push("/Login")
-    }
+   
   }
   return (
     <div className="relative z-[5] mt-[100px] overflow-visible h-[550px]">

@@ -9,21 +9,25 @@ const products = [
     title: "Gemstone Consultation",
     desc: "Starts at INR 79 Only",
     img: "./p1.png",
+    link: "/product-page"
   },
   {
     title: "Rudraksh Consultation",
     desc: "Starts at INR 79 Only",
     img: "./p2.png",
+    link: "/product-page"
   },
   {
     title: "Palmistry Products",
     desc: "Starts at INR 79 Only",
     img: "./p3.jpeg",
+    link: "/astrologers"
   },
   {
     title: "Kundli Matching",
     desc: "Starts at INR 199 Only",
     img: "./p4.jpg",
+    link: "/astrologers"
   },
 ];
 
@@ -66,12 +70,12 @@ export default function ProductSection() {
             className="text-xl xs:text-2xl sm:text-3xl md:text-4xl lg:text-[36px] xl:text-[48px] font-[Helvetica Neue] font-normal text-[#F6F3E4] leading-tight sm:leading-snug mb-4 md:mb-0 text-center md:text-left"
             style={{ lineHeight: "1.3" }}
           >
-            Blending ancient wisdom with <br className="hidden xs:block" /> modern convenience
+           Explore Astrology Services and Energized Crystal Solutions
           </h2>
           <button className="px-4 py-2 xs:px-5 xs:py-2.5 sm:px-6 sm:py-3 bg-[#F6F3E4] text-[#725E43] rounded-lg shadow-md hover:bg-[#E8E3CF] transition-all duration-300 text-xs xs:text-sm sm:text-base font-medium whitespace-nowrap self-center md:self-auto w-fit hover:cursor-pointer" onClick={() =>{
             router.push("/products-page")
           }}>
-            View All Products
+            Explore All Solutions
           </button>
         </div>
 
@@ -80,7 +84,7 @@ export default function ProductSection() {
 
 <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4 xs:gap-5 sm:gap-6 md:gap-6 lg:gap-7 xl:gap-8 ">
   {products.map((product, index) => (
-    <Link href="/products-page" key={index} className = "hover:cursor-pointer">
+    <Link href={product.link} key={index} className = "hover:cursor-pointer">
       <motion.div
         whileHover={{ scale: 1.05 }}
         transition={{ type: "spring", stiffness: 200 }}

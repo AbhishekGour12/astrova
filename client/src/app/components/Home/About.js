@@ -18,15 +18,18 @@ const AboutSection = () => {
             ABOUT US
           </p>
           <h2 className="text-2xl sm:text-3xl md:text-4xl lg:text-[40px] font-[Helvetica Neue] leading-[120%] text-black font-medium mb-4 sm:mb-6 max-w-2xl mx-auto lg:mx-0">
-            Blending ancient wisdom with <br className="hidden sm:block" /> modern convenience
+           Ancient Astrology, Powered by Energized Crystals
           </h2>
           <p className="text-[#5C4B3A] text-base sm:text-lg leading-relaxed max-w-2xl mx-auto lg:mx-0">
-            We are dedicated to fusing the profound insights of ancient celestial wisdom with the seamless accessibility
-            of modern technology. Our platform translates the complex, timeless language of the stars into clear,
-            relevant, and actionable guidance for your everyday life. We honor the deep tradition of astrology while
-            empowering you to navigate your modern journey with clarity, confidence, and cosmic insight—ancient
-            knowledge, delivered instantly.
+           We combine the timeless science of astrology with modern accessibility to deliver clear and practical guidance for everyday life. MyAstrova connects you with experienced astrologers who provide personalized insights for love career marriage and financial concerns.
+
+What sets us apart is our focus on energized crystals carefully selected and prepared to align with your unique astrological needs. These crystals are recommended based on expert analysis to support balance growth and positive transformation.
+
+Our platform simplifies complex astrological knowledge into meaningful solutions you can trust helping you make confident decisions with clarity and direction anytime anywhere.
           </p>
+          <b className="block mt-6 text-[#7E5833] text-lg italic font-semibold tracking-wide">
+  ✦ Trusted platform for astrology consultation and energized crystal solutions ✦
+</b>
         </motion.div>
       </div>
 

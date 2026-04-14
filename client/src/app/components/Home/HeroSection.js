@@ -269,7 +269,7 @@ opacity-5 relative">
 
   {/* Text Layer */}
   <span className="relative z-20 p-4 max-sm:p-3 block text-white max-sm:text-xs w-full">
-    Personalized Consultations
+    Talk to  Astrologer
   </span>
 </motion.button>
 
@@ -318,7 +318,7 @@ opacity-5 relative">
 
       {/* Text Layer (Must be above shine) */}
       <span className="relative w-full z-20 p-3 max-sm:p-2 flex justify-center items-center text-white flex-wrap">
-        Shop Astrology Products
+        Buy Energized Crystals
       </span>
     </motion.button>
   </div>
@@ -346,7 +346,7 @@ opacity-5 relative">
     lg:text-left
   "
 >
-  Discover the Power of the Stars
+  Talk to Astrologer Online in India – Get Instant Guidance
 </h1>
 
                  
@@ -381,8 +381,7 @@ opacity-5 relative">
 
   "
 >
-  Unlock your potential with personalized astrology readings, celestial
-  products, and expert consultations.
+  Get accurate astrology consultation for love, career, marriage, and financial problems. Connect with expert astrologers and discover the right solutions through personalized guidance and authentic astrology products.
 </p>
 
             

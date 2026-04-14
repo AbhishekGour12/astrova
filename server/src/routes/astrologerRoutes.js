@@ -2,7 +2,7 @@
 import express from "express";
 import { astrologerLogin, getAllAstrologers, getAstrologerProfile, getAstrologerStats, registerAstrologer, sendOTP, toggleAstrologerAvailability, verifyOTP } from "../controllers/astrologerController.js";
 
-import { uploadAstrologerFiles} from "../utils/multer.js";
+import { cleanupTempFiles, processFieldImages,  uploadAstrologerFiles} from "../utils/multer.js";
 import Chat from "../models/Chat.js";
 
 
@@ -12,7 +12,7 @@ router.post("/register",  uploadAstrologerFiles.fields([
     { name: "profileImage", maxCount: 1 },
     { name: "certificationFile", maxCount: 1 },
     {name: "verificationDocuments", maxCount: 5}
-  ]), registerAstrologer);
+  ]), processFieldImages, cleanupTempFiles, registerAstrologer);
 router.post("/login", astrologerLogin);
 router.get("/", getAllAstrologers)
 // 🔥 NEW ROUTES (Dashboard)

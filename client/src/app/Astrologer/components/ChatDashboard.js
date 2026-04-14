@@ -197,7 +197,22 @@ socket.on("messageSeenUpdate", ({ messageId, seen }) => {
     loadInitialData();
   }, []);
 
-
+ // Helper function to detect phone numbers in text
+const containsPhoneNumber = (text) => {
+  // Regex to match Indian phone numbers:
+  // - Optional +91 or 0 prefix
+  // - Optional spaces/hyphens/dots between digits
+  // - Exactly 10 digits after prefix removal
+  const phoneRegex = /(\+91[\-\s]?)?[6-9]\d{9}|(\+91[\-\s]?)?\d{5}[\-\s]?\d{5}|\d{3}[\-\s]?\d{3}[\-\s]?\d{4}/gi;
+  
+  // Also catch pure 10-digit numbers (even without any separators)
+  const pureDigits = text.replace(/\D/g, '');
+  if (pureDigits.length === 10 && /[6-9]/.test(pureDigits[0])) {
+    return true;
+  }
+  
+  return phoneRegex.test(text);
+};
   useEffect(() => {
   activeChatRef.current = activeChat;
 }, [activeChat]);
@@ -374,7 +389,11 @@ useEffect(() => {
   e.preventDefault();
   if (!newMessage.trim() || !activeChat) return;
   const astrologerId = localStorage.getItem("astrologer_id")
-  
+  // 🔒 Block phone numbers
+  if (containsPhoneNumber(newMessage)) {
+    toast.error("Sharing phone numbers is not allowed in chat for your safety.");
+    return;
+  }
   try {
     const messageData = {
       chatId: activeChat._id,
@@ -385,7 +404,14 @@ useEffect(() => {
     await apiAstrologer.post(`/chat/astrologer/message/${astrologerId}`, messageData);
 
     setNewMessage("");
-    
+    if (socketRef.current) {
+      socketRef.current.emit("typing", {
+        chatId,
+        senderId: astrologer._id,
+        senderRole: "astrologer",
+        isTyping: false
+      });
+    }
     // Clear typing indicator
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);

@@ -317,6 +317,7 @@ const amountToPay = roundedRupees * 100; // Convert to paise
         amount: rpOrder.amount,
         currency: "INR",
         order_id: rpOrder.id,
+        name: "MyAstrova",
         remember_customer: true,
           modal: {
           ondismiss: function () {

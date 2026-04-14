@@ -157,7 +157,7 @@ export const processFieldImages = async (req, res, next) => {
         
         for (const file of req.files[fieldName]) {
           // Only process image files, skip Excel files
-          if (fieldName === 'productImages' && file.mimetype.startsWith('image/')) {
+          if (file.mimetype.startsWith('image/')) {
             const processed = await processAndStoreImage(file);
             processedFiles.push({
               ...file,

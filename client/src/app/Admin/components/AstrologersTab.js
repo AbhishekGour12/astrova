@@ -262,7 +262,7 @@ export default function AstrologersTab() {
               <div className="flex items-center gap-4 mb-4">
                 {ast.profileImageUrl ? (
                   <img
-                    src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${ast.profileImageUrl}`}
+                    src={`${process.env.NEXT_PUBLIC_API}${ast.profileImageUrl}`}
                     className="w-14 h-14 rounded-xl object-cover border-2 border-white shadow"
                   />
                 ) : (
@@ -367,7 +367,7 @@ export default function AstrologersTab() {
                   <div className="relative">
                     {selectedAstrologer.profileImageUrl ? (
                       <img
-                        src={`${process.env.NEXT_PUBLIC_IMAGE_URL}${selectedAstrologer.profileImageUrl}`}
+                        src={`${process.env.NEXT_PUBLIC_API}${selectedAstrologer.profileImageUrl}`}
                         className="w-32 h-32 rounded-xl object-cover border-4 border-white shadow-lg"
                       />
                     ) : (

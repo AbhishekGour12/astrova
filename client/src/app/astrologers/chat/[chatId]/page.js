@@ -95,6 +95,23 @@ useEffect(() => {
   return () => clearInterval(interval);
 }, [wallet, chat, isInGrace, chatId, user]);
   // Track window height
+
+  // Helper function to detect phone numbers in text
+const containsPhoneNumber = (text) => {
+  // Regex to match Indian phone numbers:
+  // - Optional +91 or 0 prefix
+  // - Optional spaces/hyphens/dots between digits
+  // - Exactly 10 digits after prefix removal
+  const phoneRegex = /(\+91[\-\s]?)?[6-9]\d{9}|(\+91[\-\s]?)?\d{5}[\-\s]?\d{5}|\d{3}[\-\s]?\d{3}[\-\s]?\d{4}/gi;
+  
+  // Also catch pure 10-digit numbers (even without any separators)
+  const pureDigits = text.replace(/\D/g, '');
+  if (pureDigits.length === 10 && /[6-9]/.test(pureDigits[0])) {
+    return true;
+  }
+  
+  return phoneRegex.test(text);
+};
   useEffect(() => {
     const updateHeight = () => setWindowHeight(window.innerHeight);
     updateHeight();
@@ -586,7 +603,12 @@ useEffect(() => {
       toast.error("Message cannot be empty");
       return;
     }
-    
+     // 🔒 PHONE NUMBER BLOCK
+  if (containsPhoneNumber(newMessage)) {
+    toast.error("⚠️ Sharing phone numbers is not allowed in chat for your safety.");
+    return;
+  }
+  
     if (!chat || chat.status !== "ACTIVE") {
       toast.error("Chat is not active");
       return;
