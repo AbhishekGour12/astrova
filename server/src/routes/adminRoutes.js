@@ -36,7 +36,7 @@ import {
   deleteProductType,
 } from "../controllers/productController.js";
 import multer from "multer";
-import  { cleanupTempFiles, processFieldImages, processUploadedImages, uploadExcelAndImages, uploadImages } from "../utils/multer.js";
+import  { cleanupTempFiles, processAstrologerFiles, processFieldImages, processUploadedImages, uploadAstrologerFiles, uploadExcelAndImages, uploadImages} from "../utils/multer.js";
 import { addSlide, deleteSlide, getAllCarousels, getCarouselByPage, updateSlide } from "../controllers/carouselController.js";
 
 
@@ -54,7 +54,11 @@ router.delete("/users/:id", deleteUser);
 router.get("/astrologers", getAllAstrologers);
 router.patch("/astrologers/approve/:id", approveAstrologer);
 router.delete("/astrologers/:id", deleteAstrologer);
-router.put("/astrologers/:id", updateAstrologer);
+router.put("/astrologers/:id", uploadAstrologerFiles.fields([
+    { name: "profileImage", maxCount: 1 },
+    { name: "certifications", maxCount: 5 },
+    { name: "verificationDocuments", maxCount: 5 }
+]), processAstrologerFiles, cleanupTempFiles,  updateAstrologer);
 
 // Get all carousels (for admin)
 router.get("/carousel", getAllCarousels);
@@ -63,10 +67,10 @@ router.get("/carousel", getAllCarousels);
 router.get("/carousel/:page", getCarouselByPage);
 
 // Add single slide
-router.post("/carousel/slide", uploadImages.single("image"), addSlide);
+router.post("/carousel/slide", uploadImages.single("image"), processUploadedImages, cleanupTempFiles, addSlide);
 
 // Update slide
-router.put("/carousel/:page/:slideId", uploadImages.single("image"), updateSlide);
+router.put("/carousel/:page/:slideId", uploadImages.single("image"), processUploadedImages, cleanupTempFiles, updateSlide);
 
 // Delete slide
 router.delete("/carousel/:page/:slideId", deleteSlide);

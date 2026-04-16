@@ -11,7 +11,8 @@ import bcrypt from "bcryptjs";
 import axios from "axios";
 import dotenv from "dotenv";
 import * as XLSX from 'xlsx';
-
+import path from "path";
+import fs from "fs";
 // ===================== //
 // 🔐 ADMIN DASHBOARD OPS //
 // ===================== //
@@ -728,15 +729,71 @@ export const getQuickStats = async (req, res) => {
 export const updateAstrologer = async (req, res) => {
   try {
     const { id } = req.params;
-    const updateData = req.body;
+    let updateData = req.body;
+    const files = req.processedAstrologerFiles || {};
 
-    // Find existing astrologer
+    // If data came as FormData string, parse it
+    if (updateData.data) {
+      updateData = JSON.parse(updateData.data);
+    }
+
     const astrologer = await Astrologer.findById(id);
     if (!astrologer) {
       return res.status(404).json({ message: "Astrologer not found" });
     }
 
-    // Fields that can be updated
+    // Helper to delete file from disk
+    const deleteFileFromDisk = (fileUrl) => {
+      if (!fileUrl) return;
+      // Remove leading slash to get relative path from project root
+      const relativePath = fileUrl.startsWith('/') ? fileUrl.slice(1) : fileUrl;
+      const fullPath = path.join(process.cwd(), relativePath);
+      if (fs.existsSync(fullPath)) {
+        fs.unlinkSync(fullPath);
+        console.log(`Deleted file: ${fullPath}`);
+      }
+    };
+
+    // ========== PROFILE IMAGE ==========
+    if (files.profileImage) {
+      // Delete old profile image if exists
+      if (astrologer.profileImageUrl) {
+        deleteFileFromDisk(astrologer.profileImageUrl);
+      }
+      updateData.profileImageUrl = files.profileImage;
+    }
+
+    // ========== CERTIFICATIONS (replace all) ==========
+    if (files.certifications && files.certifications.length) {
+      // Delete all existing certification files
+      if (astrologer.certifications && astrologer.certifications.length) {
+        astrologer.certifications.forEach(cert => {
+          if (cert.fileUrl) deleteFileFromDisk(cert.fileUrl);
+        });
+      }
+      // Replace with new ones
+      updateData.certifications = files.certifications;
+    } else {
+      // If no new certifications, keep existing (no change)
+      updateData.certifications = astrologer.certifications;
+    }
+
+    // ========== VERIFICATION DOCUMENTS (replace all) ==========
+    if (files.verificationDocuments && files.verificationDocuments.length) {
+      // Delete all existing verification files
+      if (astrologer.verificationDocuments && astrologer.verificationDocuments.length) {
+        astrologer.verificationDocuments.forEach(docUrl => {
+          deleteFileFromDisk(docUrl);
+        });
+      }
+      // Replace with new ones
+      updateData.verificationDocuments = files.verificationDocuments;
+    } else {
+      // Keep existing
+      updateData.verificationDocuments = astrologer.verificationDocuments;
+    }
+
+    // ========== ALLOWED TEXT FIELDS ==========
     const allowedUpdates = [
       'fullName', 'email', 'phone', 'age', 'gender', 'languages',
       'expertise', 'experienceYears', 'education', 'certificationTitle',
@@ -744,28 +801,28 @@ export const updateAstrologer = async (req, res) => {
       'bankAccountNumber', 'ifsc'
     ];
 
-    // Apply updates
     allowedUpdates.forEach(field => {
       if (updateData[field] !== undefined) {
         if (field === 'pricing') {
-          // Handle nested pricing object
           if (!astrologer.pricing) astrologer.pricing = {};
-          if (updateData.pricing.chatPerMinute !== undefined) {
+          if (updateData.pricing.chatPerMinute !== undefined)
             astrologer.pricing.chatPerMinute = updateData.pricing.chatPerMinute;
-          }
-          if (updateData.pricing.callPerMinute !== undefined) {
+          if (updateData.pricing.callPerMinute !== undefined)
             astrologer.pricing.callPerMinute = updateData.pricing.callPerMinute;
-          }
         } else {
           astrologer[field] = updateData[field];
         }
       }
     });
 
-    // Save updated astrologer
+    // Apply file updates
+    if (updateData.profileImageUrl !== undefined) astrologer.profileImageUrl = updateData.profileImageUrl;
+    if (updateData.certifications !== undefined) astrologer.certifications = updateData.certifications;
+    if (updateData.verificationDocuments !== undefined) astrologer.verificationDocuments = updateData.verificationDocuments;
+
     await astrologer.save();
 
-    // If email was changed, update Razorpay contact (optional)
+    // Optional: Update Razorpay contact if email changed
     if (updateData.email && updateData.email !== astrologer.email && astrologer.razorpayContactId) {
       try {
         await razorpayX.patch(`/contacts/${astrologer.razorpayContactId}`, {
@@ -775,7 +832,6 @@ export const updateAstrologer = async (req, res) => {
         });
       } catch (razorpayError) {
         console.error("Failed to update Razorpay contact:", razorpayError.message);
-        // Don't fail the whole operation for Razorpay update failure
       }
     }
 

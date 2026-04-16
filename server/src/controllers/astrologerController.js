@@ -14,6 +14,7 @@ import { getIO } from "../services/socket.js";
 const otpStore = new Map();
 export const registerAstrologer = async (req, res) => {
   try {
+    // Parse text fields (sent as JSON strings from frontend)
     const {
       fullName,
       email,
@@ -30,97 +31,99 @@ export const registerAstrologer = async (req, res) => {
       achievements,
       bankName,
       bankAccountNumber,
-      ifsc
+      ifsc,
+      expertise,      // JSON string
+      languages       // JSON string
     } = req.body;
-    
-   // 1. Remove all non-numeric characters (spaces, dashes, brackets, etc.)
-    let cleanedPhone = phone.replace(/\D/g, "");
 
-    // 2. Handle different formats to ensure it ends up as +91XXXXXXXXXX
-    // If it starts with 91 and is 12 digits long (e.g., 919876543210)
+    // 1. Phone number cleaning and validation
+    let cleanedPhone = phone.replace(/\D/g, "");
     if (cleanedPhone.length === 12 && cleanedPhone.startsWith("91")) {
       cleanedPhone = `+${cleanedPhone}`;
-    } 
-    // If it's 10 digits long, just prepend +91
-    else if (cleanedPhone.length === 10) {
+    } else if (cleanedPhone.length === 10) {
       cleanedPhone = `+91${cleanedPhone}`;
-    } 
-    // If it's already +91 followed by 10 digits
-    else if (cleanedPhone.length === 11 && cleanedPhone.startsWith("91")) {
-       // This handles rare cases where user typed 91 + 9 digits or similar errors
-       return res.status(400).json({ message: "Invalid phone number length" });
-    }
-    else {
+    } else {
       return res.status(400).json({ message: "Please enter a valid 10-digit phone number" });
     }
-    // New simple regex to check if our final string is exactly +91 followed by 10 digits
     const finalPhoneRegex = /^\+91[6-9]\d{9}$/;
     if (!finalPhoneRegex.test(cleanedPhone)) {
       return res.status(400).json({ message: "Invalid Indian phone number" });
     }
-    /* ================= BASIC VALIDATION ================= */
+
+    // Required fields check
     if (!fullName || !email || !phone || !bio)
       return res.status(400).json({ message: "Missing required fields" });
 
-    
-
+    // Check existing astrologer
     const exists = await Astrologer.findOne({
-      $and:[{email: email }, {phone: cleanedPhone}]
+      $or: [{ email: email }, { phone: cleanedPhone }]
     });
     if (exists)
-      return res.status(400).json({ message: "Email already registered" });
+      return res.status(400).json({ message: "Email or phone already registered" });
 
-    /* ================= SERVICE-BASED VALIDATION ================= */
+    // Service-based validation
     if (["CHAT", "BOTH", "ALL"].includes(availability) && !chatPerMinute)
       return res.status(400).json({ message: "Chat rate required" });
-
     if (["CALL", "BOTH", "ALL"].includes(availability) && !callPerMinute)
       return res.status(400).json({ message: "Call rate required" });
 
-    /* ================= FILE HANDLING ================= */
-    const profileImage =
-      req.files?.profileImage?.[0]?.filename;
+    // ========== USE PROCESSED FILES FROM MIDDLEWARE ==========
+    const files = req.processedAstrologerFiles || {};
 
-    if (!profileImage)
+    if (!files.profileImage)
       return res.status(400).json({ message: "Profile image required" });
 
-    const certifications = [];
-    if (req.files?.certificationFile?.[0]) {
-      certifications.push({
-        title: certificationTitle || "Certification",
-        fileUrl: `/uploads/products/${req.files.certificationFile[0].filename}`
-      });
+    // Certifications (already an array of objects with title, fileUrl, uploadedAt)
+    let certifications = [];
+    if (files.certifications && files.certifications.length) {
+      certifications = files.certifications.map((cert, index) => ({
+        title: cert.title || (certificationTitle ? `${certificationTitle} ${index + 1}` : `Certification ${index + 1}`),
+        fileUrl: cert.fileUrl,
+        uploadedAt: cert.uploadedAt || new Date(),
+        mimetype: cert.mimetype
+      }));
     }
 
-    const verificationDocuments =
-      req.files?.verificationDocuments?.map(
-        (f) => `/uploads/products/${f.filename}`
-      ) || [];
+    // Verification documents (array of file paths)
+    const verificationDocuments = files.verificationDocuments || [];
 
-    /* ================= CREATE ASTROLOGER ================= */
+    // Parse JSON fields
+    let parsedExpertise = [];
+    let parsedLanguages = [];
+    let parsedAchievements = [];
+    try {
+      parsedExpertise = expertise ? JSON.parse(expertise) : [];
+      parsedLanguages = languages ? JSON.parse(languages) : [];
+      parsedAchievements = achievements ? JSON.parse(achievements) : [];
+    } catch (err) {
+      return res.status(400).json({ message: "Invalid JSON format for expertise/languages/achievements" });
+    }
+
+    // Create astrologer
     const astrologer = new Astrologer({
       fullName,
       email,
       phone: cleanedPhone,
       bio,
       gender,
-      age,
+      age: age ? Number(age) : undefined,
       availability,
       pricing: {
         chatPerMinute: Number(chatPerMinute || 0),
         callPerMinute: Number(callPerMinute || 0)
       },
-      experienceYears,
+      experienceYears: Number(experienceYears) || 0,
       education,
-      expertise: JSON.parse(req.body.expertise),
-      languages: JSON.parse(req.body.languages),
-      achievements: achievements ? JSON.parse(achievements) : [],
+      expertise: parsedExpertise,
+      languages: parsedLanguages,
+      achievements: parsedAchievements,
       bankName,
       bankAccountNumber,
       ifsc,
-      profileImageUrl: `/uploads/products/${profileImage}`,
+      profileImageUrl: files.profileImage,      // Already WebP path from middleware
       certifications,
-      verificationDocuments
+      verificationDocuments,
+      isApproved: false   // Pending admin approval
     });
 
     await astrologer.save();
@@ -131,14 +134,13 @@ export const registerAstrologer = async (req, res) => {
     });
 
   } catch (err) {
-    console.error(err);
+    console.error("Registration error:", err);
     res.status(500).json({
       success: false,
-      message: "Registration failed"
+      message: err.message || "Registration failed"
     });
   }
 };
-
 
 
 

@@ -11,6 +11,53 @@ fs.mkdirSync(uploadDir, { recursive: true });
 const tempDir = path.join(process.cwd(), "temp");
 fs.mkdirSync(tempDir, { recursive: true });
 
+const astrologerUploadDir = path.join(process.cwd(), "uploads", "products");
+fs.mkdirSync(astrologerUploadDir, { recursive: true });
+const storeAstrologerFile = async (file) => {
+  const timestamp = Date.now();
+  const randomId = Math.round(Math.random() * 1e9);
+  const ext = path.extname(file.originalname);
+  const isImage = file.mimetype.startsWith('image/');
+  
+  let filename, outputPath;
+  
+  if (isImage) {
+    // Convert to WebP
+    filename = `${timestamp}-${randomId}.webp`;
+    outputPath = path.join(astrologerUploadDir, filename);
+    try {
+      await sharp(file.path)
+        .webp({ quality: 80, effort: 6 })
+        .resize(800, 800, { fit: 'inside', withoutEnlargement: true })
+        .toFile(outputPath);
+    } catch (err) {
+      console.error(`Image processing failed for ${file.originalname}:`, err.message);
+      // Fallback: copy original as-is
+      filename = `${timestamp}-${randomId}${ext}`;
+      outputPath = path.join(astrologerUploadDir, filename);
+      fs.copyFileSync(file.path, outputPath);
+    }
+  } else {
+    // For PDFs and other docs, keep original extension
+    filename = `${timestamp}-${randomId}${ext}`;
+    outputPath = path.join(astrologerUploadDir, filename);
+    fs.copyFileSync(file.path, outputPath);
+  }
+  
+  // Delete temp file
+  if (fs.existsSync(file.path)) fs.unlinkSync(file.path);
+  
+  return {
+    filename,
+    path: `/uploads/products/${filename}`,
+    fullPath: outputPath,
+    size: fs.statSync(outputPath).size,
+    originalname: file.originalname,
+    mimetype: file.mimetype
+  };
+};
+
+
 // Process only image files
 const processAndStoreImage = async (file) => {
   const timestamp = Date.now();
@@ -86,11 +133,23 @@ const diskStorage = multer.diskStorage({
 
 // Image-only filter
 const imageFileFilter = (req, file, cb) => {
-  const allowed = ["image/jpeg", "image/png", "image/webp", "image/jpg", "image/avif", "image/svg+xml", "image/gif", "image/tiff", "image/bmp"];
+  const allowed = [
+    "image/jpeg",
+    "image/png",
+    "image/webp",
+    "image/jpg",
+    "image/avif",
+    "image/svg+xml",
+    "image/gif",
+    "image/tiff",
+    "image/bmp",
+     // ✅ added PDF support
+  ];
+
   if (allowed.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Invalid image file type"), false);
+    cb(new Error("Invalid file type (only images & PDF allowed)"), false);
   }
 };
 
@@ -211,6 +270,55 @@ export const cleanupTempFiles = (req, res, next) => {
   next();
 };
 
+// Add after existing configurations
+
+
+
+
+
+
+export const processAstrologerFiles = async (req, res, next) => {
+  if (!req.files) return next();
+  
+  try {
+    const result = {};
+    
+    // Profile image (must be image)
+    if (req.files.profileImage && req.files.profileImage[0]) {
+      const processed = await storeAstrologerFile(req.files.profileImage[0]);
+      result.profileImage = processed.path;
+    }
+    
+    // Certifications (images or PDFs)
+    if (req.files.certifications && req.files.certifications.length) {
+      result.certifications = [];
+      for (const file of req.files.certifications) {
+        const processed = await storeAstrologerFile(file);
+        result.certifications.push({
+          title: file.originalname.replace(/\.[^/.]+$/, ""),
+          fileUrl: processed.path,
+          uploadedAt: new Date(),
+          mimetype: processed.mimetype
+        });
+      }
+    }
+    
+    // Verification documents (images or PDFs)
+    if (req.files.verificationDocuments && req.files.verificationDocuments.length) {
+      result.verificationDocuments = [];
+      for (const file of req.files.verificationDocuments) {
+        const processed = await storeAstrologerFile(file);
+        result.verificationDocuments.push(processed.path);
+      }
+    }
+    
+    req.processedAstrologerFiles = result;
+    next();
+  } catch (error) {
+    console.error("Astrologer file processing error:", error);
+    next(error);
+  }
+};
 export const uploadImages = multer({
   storage: diskStorage,
   fileFilter: imageFileFilter,
@@ -225,6 +333,17 @@ export const uploadExcelAndImages = multer({
 
 export const uploadAstrologerFiles = multer({
   storage: diskStorage,
-  fileFilter: imageFileFilter,
-  limits: { fileSize: 500 * 1024 * 1024 }
+  fileFilter: (req, file, cb) => {
+    const allowed = [
+      "image/jpeg", "image/png", "image/webp", "image/jpg",
+      "application/pdf"
+    ];
+    if (allowed.includes(file.mimetype)) {
+      cb(null, true);
+    } else {
+      cb(new Error("Only images and PDFs are allowed."), false);
+    }
+  },
+  limits: { fileSize: 20 * 1024 * 1024 } // 20MB limit
 });
+

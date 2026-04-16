@@ -172,7 +172,7 @@ const [phoneVerified, setPhoneVerified] = useState(false);
     }
 
     if (image) fd.append("profileImage", image);
-    if (certFile) fd.append("certificationFile", certFile);
+    if (certFile) fd.append("certifications", certFile);
     
     verificationDocs.forEach((doc, index) => {
       fd.append(`verificationDocuments`, doc);

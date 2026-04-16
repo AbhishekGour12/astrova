@@ -16,6 +16,10 @@ export default function AstrologersTab() {
   const [selectedDocument, setSelectedDocument] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [editFormData, setEditFormData] = useState({});
+  const [profileImageFile, setProfileImageFile] = useState(null);
+  const [profileImagePreview, setProfileImagePreview] = useState(null);
+  const [certificationFiles, setCertificationFiles] = useState([]);
+  const [verificationFiles, setVerificationFiles] = useState([]);
 
   /* ================= FETCH ASTROLOGERS ================= */
   const fetchAstrologers = async () => {
@@ -140,35 +144,76 @@ export default function AstrologersTab() {
   };
 
   const handleEditSubmit = async (e) => {
-    e.preventDefault();
-    
-    // Prepare update data
-    const updateData = {
-      fullName: editFormData.fullName,
-      email: editFormData.email,
-      phone: editFormData.phone,
-      age: editFormData.age ? parseInt(editFormData.age) : undefined,
-      gender: editFormData.gender,
-      languages: editFormData.languages ? editFormData.languages.split(",").map(l => l.trim()) : [],
-      expertise: editFormData.expertise ? editFormData.expertise.split(",").map(e => e.trim()) : [],
-      experienceYears: editFormData.experienceYears ? parseInt(editFormData.experienceYears) : 0,
-      education: editFormData.education,
-      certificationTitle: editFormData.certificationTitle,
-      availability: editFormData.availability,
-      pricing: {
-        chatPerMinute: editFormData.chatPerMinute ? parseInt(editFormData.chatPerMinute) : 0,
-        callPerMinute: editFormData.callPerMinute ? parseInt(editFormData.callPerMinute) : 0,
-      },
-      bio: editFormData.bio,
-      achievements: editFormData.achievements ? editFormData.achievements.split("\n").filter(a => a.trim()) : [],
-      bankName: editFormData.bankName,
-      bankAccountNumber: editFormData.bankAccountNumber,
-      ifsc: editFormData.ifsc,
-    };
-
-    await updateAstrologer(selectedAstrologer._id, updateData);
+  e.preventDefault();
+  
+  const formData = new FormData();
+  
+  // Append text fields
+  const textFields = {
+    fullName: editFormData.fullName,
+    email: editFormData.email,
+    phone: editFormData.phone,
+    age: editFormData.age,
+    gender: editFormData.gender,
+    languages: editFormData.languages ? editFormData.languages.split(",").map(l => l.trim()) : [],
+    expertise: editFormData.expertise ? editFormData.expertise.split(",").map(e => e.trim()) : [],
+    experienceYears: editFormData.experienceYears,
+    education: editFormData.education,
+    certificationTitle: editFormData.certificationTitle,
+    availability: editFormData.availability,
+    pricing: {
+      chatPerMinute: editFormData.chatPerMinute,
+      callPerMinute: editFormData.callPerMinute
+    },
+    bio: editFormData.bio,
+    achievements: editFormData.achievements ? editFormData.achievements.split("\n").filter(a => a.trim()) : [],
+    bankName: editFormData.bankName,
+    bankAccountNumber: editFormData.bankAccountNumber,
+    ifsc: editFormData.ifsc
   };
-
+  
+  formData.append("data", JSON.stringify(textFields));
+  
+  // Append profile image
+  if (profileImageFile) {
+    formData.append("profileImage", profileImageFile);
+  }
+  
+  // Append certification documents
+  certificationFiles.forEach(file => {
+    formData.append("certifications", file);
+  });
+  
+  // Append verification documents
+  verificationFiles.forEach(file => {
+    formData.append("verificationDocuments", file);
+  });
+  
+  const loadingToast = toast.loading("Updating astrologer details...");
+  try {
+    const response = await api.put(`/admin/astrologers/${selectedAstrologer._id}`, formData, {
+      headers: { "Content-Type": "multipart/form-data" }
+    });
+    toast.success("Astrologer updated successfully", { id: loadingToast });
+    fetchAstrologers();
+    setIsEditing(false);
+    setSelectedAstrologer(response.data.astrologer);
+    // Reset file states
+    setProfileImageFile(null);
+    setProfileImagePreview(null);
+    setCertificationFiles([]);
+    setVerificationFiles([]);
+  } catch (err) {
+    toast.error(err.response?.data?.message || "Update failed", { id: loadingToast });
+  }
+};
+useEffect(() => {
+  return () => {
+    if (profileImagePreview) {
+      URL.revokeObjectURL(profileImagePreview);
+    }
+  };
+}, [profileImagePreview]);
   /* ================= FILTER ================= */
   const filteredAstrologers = astrologers.filter((a) => {
     const search = searchTerm.toLowerCase();
@@ -192,7 +237,31 @@ export default function AstrologersTab() {
     };
     return badges[availability] || { color: "bg-gray-100 text-gray-800", text: availability };
   };
+const handleProfileImageChange = (e) => {
+  const file = e.target.files[0];
+  if (file) {
+    setProfileImageFile(file);
+    setProfileImagePreview(URL.createObjectURL(file));
+  }
+};
 
+const handleCertificationsChange = (e) => {
+  const files = Array.from(e.target.files);
+  setCertificationFiles(prev => [...prev, ...files]);
+};
+
+const handleVerificationDocsChange = (e) => {
+  const files = Array.from(e.target.files);
+  setVerificationFiles(prev => [...prev, ...files]);
+};
+
+const removeCertificationFile = (index) => {
+  setCertificationFiles(prev => prev.filter((_, i) => i !== index));
+};
+
+const removeVerificationFile = (index) => {
+  setVerificationFiles(prev => prev.filter((_, i) => i !== index));
+};
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -793,6 +862,111 @@ export default function AstrologersTab() {
                       </div>
                     </div>
                   </Section>
+                  {/* Profile Image Upload */}
+<Section title="Profile Image">
+  <div className="space-y-3">
+    {(profileImagePreview || selectedAstrologer.profileImageUrl) && (
+      <div className="mb-2">
+        <img
+          src={profileImagePreview || `${process.env.NEXT_PUBLIC_API}${selectedAstrologer.profileImageUrl}`}
+          alt="Profile preview"
+          className="w-24 h-24 rounded-xl object-cover border"
+        />
+      </div>
+    )}
+    <input
+      type="file"
+      accept="image/*"
+      onChange={handleProfileImageChange}
+      className="w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:bg-[#003D33] file:text-white hover:file:bg-[#002822]"
+    />
+    <p className="text-xs text-gray-500">Leave empty to keep current image</p>
+  </div>
+</Section>
+
+{/* Certification Documents Upload */}
+<Section title="Add Certifications">
+  <div className="space-y-3">
+    <input
+      type="file"
+      accept="image/*,application/pdf"
+      multiple
+      onChange={handleCertificationsChange}
+      className="w-full text-sm text-gray-500"
+    />
+    {certificationFiles.length > 0 && (
+      <div className="mt-2">
+        <p className="text-sm font-medium">New certifications to upload:</p>
+        <ul className="list-disc list-inside text-sm">
+          {certificationFiles.map((file, idx) => (
+            <li key={idx} className="flex justify-between items-center">
+              {file.name}
+              <button
+                type="button"
+                onClick={() => removeCertificationFile(idx)}
+                className="text-red-500 text-xs"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+    {selectedAstrologer.certifications?.length > 0 && (
+      <div className="mt-2">
+        <p className="text-sm font-medium">Existing certifications:</p>
+        <ul className="list-disc list-inside text-sm text-gray-600">
+          {selectedAstrologer.certifications.map((cert, idx) => (
+            <li key={idx}>{cert.title}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+</Section>
+
+{/* Verification Documents Upload */}
+<Section title="Add Verification Documents">
+  <div className="space-y-3">
+    <input
+      type="file"
+      accept="image/*,application/pdf"
+      multiple
+      onChange={handleVerificationDocsChange}
+      className="w-full text-sm text-gray-500"
+    />
+    {verificationFiles.length > 0 && (
+      <div className="mt-2">
+        <p className="text-sm font-medium">New documents to upload:</p>
+        <ul className="list-disc list-inside text-sm">
+          {verificationFiles.map((file, idx) => (
+            <li key={idx} className="flex justify-between items-center">
+              {file.name}
+              <button
+                type="button"
+                onClick={() => removeVerificationFile(idx)}
+                className="text-red-500 text-xs"
+              >
+                Remove
+              </button>
+            </li>
+          ))}
+        </ul>
+      </div>
+    )}
+    {selectedAstrologer.verificationDocuments?.length > 0 && (
+      <div className="mt-2">
+        <p className="text-sm font-medium">Existing verification docs:</p>
+        <ul className="list-disc list-inside text-sm text-gray-600">
+          {selectedAstrologer.verificationDocuments.map((doc, idx) => (
+            <li key={idx}>{doc.split('/').pop()}</li>
+          ))}
+        </ul>
+      </div>
+    )}
+  </div>
+</Section>
 
                   {/* Bio & Achievements */}
                   <Section title="Bio">
