@@ -1,8 +1,8 @@
 import { motion } from "framer-motion";
-import { FaEye, FaTruck, FaFileExcel } from "react-icons/fa"; // Added FaFileExcel
+import { FaEye, FaTruck, FaFileExcel } from "react-icons/fa";
 import { adminAPI } from "../../lib/admin";
 import { useEffect, useState, useMemo } from "react";
-import * as XLSX from "xlsx"; // Added XLSX import
+import * as XLSX from "xlsx";
 
 const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
   const [orders, setOrders] = useState(initialOrders);
@@ -17,7 +17,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
 
   const LIMIT = 10;
 
-  // 🔁 Fetch orders
   const fetchOrders = async () => {
     try {
       setLoading(true);
@@ -53,15 +52,12 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
     return "bg-amber-100 text-amber-700";
   };
 
-  // 🔎 Filtering
   const filteredOrders = useMemo(() => {
     const s = searchTerm.toLowerCase().trim();
-
     return orders.filter((order) => {
       const user = order.userId || {};
       const shipStatus = (order.shiprocketStatus || "").toLowerCase();
       const created = new Date(order.createdAt);
-
       const matchesSearch =
         !s ||
         (user.username || user.name || "").toLowerCase().includes(s) ||
@@ -69,11 +65,9 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
         (user.phone || "").toLowerCase().includes(s) ||
         (order._id || "").toLowerCase().includes(s) ||
         (order.shiprocketOrderId || "").toLowerCase().includes(s);
-
       const matchesStatus =
         statusFilter === "all" ||
         shipStatus.includes(statusFilter.toLowerCase());
-
       let matchesDate = true;
       if (dateRange.from) {
         const from = new Date(dateRange.from);
@@ -84,29 +78,50 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
         to.setHours(23, 59, 59, 999);
         matchesDate = matchesDate && created <= to;
       }
-
       return matchesSearch && matchesStatus && matchesDate;
     });
   }, [orders, searchTerm, statusFilter, dateRange]);
 
-  // 📊 EXPORT TO EXCEL FUNCTION
+  // Helper: Get HSN code for an order (based on first product)
+  const getHsnCodeForOrder = (order) => {
+    const items = Array.isArray(order.items) ? order.items : [];
+    if (items.length === 0) return "N/A";
+    const firstProduct = items[0].product || {};
+    // If product has direct HSN field
+    if (firstProduct.hsn) return firstProduct.hsn;
+    // If product name contains 'bracelet' return default 7117
+    const productName = (firstProduct.name || "").toLowerCase();
+    if (productName.includes("bracelet")) return "7117";
+    return "N/A";
+  };
+
+  // 📊 EXPORT TO EXCEL FUNCTION with enhanced columns
   const handleExport = () => {
     if (!filteredOrders.length) {
       alert("No orders to export!");
       return;
     }
 
-    // 1. Flatten the data for Excel columns
-    const dataToExport = filteredOrders.map((order) => {
+    // 1. Flatten the data for Excel columns, adding Invoice#, HSN, State
+    const dataToExport = filteredOrders.map((order, idx) => {
       const user = order.userId || {};
       const address = order.shippingAddress || {};
       
-      // Helper to format items string safely
+      // Generate sequential invoice number (INV1001, INV1002, ...)
+      const invoiceNumber = `INV${1000 + idx + 1}`;
+      
+      // Get HSN code
+      const hsnCode = getHsnCodeForOrder(order);
+      
+      // Get state from shipping address
+      const state = address.state || user.state || "N/A";
+      
       const itemsString = Array.isArray(order.items) 
         ? order.items.map(i => `${i.product?.name || 'Item'} (x${i.quantity})`).join(", ") 
         : "No Items";
 
       return {
+        "Invoice Number": invoiceNumber,
         "Order ID": order._id,
         "Date": new Date(order.createdAt).toLocaleDateString(),
         "Time": new Date(order.createdAt).toLocaleTimeString(),
@@ -114,13 +129,15 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
         "Customer Email": user.email || address.email || "",
         "Customer Phone": user.phone || address.phone || "",
         "Shipping Address": `${address.addressLine1 || ""} ${address.addressLine2 || ""}, ${address.city || ""} ${address.state || ""} - ${address.pincode || ""}`.trim(),
+        "State": state,
         "Items Summary": itemsString,
         "Total Items": Array.isArray(order.items) ? order.items.reduce((acc, curr) => acc + (curr.quantity || 0), 0) : 0,
         "Total Amount (INR)": order.totalAmount || 0,
         "Payment Method": order.paymentMethod,
         "Payment Status": order.paymentStatus,
         "Shiprocket Status": order.shiprocketStatus || "Pending",
-        "AWB Code": order.awbCode || "N/A"
+        "AWB Code": order.awbCode || "N/A",
+        "HSN Code (Primary Item)": hsnCode
       };
     });
 
@@ -133,7 +150,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
     XLSX.writeFile(workbook, `Orders_Export_${new Date().toISOString().slice(0,10)}.xlsx`);
   };
 
-  // ... (Existing Pagination logic)
   const totalPages = Math.max(1, Math.ceil(filteredOrders.length / LIMIT));
   const currentPage = Math.min(page, totalPages);
   const startIndex = (currentPage - 1) * LIMIT;
@@ -156,7 +172,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
     );
   };
 
-  // ... (Existing Helpers: getItemsSummary, totalItemCount, getProgressStep, mapAdminReadableStatus)
   const getItemsSummary = (order) => {
     const items = Array.isArray(order.items) ? order.items : [];
     if (!items.length) {
@@ -203,7 +218,7 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
 
   return (
     <div className="space-y-6">
-      {/* Header + Filters */}
+      {/* Header + Filters (unchanged) */}
       <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
         <div>
           <h2 className="text-2xl lg:text-3xl font-bold text-[#003D33]">
@@ -215,7 +230,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
         </div>
 
         <div className="flex flex-col lg:flex-row gap-3 lg:items-center">
-          {/* Status Filter */}
           <select
             value={statusFilter}
             onChange={(e) => setStatusFilter(e.target.value)}
@@ -232,7 +246,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
             <option value="cancel">Cancelled</option>
           </select>
 
-          {/* Date Filters */}
           <div className="flex gap-2">
             <input
               type="date"
@@ -252,13 +265,11 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
             />
           </div>
 
-          {/* Count + Refresh + EXPORT Button */}
           <div className="flex items-center gap-2">
             <span className="text-[#00695C] bg-[#ECE5D3] px-4 py-1 rounded-full text-sm hidden xl:inline-block">
               {filteredOrders.length} orders
             </span>
 
-            {/* 🔥 Export Button */}
             <button
               onClick={handleExport}
               className="flex items-center gap-2 px-3 py-2 rounded-xl bg-[#2e7d32] hover:bg-[#1b5e20] text-white text-sm transition-colors"
@@ -279,7 +290,7 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
         </div>
       </div>
 
-      {/* 🌐 Desktop Table */}
+      {/* Desktop Table (unchanged structure, just display) */}
       <div className="hidden sm:block bg-white border rounded-2xl shadow-sm overflow-hidden">
         <div className="max-h-[calc(100vh-260px)] overflow-y-auto">
           <table className="w-full text-sm min-w-[900px]">
@@ -293,9 +304,8 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
                 <th className="px-4 py-3 text-left">Payment</th>
                 <th className="px-4 py-3 text-left">Shiprocket</th>
                 <th className="px-4 py-3 text-left">Actions</th>
-              </tr>
+               </tr>
             </thead>
-
             <tbody>
               {paginatedOrders.map((order) => {
                 const user = order.userId || {};
@@ -307,15 +317,12 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
                     animate={{ opacity: 1 }}
                     className="border-t hover:bg-[#FAF7F0]"
                   >
-                    {/* Order ID */}
                     <td className="px-4 py-3 font-semibold text-[#003D33]">
                       #{order._id.slice(-6)}
                       <div className="text-xs text-[#00695C]">
                         SR: {order.shiprocketOrderId || "—"}
                       </div>
                     </td>
-
-                    {/* Customer */}
                     <td className="px-4 py-3">
                       <p className="font-medium">
                         {user.username || user.name || "Unknown User"}
@@ -327,24 +334,18 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
                         {user.phone || order.shippingAddress?.phone || ""}
                       </p>
                     </td>
-
-                    {/* Date */}
                     <td className="px-4 py-3 text-[#00695C]">
                       {new Date(order.createdAt).toLocaleDateString()}
                       <div className="text-xs">
                         {new Date(order.createdAt).toLocaleTimeString()}
                       </div>
                     </td>
-
-                    {/* Items */}
                     <td className="px-4 py-3 text-xs text-[#003D33]">
                       <div>{getItemsSummary(order)}</div>
                       <div className="text-[11px] text-[#00695C]">
                         {totalItemCount(order)} item(s)
                       </div>
                     </td>
-
-                    {/* Amount */}
                     <td className="px-4 py-3 text-[#C06014] font-bold">
                       ₹{order.totalAmount?.toFixed(2)}
                       <div className="text-[11px] text-[#00695C]">
@@ -352,8 +353,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
                         {order.gstAmount?.toFixed(2)}
                       </div>
                     </td>
-
-                    {/* Payment */}
                     <td className="px-4 py-3 text-xs">
                       <div className="font-semibold text-[#003D33]">
                         {order.paymentMethod === "online" ? "Prepaid" : "COD"}
@@ -370,8 +369,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
                         {order.paymentStatus || "Pending"}
                       </div>
                     </td>
-
-                    {/* Shiprocket Status */}
                     <td className="px-4 py-3 text-xs">
                       <span
                         className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
@@ -399,8 +396,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
                         ))}
                       </div>
                     </td>
-
-                    {/* Actions */}
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <ActionIcon
@@ -418,13 +413,9 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
                   </motion.tr>
                 );
               })}
-
               {!paginatedOrders.length && (
                 <tr>
-                  <td
-                    colSpan="8"
-                    className="text-center text-sm text-[#00695C] py-6"
-                  >
+                  <td colSpan="8" className="text-center text-sm text-[#00695C] py-6">
                     No orders found for selected filters.
                   </td>
                 </tr>
@@ -432,8 +423,7 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
             </tbody>
           </table>
         </div>
-
-        {/* Pagination Bar */}
+        {/* Pagination Bar - unchanged */}
         <div className="flex justify-between items-center gap-3 px-4 py-3 bg-[#F7F3E9] border-t border-[#B2C5B2] text-sm">
           <div className="text-[#00695C]">
             Showing{" "}
@@ -444,7 +434,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
             of <span className="font-semibold">{filteredOrders.length}</span>{" "}
             orders
           </div>
-
           <div className="flex items-center gap-2">
             <button
               onClick={() => handleChangePage(currentPage - 1)}
@@ -453,7 +442,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
             >
               Prev
             </button>
-
             {[...Array(totalPages)].map((_, i) => (
               <button
                 key={i}
@@ -467,7 +455,6 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
                 {i + 1}
               </button>
             ))}
-
             <button
               onClick={() => handleChangePage(currentPage + 1)}
               disabled={currentPage === totalPages}
@@ -479,7 +466,7 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
         </div>
       </div>
 
-      {/* 📱 Mobile Cards */}
+      {/* Mobile Cards (unchanged) */}
       <div className="grid sm:hidden gap-4">
         {paginatedOrders.map((order) => {
           const user = order.userId || {};
@@ -499,18 +486,13 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
                   ₹{order.totalAmount?.toFixed(2)}
                 </span>
               </div>
-
               <p className="text-sm text-[#00695C] mt-1">
                 {user.username || user.name || "Unknown User"}
               </p>
-
               <div className="flex justify-between mt-2 text-xs text-[#00695C]">
                 <span>{totalItemCount(order)} item(s)</span>
-                <span>
-                  {new Date(order.createdAt).toLocaleDateString()}
-                </span>
+                <span>{new Date(order.createdAt).toLocaleDateString()}</span>
               </div>
-
               <div className="mt-3 space-y-1">
                 <span
                   className={`inline-block px-2 py-1 rounded-full text-xs font-semibold ${getStatusColor(
@@ -540,7 +522,7 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
         })}
       </div>
 
-      {/* 🔍 Order Details Modal */}
+      {/* Order Details Modal (unchanged) */}
       {selectedOrder && (
         <OrderDetailsModal
           order={selectedOrder}
@@ -551,7 +533,7 @@ const OrdersTab = ({ orders: initialOrders = [], searchTerm = "" }) => {
   );
 };
 
-/* 🔽 Helper Components */
+/* Helper Components (unchanged) */
 const ActionIcon = ({ icon, onClick, tooltip }) => (
   <motion.button
     whileHover={{ scale: 1.05 }}
